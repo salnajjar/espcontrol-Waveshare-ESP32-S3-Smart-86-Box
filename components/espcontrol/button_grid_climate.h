@@ -91,6 +91,8 @@ struct ClimateControlModalUi {
   lv_obj_t *minus_btn = nullptr;
   lv_obj_t *plus_btn = nullptr;
   lv_obj_t *chips = nullptr;
+  lv_obj_t *mode_chip = nullptr;
+  lv_obj_t *preset_chip = nullptr;
   lv_obj_t *fan_chip = nullptr;
   lv_obj_t *swing_chip = nullptr;
   lv_obj_t *menu_overlay = nullptr;
@@ -1096,9 +1098,14 @@ inline void climate_control_set_modal_value(ClimateControlCtx *ctx) {
   }
   climate_set_obj_visible(ui.minus_btn, temp_enabled);
   climate_set_obj_visible(ui.plus_btn, temp_enabled);
-  climate_update_chip(ui.fan_chip, "Fan", ctx->fan_mode, !ctx->fan_modes.empty());
-  climate_update_chip(ui.swing_chip, "Swing", ctx->swing_mode, !ctx->swing_modes.empty());
-  climate_set_obj_visible(ui.chips, temp_enabled);
+  bool show_chips = ctx->available &&
+    (!ctx->hvac_modes.empty() || !ctx->preset_modes.empty() ||
+     !ctx->fan_modes.empty() || !ctx->swing_modes.empty());
+  climate_update_chip(ui.mode_chip, "Mode", ctx->hvac_mode, ctx->available && !ctx->hvac_modes.empty());
+  climate_update_chip(ui.preset_chip, "Preset", ctx->preset_mode, ctx->available && !ctx->preset_modes.empty());
+  climate_update_chip(ui.fan_chip, "Fan", ctx->fan_mode, ctx->available && !ctx->fan_modes.empty());
+  climate_update_chip(ui.swing_chip, "Swing", ctx->swing_mode, ctx->available && !ctx->swing_modes.empty());
+  climate_set_obj_visible(ui.chips, show_chips);
   climate_update_menu_tile(ui.menu_mode_btn, "Mode", ctx->hvac_mode, !ctx->hvac_modes.empty());
   climate_update_menu_tile(ui.menu_preset_btn, "Preset", ctx->preset_mode, !ctx->preset_modes.empty());
   if (ui.option_list_view) {
@@ -1451,8 +1458,18 @@ inline void climate_control_open_modal(ClimateControlCtx *ctx) {
   lv_obj_set_style_flex_cross_place(ui.chips, LV_FLEX_ALIGN_CENTER, LV_PART_MAIN);
   lv_obj_clear_flag(ui.chips, LV_OBJ_FLAG_SCROLLABLE);
 
+  ui.mode_chip = climate_create_chip(ui.chips, "Mode None", ctx->label_font, DARK_TRACK_BACKGROUND, ctx->width_compensation_percent);
+  ui.preset_chip = climate_create_chip(ui.chips, "Preset None", ctx->label_font, DARK_TRACK_BACKGROUND, ctx->width_compensation_percent);
   ui.fan_chip = climate_create_chip(ui.chips, "Fan None", ctx->label_font, DARK_TRACK_BACKGROUND, ctx->width_compensation_percent);
   ui.swing_chip = climate_create_chip(ui.chips, "Swing None", ctx->label_font, DARK_TRACK_BACKGROUND, ctx->width_compensation_percent);
+  lv_obj_add_event_cb(ui.mode_chip, [](lv_event_t *) {
+    ClimateControlModalUi &ui = climate_control_modal_ui();
+    if (ui.active) climate_open_option_menu(ui.active, "hvac");
+  }, LV_EVENT_CLICKED, nullptr);
+  lv_obj_add_event_cb(ui.preset_chip, [](lv_event_t *) {
+    ClimateControlModalUi &ui = climate_control_modal_ui();
+    if (ui.active) climate_open_option_menu(ui.active, "preset");
+  }, LV_EVENT_CLICKED, nullptr);
   lv_obj_add_event_cb(ui.fan_chip, [](lv_event_t *) {
     ClimateControlModalUi &ui = climate_control_modal_ui();
     if (ui.active) climate_open_option_menu(ui.active, "fan");
