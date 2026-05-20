@@ -118,6 +118,37 @@ assert(
 
 assert.strictEqual(hooks.normalizeTemperatureUnit("fahrenheit"), "\u00b0F");
 assert.strictEqual(hooks.normalizeTemperatureUnit("centigrade"), "\u00b0C");
+const climatePreviewButton = {
+  entity: "climate.home",
+  label: "Home",
+  icon: "Thermostat",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "climate",
+  precision: "",
+  options: "",
+};
+const climatePreviewC = hooks.buttonTypePreviewFor("climate", climatePreviewButton, {
+  temperatureUnit: "\u00b0C",
+});
+assert(climatePreviewC.iconHtml.includes("\u00b0C"), "climate preview uses Celsius unit");
+const climatePreviewF = hooks.buttonTypePreviewFor("climate", climatePreviewButton, {
+  temperatureUnit: "\u00b0F",
+});
+assert(climatePreviewF.iconHtml.includes("\u00b0F"), "climate preview uses Fahrenheit unit");
+const climatePreviewAuto = hooks.buttonTypePreviewFor("climate", climatePreviewButton, {
+  temperatureUnit: "Auto",
+  timezone: "America/New_York (GMT-5)",
+});
+assert(climatePreviewAuto.iconHtml.includes("\u00b0F"), "climate preview follows Auto timezone unit");
+const climateLabelPreview = hooks.buttonTypePreviewFor("climate", {
+  ...climatePreviewButton,
+  options: "label_display=actual",
+}, {
+  temperatureUnit: "\u00b0F",
+});
+assert(climateLabelPreview.labelHtml.includes("21\u00b0F"), "climate actual label includes the configured unit");
 assert.strictEqual(hooks.normalizeScreensaverAction("Screen Dimmed"), "dim");
 assert.strictEqual(hooks.previewHtmlValue({ labelHtml: "" }, "labelHtml", "fallback"), "");
 assert.strictEqual(hooks.previewHtmlValue({}, "labelHtml", "fallback"), "fallback");

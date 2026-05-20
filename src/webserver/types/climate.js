@@ -123,6 +123,7 @@ registerButtonType("climate", {
   renderPreview: function (b, helpers) {
     var climateConfig = parseClimatePrecisionConfig(b.precision);
     var prec = parseInt(climateConfig.precision || "0", 10) || 0;
+    var unit = temperatureUnitSymbol();
     var actualVal = (21).toFixed(prec);
     var targetVal = (20).toFixed(prec);
     var numberVal = climateNumberDisplayMode(b) === "actual" ? actualVal : targetVal;
@@ -131,15 +132,15 @@ registerButtonType("climate", {
     if (labelMode === "status") {
       label = "Idle";
     } else if (labelMode === "actual") {
-      label = actualVal + "\u00B0";
+      label = actualVal + unit;
     } else if (labelMode === "target") {
-      label = targetVal + "\u00B0";
+      label = targetVal + unit;
     }
     return {
       iconHtml:
         '<span class="sp-sensor-preview">' +
           '<span class="sp-sensor-value">' + numberVal + '</span>' +
-          '<span class="sp-sensor-unit">\u00B0</span>' +
+          '<span class="sp-sensor-unit">' + unit + '</span>' +
         '</span>',
       labelHtml:
         '<span class="sp-btn-label-row"><span class="sp-btn-label">' +

@@ -1287,6 +1287,22 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
     screensaverActionOption: screensaverActionOption,
     normalizeScreensaverDimmedBrightness: normalizeScreensaverDimmedBrightness,
     previewHtmlValue: previewHtmlValue,
+    buttonTypePreviewFor: function (type, button, options) {
+      var oldTimezone = state.timezone;
+      var oldUnit = state.temperatureUnit;
+      options = options || {};
+      if (options.timezone != null) state.timezone = options.timezone;
+      if (options.temperatureUnit != null) {
+        state.temperatureUnit = normalizeTemperatureUnit(options.temperatureUnit);
+      }
+      var typeDef = BUTTON_TYPES[type || ""];
+      var preview = typeDef && typeDef.renderPreview
+        ? typeDef.renderPreview(button || {}, { escHtml: escHtml, cardSize: options.cardSize || 1 })
+        : null;
+      state.timezone = oldTimezone;
+      state.temperatureUnit = oldUnit;
+      return preview;
+    },
     networkPreviewIconSlug: networkPreviewIconSlug,
     displayFirmwareVersion: displayFirmwareVersion,
     firmwareVersionFromMetadata: firmwareVersionFromMetadata,
