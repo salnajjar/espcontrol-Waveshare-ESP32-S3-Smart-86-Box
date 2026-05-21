@@ -15,6 +15,7 @@ constexpr int CLIMATE_DEFAULT_STEP_TENTHS = 5;
 constexpr uint32_t CLIMATE_TEMP_DEBOUNCE_MS = 450;
 constexpr int CLIMATE_MODAL_ARC_SIZE_PERCENT = 94;
 constexpr lv_coord_t CLIMATE_MODAL_ARC_UP_REF_PX = 16;
+constexpr lv_coord_t CLIMATE_MODAL_OFF_TEXT_DOWN_REF_PX = 24;
 
 struct ClimateControlCtx {
   std::string entity_id;
@@ -1095,6 +1096,9 @@ inline void climate_control_layout_modal(ClimateControlCtx *ctx) {
   lv_coord_t value_h = ui.target_row ? lv_obj_get_height(ui.target_row) : 0;
   lv_coord_t value_center_y = layout.value_center_y -
     control_modal_scaled_px(22, layout.short_side);
+  if (ctx->available && ctx->hvac_mode == "off") {
+    value_center_y += control_modal_scaled_px(CLIMATE_MODAL_OFF_TEXT_DOWN_REF_PX, layout.short_side);
+  }
   lv_coord_t controls_center_y = layout.controls_center_y -
     control_modal_scaled_px(30, layout.short_side);
   lv_coord_t title_center_y = value_center_y -
