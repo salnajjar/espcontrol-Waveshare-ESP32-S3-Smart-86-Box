@@ -1249,7 +1249,7 @@ inline AlarmCardCtx *create_alarm_card_context(
   ctx->show_status_icon = alarm_card_show_status_icon(p);
   ctx->show_status_label = alarm_card_show_status_label(p);
   ctx->label_font = label_font;
-  ctx->pin_label_font = label_font;
+  ctx->pin_label_font = key_font ? key_font : (label_font ? label_font : value_font);
   ctx->key_label_font = key_font ? key_font : (label_font ? label_font : value_font);
   ctx->icon_font = icon_font;
   ctx->on_color = on_color;
