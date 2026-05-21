@@ -59,7 +59,6 @@ struct AlarmControlModalUi {
   lv_obj_t *mode_label[3] = {};
   lv_obj_t *arming_view = nullptr;
   lv_obj_t *arming_title = nullptr;
-  lv_obj_t *arming_icon_bg = nullptr;
   lv_obj_t *arming_icon = nullptr;
   lv_obj_t *arming_disarm_btn = nullptr;
   lv_obj_t *arming_disarm_label = nullptr;
@@ -942,23 +941,22 @@ inline void alarm_control_create_arming_view(AlarmControlModalUi &ui,
   if (icon_size > layout.panel_w - layout.inset * 2)
     icon_size = layout.panel_w - layout.inset * 2;
   lv_coord_t icon_y = layout.panel_h * 34 / 100;
-  ui.arming_icon_bg = lv_obj_create(ui.arming_view);
-  lv_obj_set_size(ui.arming_icon_bg, icon_size, icon_size);
-  apply_width_compensation(ui.arming_icon_bg, ctx ? ctx->width_compensation_percent : 100);
-  lv_obj_set_style_radius(ui.arming_icon_bg, icon_size / 2, LV_PART_MAIN);
-  lv_obj_set_style_bg_color(ui.arming_icon_bg, lv_color_hex(0x51371D), LV_PART_MAIN);
-  lv_obj_set_style_bg_opa(ui.arming_icon_bg, LV_OPA_COVER, LV_PART_MAIN);
-  lv_obj_set_style_border_width(ui.arming_icon_bg, 0, LV_PART_MAIN);
-  lv_obj_set_style_shadow_width(ui.arming_icon_bg, 0, LV_PART_MAIN);
-  lv_obj_clear_flag(ui.arming_icon_bg, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_pos(ui.arming_icon_bg, (layout.panel_w - icon_size) / 2, icon_y);
+  lv_obj_t *icon_box = lv_obj_create(ui.arming_view);
+  lv_obj_set_size(icon_box, icon_size, icon_size);
+  apply_width_compensation(icon_box, ctx ? ctx->width_compensation_percent : 100);
+  lv_obj_set_style_bg_opa(icon_box, LV_OPA_TRANSP, LV_PART_MAIN);
+  lv_obj_set_style_border_width(icon_box, 0, LV_PART_MAIN);
+  lv_obj_set_style_shadow_width(icon_box, 0, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(icon_box, 0, LV_PART_MAIN);
+  lv_obj_clear_flag(icon_box, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_pos(icon_box, (layout.panel_w - icon_size) / 2, icon_y);
 
-  ui.arming_icon = lv_label_create(ui.arming_icon_bg);
+  ui.arming_icon = lv_label_create(icon_box);
   lv_label_set_text(ui.arming_icon, find_icon("Security"));
   lv_obj_set_style_text_color(ui.arming_icon, lv_color_hex(ctx ? ctx->on_color : DEFAULT_SLIDER_COLOR), LV_PART_MAIN);
   lv_obj_set_style_text_align(ui.arming_icon, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
   if (icon_font) lv_obj_set_style_text_font(ui.arming_icon, icon_font, LV_PART_MAIN);
-  lv_obj_set_style_transform_zoom(ui.arming_icon, 320, LV_PART_MAIN);
+  lv_obj_set_style_transform_zoom(ui.arming_icon, 900, LV_PART_MAIN);
   apply_width_compensation(ui.arming_icon, ctx ? ctx->width_compensation_percent : 100);
   lv_obj_center(ui.arming_icon);
 
