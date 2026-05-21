@@ -260,6 +260,16 @@ inline std::string alarm_state_control_mode(const std::string &state) {
   return "";
 }
 
+inline std::string alarm_control_button_label_for_state(const std::string &mode,
+                                                        const std::string &state,
+                                                        const std::string &arm_mode) {
+  std::string effective_state = alarm_effective_state(state, arm_mode);
+  if (alarm_state_control_mode(effective_state) == mode) {
+    return sentence_cap_text(effective_state);
+  }
+  return alarm_control_button_label(mode);
+}
+
 inline void alarm_control_update_modal(AlarmCardCtx *ctx);
 
 inline bool alarm_control_modal_shows_arming(AlarmCardCtx *ctx) {
@@ -605,6 +615,12 @@ inline void alarm_control_update_modal(AlarmCardCtx *ctx) {
       static_cast<lv_style_selector_t>(LV_PART_MAIN) | static_cast<lv_style_selector_t>(LV_STATE_PRESSED));
     lv_obj_set_style_border_width(btn, 0, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(btn, LV_OPA_COVER, LV_PART_MAIN);
+    if (ui.mode_label[i]) {
+      std::string label = selected
+        ? alarm_control_button_label_for_state(modes[i], ctx->state, ctx->arm_mode)
+        : alarm_control_button_label(modes[i]);
+      lv_label_set_text(ui.mode_label[i], label.c_str());
+    }
   }
 }
 
