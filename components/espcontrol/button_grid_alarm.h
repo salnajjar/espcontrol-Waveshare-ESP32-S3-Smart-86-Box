@@ -1066,9 +1066,11 @@ inline void alarm_control_create_arming_view(AlarmControlModalUi &ui,
   lv_obj_add_flag(ui.arming_view, LV_OBJ_FLAG_HIDDEN);
 
   bool jc4880p443_layout = control_modal_is_jc4880p443_size(layout);
+  lv_coord_t status_center_y = -control_modal_scaled_px(64, layout.short_side);
   lv_coord_t countdown_gap = control_modal_scaled_px(18, layout.short_side);
   lv_coord_t disarm_extra_padding = 0;
   if (jc4880p443_layout) {
+    status_center_y = -control_modal_scaled_px(56, layout.short_side);
     countdown_gap = control_modal_scaled_px(24, layout.short_side);
     disarm_extra_padding = control_modal_scaled_px(24, layout.short_side);
   }
@@ -1080,9 +1082,9 @@ inline void alarm_control_create_arming_view(AlarmControlModalUi &ui,
   if (title_font) lv_obj_set_style_text_font(ui.arming_title, title_font, LV_PART_MAIN);
   apply_width_compensation(ui.arming_title, ctx ? ctx->width_compensation_percent : 100);
   lv_obj_set_width(ui.arming_title, layout.panel_w - layout.inset * 2);
-  lv_obj_align(ui.arming_title, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_align(ui.arming_title, LV_ALIGN_CENTER, 0, status_center_y);
   lv_obj_update_layout(ui.arming_title);
-  lv_coord_t countdown_y = lv_obj_get_height(ui.arming_title) / 2 + countdown_gap;
+  lv_coord_t countdown_y = status_center_y + lv_obj_get_height(ui.arming_title) / 2 + countdown_gap;
 
   ui.arming_countdown = lv_label_create(ui.arming_view);
   lv_label_set_text(ui.arming_countdown, "");
