@@ -303,7 +303,6 @@ inline void send_alarm_action(AlarmActionCtx *action, const std::string &code) {
   req.service = decltype(req.service)(service);
   req.is_event = false;
   req.call_id = next_alarm_call_id();
-  req.wants_response = true;
   req.data.init(code.empty() ? 1 : 2);
   auto &entity_kv = req.data.emplace_back();
   entity_kv.key = decltype(entity_kv.key)("entity_id");

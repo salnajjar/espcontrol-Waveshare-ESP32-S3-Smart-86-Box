@@ -167,7 +167,6 @@ inline void send_cover_command_action(const ParsedCfg &p) {
   req.is_event = false;
   if (wants_stop_response) {
     req.call_id = next_cover_stop_call_id();
-    req.wants_response = true;
   }
   req.data.init(has_position ? 2 : 1);
   auto &entity_kv = req.data.emplace_back();
