@@ -118,6 +118,8 @@ struct ControlModalLayout {
   lv_coord_t panel_w = 472;
   lv_coord_t panel_h = 480;
   lv_coord_t inset = MEDIA_VOLUME_INSET_REF_PX;
+  lv_coord_t back_inset_x = MEDIA_VOLUME_INSET_REF_PX;
+  lv_coord_t back_inset_y = MEDIA_VOLUME_INSET_REF_PX;
   lv_coord_t back_size = MEDIA_VOLUME_BACK_BUTTON_REF_PX;
   lv_coord_t btn_size = MEDIA_VOLUME_BUTTON_REF_PX;
   lv_coord_t arc_stroke = MEDIA_VOLUME_ARC_STROKE_REF_PX;
@@ -132,6 +134,11 @@ struct ControlModalLayout {
 
 inline lv_coord_t control_modal_scaled_px(lv_coord_t px, lv_coord_t short_side) {
   return px * short_side / MEDIA_VOLUME_REFERENCE_SIDE_PX;
+}
+
+inline bool control_modal_is_jc4880p443_size(const ControlModalLayout &layout) {
+  return (layout.sw == 480 && layout.sh == 800) ||
+         (layout.sw == 800 && layout.sh == 480);
 }
 
 inline lv_coord_t control_modal_card_radius(lv_obj_t *btn) {
@@ -164,6 +171,13 @@ inline ControlModalLayout control_modal_calc_layout(int width_compensation_perce
   layout.btn_size = control_modal_scaled_px(MEDIA_VOLUME_BUTTON_REF_PX, layout.short_side);
   layout.inset = control_modal_scaled_px(MEDIA_VOLUME_INSET_REF_PX, layout.short_side);
   if (layout.inset < 8) layout.inset = 8;
+  layout.back_inset_x = layout.inset;
+  layout.back_inset_y = layout.inset;
+  if (control_modal_is_jc4880p443_size(layout)) {
+    lv_coord_t back_offset = control_modal_scaled_px(12, layout.short_side);
+    layout.back_inset_x += back_offset;
+    layout.back_inset_y += back_offset;
+  }
   layout.arc_stroke = control_modal_scaled_px(MEDIA_VOLUME_ARC_STROKE_REF_PX, layout.short_side);
   layout.controls_gap = control_modal_scaled_px(MEDIA_VOLUME_CONTROLS_GAP_REF_PX, layout.short_side);
   layout.title_gap = control_modal_scaled_px(MEDIA_VOLUME_TITLE_GAP_REF_PX, layout.short_side);
@@ -228,7 +242,7 @@ inline void control_modal_apply_back_button_layout(lv_obj_t *btn,
   if (!btn) return;
   lv_obj_set_size(btn, layout.back_size, layout.back_size);
   lv_obj_set_style_radius(btn, layout.back_size / 2, LV_PART_MAIN);
-  lv_obj_align(btn, LV_ALIGN_TOP_LEFT, layout.inset, layout.inset);
+  lv_obj_align(btn, LV_ALIGN_TOP_LEFT, layout.back_inset_x, layout.back_inset_y);
 }
 
 inline void control_modal_apply_arc_layout(lv_obj_t *arc,
