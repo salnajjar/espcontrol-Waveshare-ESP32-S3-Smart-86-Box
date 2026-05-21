@@ -2640,7 +2640,12 @@ function setupPreviewEvents() {
     if (e.target.closest(".sp-subpage-badge")) {
       var btnEl = e.target.closest("[data-slot]");
       if (btnEl) {
-        enterSubpage(parseInt(btnEl.getAttribute("data-slot"), 10));
+        var badgeSlot = parseInt(btnEl.getAttribute("data-slot"), 10);
+        var badgeButton = ctx().buttons[badgeSlot - 1];
+        if (badgeButton && badgeButton.type === "alarm") {
+          syncAlarmActionSubpage(badgeSlot, badgeButton);
+        }
+        enterSubpage(badgeSlot);
         return;
       }
     }

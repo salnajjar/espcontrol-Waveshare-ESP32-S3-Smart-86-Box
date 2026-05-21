@@ -164,7 +164,7 @@ registerButtonType("alarm", {
       iconHtml: '<span class="sp-btn-icon mdi mdi-' + iconName + '"></span>',
       labelHtml:
         '<span class="sp-btn-label-row"><span class="sp-btn-label">' +
-        helpers.escHtml(label) + '</span><span class="sp-alarm-badge mdi mdi-security"></span></span>',
+        helpers.escHtml(label) + '</span><span class="sp-subpage-badge mdi mdi-chevron-right"></span></span>',
     };
   },
   afterSave: function (b, slot, helpers) {
