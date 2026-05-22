@@ -887,28 +887,31 @@ inline void climate_set_dial_controls_visible(bool visible) {
 
 inline void climate_set_step_button_enabled(lv_obj_t *btn, bool enabled) {
   if (!btn) return;
-  uint32_t color = enabled ? DARK_CONTROL_NEUTRAL : DARK_BORDER;
   lv_style_selector_t disabled_selector =
     static_cast<lv_style_selector_t>(LV_PART_MAIN) | static_cast<lv_style_selector_t>(LV_STATE_DISABLED);
   lv_obj_set_style_opa(btn, LV_OPA_COVER, LV_PART_MAIN);
   lv_obj_set_style_bg_color(btn, lv_color_hex(DARK_BACKGROUND_TERTIARY), LV_PART_MAIN);
-  lv_obj_set_style_bg_color(btn, lv_color_hex(DARK_BACKGROUND_TERTIARY), disabled_selector);
-  lv_obj_set_style_bg_opa(btn, LV_OPA_COVER, disabled_selector);
+  lv_obj_set_style_bg_opa(btn, LV_OPA_COVER, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(btn, LV_OPA_TRANSP, disabled_selector);
   lv_obj_set_style_opa(btn, LV_OPA_COVER, disabled_selector);
-  lv_obj_set_style_border_color(btn, lv_color_hex(color), LV_PART_MAIN);
+  lv_obj_set_style_border_color(btn, lv_color_hex(DARK_CONTROL_NEUTRAL), LV_PART_MAIN);
   lv_obj_set_style_border_color(btn, lv_color_hex(DARK_BORDER), disabled_selector);
+
+  lv_obj_t *label = lv_obj_get_child(btn, 0);
+  if (label) {
+    lv_obj_set_style_text_color(label, lv_color_hex(DARK_TEXT_PRIMARY), LV_PART_MAIN);
+    lv_obj_set_style_text_color(label, lv_color_hex(DARK_BORDER), disabled_selector);
+  }
+
   if (enabled) {
     lv_obj_clear_state(btn, LV_STATE_DISABLED);
     lv_obj_add_flag(btn, LV_OBJ_FLAG_CLICKABLE);
+    if (label) lv_obj_clear_state(label, LV_STATE_DISABLED);
   } else {
     lv_obj_add_state(btn, LV_STATE_DISABLED);
     lv_obj_clear_flag(btn, LV_OBJ_FLAG_CLICKABLE);
+    if (label) lv_obj_add_state(label, LV_STATE_DISABLED);
   }
-
-  lv_obj_t *label = lv_obj_get_child(btn, 0);
-  if (!label) return;
-  lv_obj_set_style_text_color(label,
-    lv_color_hex(enabled ? DARK_TEXT_PRIMARY : DARK_BORDER), LV_PART_MAIN);
 }
 
 inline lv_obj_t *climate_create_menu_tile(lv_obj_t *parent, const char *icon,
