@@ -21,10 +21,44 @@ function lockUsesDefaultIcon(icon) {
   return !icon || icon === "Auto" || icon === "Lock" || icon === "Lock Open";
 }
 
+var LOCK_CARD_METADATA = {
+  mode: {
+    label: "Type",
+    idSuffix: "lock-type",
+    options: [
+      ["", "Toggle"],
+      ["lock", "Lock"],
+      ["unlock", "Unlock"],
+    ],
+    value: function (b) {
+      return normalizeLockMode(b.sensor);
+    },
+  },
+  entity: {
+    label: "Entity",
+    idSuffix: "entity",
+    placeholder: "e.g. lock.front_door",
+    domains: ["lock"],
+    bindName: "entity",
+    rerender: true,
+    requiredMessage: "Add an entity before saving.",
+  },
+  labelField: {
+    label: "Label",
+    idSuffix: "label",
+    field: "label",
+    rerender: true,
+  },
+  preview: {
+    badge: "lock",
+  },
+};
+
 registerButtonType("lock", {
   label: "Lock",
   allowInSubpage: true,
   hideLabel: true,
+  cardMetadata: LOCK_CARD_METADATA,
   onSelect: function (b) {
     b.label = "";
     b.sensor = "";
@@ -49,57 +83,49 @@ registerButtonType("lock", {
       helpers.saveField("icon_on", "Lock Open");
     }
 
-    var typeOptions = [
-      ["", "Toggle"],
-      ["lock", "Lock"],
-      ["unlock", "Unlock"],
-    ];
-    var typeField = helpers.selectField("Type", helpers.idPrefix + "lock-type", typeOptions, mode);
-    var typeSelect = typeField.select;
-    panel.appendChild(typeField.field);
+    helpers.renderCardModeSelector(panel, b, helpers, Object.assign({}, LOCK_CARD_METADATA, {
+      mode: Object.assign({}, LOCK_CARD_METADATA.mode, {
+        value: function () { return mode; },
+        onChange: function () {
+          var oldMode = mode;
+          var hadDefaultIcon = lockUsesDefaultIcon(b.icon);
+          mode = normalizeLockMode(this.value);
+          b.sensor = mode;
+          helpers.saveField("sensor", mode);
+          b.unit = "";
+          b.precision = "";
+          helpers.saveField("unit", "");
+          helpers.saveField("precision", "");
+          if (hadDefaultIcon || b.icon === lockModeDefaultIcon(oldMode)) {
+            b.icon = lockModeDefaultIcon(mode);
+            helpers.saveField("icon", b.icon);
+          }
+          if (lockCommandMode(mode)) {
+            b.icon_on = "Auto";
+          } else if (!b.icon_on || b.icon_on === "Auto") {
+            b.icon_on = "Lock Open";
+          }
+          helpers.saveField("icon_on", b.icon_on);
+          renderButtonSettings();
+        },
+      }),
+    }));
 
-    typeSelect.addEventListener("change", function () {
-      var oldMode = mode;
-      var hadDefaultIcon = lockUsesDefaultIcon(b.icon);
-      mode = normalizeLockMode(this.value);
-      b.sensor = mode;
-      helpers.saveField("sensor", mode);
-      b.unit = "";
-      b.precision = "";
-      helpers.saveField("unit", "");
-      helpers.saveField("precision", "");
-      if (hadDefaultIcon || b.icon === lockModeDefaultIcon(oldMode)) {
-        b.icon = lockModeDefaultIcon(mode);
-        helpers.saveField("icon", b.icon);
-      }
-      if (lockCommandMode(mode)) {
-        b.icon_on = "Auto";
-      } else if (!b.icon_on || b.icon_on === "Auto") {
-        b.icon_on = "Lock Open";
-      }
-      helpers.saveField("icon_on", b.icon_on);
-      renderButtonSettings();
-    });
+    helpers.renderCardTextField(panel, b, helpers, Object.assign({}, LOCK_CARD_METADATA.labelField, {
+      placeholder: lockCommandMode(mode) ? "e.g. " + lockModeDefaultLabel(mode) + " Front Door" : "e.g. Front Door",
+    }));
 
-    panel.appendChild(helpers.textField(
-      "Label", helpers.idPrefix + "label", b.label,
-      lockCommandMode(mode) ? "e.g. " + lockModeDefaultLabel(mode) + " Front Door" : "e.g. Front Door",
-      "label", true).field);
-
-    var entityField = helpers.entityField(
-      "Entity", helpers.idPrefix + "entity", b.entity, "e.g. lock.front_door",
-      ["lock"], "entity", true, "Add an entity before saving.");
-    panel.appendChild(entityField.field);
+    helpers.renderCardEntityField(panel, b, helpers, LOCK_CARD_METADATA);
 
     function iconField(label, inputSuffix, field, currentVal, defaultVal) {
-      return helpers.iconPickerField(
-        helpers.idPrefix + inputSuffix + "-picker",
-        helpers.idPrefix + inputSuffix,
-        currentVal,
-        function (opt) {
-        b[field] = opt || defaultVal;
-        helpers.saveField(field, b[field]);
-      }, label);
+      return helpers.renderCardIconPicker(panel, b, helpers, {
+        pickerIdSuffix: inputSuffix + "-picker",
+        idSuffix: inputSuffix,
+        field: field,
+        value: currentVal,
+        fallback: defaultVal,
+        label: label,
+      });
     }
 
     var lockedIconVal = b.icon && b.icon !== "Auto" ? b.icon : "Lock";
@@ -119,9 +145,7 @@ registerButtonType("lock", {
     var label = b.label || (lockCommandMode(mode) ? lockModeDefaultLabel(mode) : b.entity || "Lock");
     return {
       iconHtml: '<span class="sp-btn-icon mdi mdi-' + iconName + '"></span>',
-      labelHtml:
-        '<span class="sp-btn-label-row"><span class="sp-btn-label">' + helpers.escHtml(label) + '</span>' +
-        '<span class="sp-type-badge mdi mdi-lock"></span></span>',
+      labelHtml: cardBadgeLabelHtml(helpers, label, LOCK_CARD_METADATA.preview.badge),
     };
   },
 });

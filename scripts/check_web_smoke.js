@@ -433,6 +433,99 @@ const coverSetPositionPreview = hooks.buttonTypePreviewFor("cover", {
 assert(!coverSetPositionPreview.iconHtml.includes("sp-slider-preview"), "cover set-position preview uses command layout");
 assert(coverSetPositionPreview.labelHtml.includes("mdi-blinds-horizontal"), "cover set-position preview uses the cover badge");
 
+const lockTogglePreview = hooks.buttonTypePreviewFor("lock", {
+  entity: "lock.front_door",
+  label: "Front Door",
+  icon: "Lock",
+  icon_on: "Lock Open",
+  type: "lock",
+});
+assert(lockTogglePreview.iconHtml.includes("mdi-lock"), "lock toggle preview uses the locked icon");
+assert(lockTogglePreview.labelHtml.includes("mdi-lock"), "lock toggle preview uses the lock badge");
+
+const lockCommandPreview = hooks.buttonTypePreviewFor("lock", {
+  entity: "lock.front_door",
+  label: "Lock",
+  icon: "Lock",
+  icon_on: "Auto",
+  sensor: "lock",
+  type: "lock",
+});
+assert(lockCommandPreview.iconHtml.includes("mdi-lock"), "lock command preview uses the lock icon");
+assert(lockCommandPreview.labelHtml.includes("Lock"), "lock command preview uses the command label");
+
+const unlockCommandPreview = hooks.buttonTypePreviewFor("lock", {
+  entity: "lock.front_door",
+  label: "Unlock",
+  icon: "Lock Open",
+  icon_on: "Auto",
+  sensor: "unlock",
+  type: "lock",
+});
+assert(unlockCommandPreview.iconHtml.includes("mdi-lock-open"), "unlock command preview uses the unlock icon");
+
+const garageStatusPreview = hooks.buttonTypePreviewFor("garage", {
+  entity: "cover.garage",
+  label: "Garage Door",
+  icon: "Garage",
+  icon_on: "Garage Open",
+  type: "garage",
+  options: "label_display=status",
+});
+assert(garageStatusPreview.iconHtml.includes("mdi-garage"), "garage status preview uses the garage icon");
+assert(garageStatusPreview.labelHtml.includes("Closed"), "garage status preview uses the status label");
+assert(garageStatusPreview.labelHtml.includes("mdi-garage"), "garage status preview uses the garage badge");
+
+const garageOpenPreview = hooks.buttonTypePreviewFor("garage", {
+  entity: "cover.garage",
+  label: "Open",
+  icon: "Garage Open",
+  icon_on: "Auto",
+  sensor: "open",
+  type: "garage",
+});
+assert(garageOpenPreview.iconHtml.includes("mdi-garage-open"), "garage open command preview uses the open icon");
+assert(garageOpenPreview.labelHtml.includes("mdi-garage"), "garage open command preview uses the garage badge");
+
+const garageClosePreview = hooks.buttonTypePreviewFor("garage", {
+  entity: "cover.garage",
+  label: "Close",
+  icon: "Garage",
+  icon_on: "Auto",
+  sensor: "close",
+  type: "garage",
+});
+assert(garageClosePreview.iconHtml.includes("mdi-garage"), "garage close command preview uses the closed icon");
+
+const pushPreview = hooks.buttonTypePreviewFor("push", {
+  label: "Doorbell",
+  icon: "Gesture Tap",
+  type: "push",
+});
+assert(pushPreview.iconHtml.includes("mdi-gesture-tap"), "push preview uses the trigger icon");
+assert(pushPreview.labelHtml.includes("mdi-gesture-tap"), "push preview uses the trigger badge");
+
+const internalSwitchPreview = hooks.buttonTypePreviewFor("internal", {
+  entity: "relay_1",
+  label: "Relay",
+  icon: "Power Plug",
+  icon_on: "Power",
+  type: "internal",
+});
+assert(internalSwitchPreview.iconHtml.includes("mdi-power-plug"), "internal switch preview uses the configured icon");
+assert(internalSwitchPreview.labelHtml.includes("mdi-power-plug"), "internal switch preview uses the switch badge");
+
+const internalPushPreview = hooks.buttonTypePreviewFor("internal", {
+  entity: "relay_2",
+  label: "Bell",
+  icon: "Gesture Tap",
+  icon_on: "Auto",
+  sensor: "push",
+  type: "internal",
+});
+assert(internalPushPreview.iconHtml.includes("mdi-gesture-tap"), "internal push preview uses the push icon");
+assert(internalPushPreview.labelHtml.includes("mdi-gesture-tap"), "internal push preview uses the push badge");
+
 const mediaVolumePreview = hooks.buttonTypePreviewFor("media", {
   entity: "media_player.kitchen",
   label: "Kitchen",
