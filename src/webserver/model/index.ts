@@ -1,7 +1,13 @@
 export {
+  BACKUP_CONFIG_VERSION,
+  BACKUP_FORMAT,
   backupOrderUsedSlots,
+  backupSource,
   backupPlaceSlotAt,
+  createBackupEnvelope,
+  normalizeBackupEnvelope,
   planBackupButtonLayout,
+  validateBackupEnvelope,
 } from "./backup";
 
 export {
@@ -71,8 +77,12 @@ export type {
 
 export type {
   BackupButtonLayoutPlan,
+  BackupEnvelopeOutputs,
   BackupOrderSlots,
+  BackupSnapshotEnvelope,
+  BackupSource,
   BackupUsedSlot,
+  NormalizedBackupEnvelope,
 } from "./backup";
 
 export type {

@@ -1,7 +1,7 @@
 // ── Backup contract ───────────────────────────────────────────────────
 
-var BACKUP_CONFIG_VERSION = 2;
-var BACKUP_FORMAT = "espcontrol.backup";
+var BACKUP_CONFIG_VERSION = EspControlModel.BACKUP_CONFIG_VERSION;
+var BACKUP_FORMAT = EspControlModel.BACKUP_FORMAT;
 
 function backupConfigError(message) {
   var err = new Error(message);
@@ -35,57 +35,23 @@ function backupSerializeSubpages(subpages) {
 }
 
 function backupSource(data, slots) {
-  var source = data && data.source && typeof data.source === "object" ? data.source : {};
-  return {
-    device: String(source.device || data.device || ""),
-    slots: parseInt(source.slots, 10) || slots || 0,
-  };
+  return EspControlModel.backupSource(data || {}, slots);
 }
 
 function createBackupConfig(snapshot) {
   snapshot = snapshot || {};
   var buttons = (snapshot.buttons || []).map(backupNormalizeButtonConfig);
-  var slots = parseInt(snapshot.slots, 10) || buttons.length;
-  return {
-    version: BACKUP_CONFIG_VERSION,
-    format: BACKUP_FORMAT,
-    device: snapshot.device || "",
-    source: {
-      device: snapshot.device || "",
-      slots: slots,
-    },
-    exported_at: snapshot.exported_at || new Date().toISOString(),
+  return EspControlModel.createBackupEnvelope(snapshot, {
+    buttons: buttons,
+    subpages: backupSerializeSubpages(snapshot.subpages),
     button_order: snapshot.button_order != null
       ? String(snapshot.button_order)
       : backupSerializeGrid(snapshot.grid || [], snapshot.sizes || {}),
-    button_on_color: snapshot.button_on_color || "FF8C00",
-    button_off_color: snapshot.button_off_color || "313131",
-    sensor_card_color: snapshot.sensor_card_color || "212121",
-    buttons: buttons,
-    subpages: backupSerializeSubpages(snapshot.subpages),
-    settings: snapshot.settings || {},
-    screen: snapshot.screen || {},
-  };
+  });
 }
 
 function normalizeBackupConfig(data) {
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
-    throw backupConfigError("Invalid config file - backup must be a JSON object");
-  }
-
-  var version = parseInt(data.version, 10);
-  if (!version || version < 1) {
-    throw backupConfigError("Invalid config file - missing required fields");
-  }
-  if (version > BACKUP_CONFIG_VERSION) {
-    throw backupConfigError("Backup was created by a newer version of EspControl");
-  }
-  if (version >= 2 && data.format !== BACKUP_FORMAT) {
-    throw backupConfigError("Invalid config file - unsupported backup format");
-  }
-  if (!Array.isArray(data.buttons)) {
-    throw backupConfigError("Invalid config file - missing required fields");
-  }
+  data = EspControlModel.validateBackupEnvelope(data);
 
   var buttons = data.buttons.map(backupNormalizeButtonConfig);
   var subpages = {};
@@ -96,25 +62,10 @@ function normalizeBackupConfig(data) {
     }
   }
 
-  return {
-    version: BACKUP_CONFIG_VERSION,
-    format: BACKUP_FORMAT,
-    device: String(data.device || ""),
-    source: backupSource(data, buttons.length),
-    exported_at: data.exported_at || "",
-    button_order: String(data.button_order || ""),
-    button_on_color: data.button_on_color || "FF8C00",
-    button_off_color: data.button_off_color || "313131",
-    sensor_card_color: data.sensor_card_color || "212121",
+  return EspControlModel.normalizeBackupEnvelope(data, {
     buttons: buttons,
     subpages: subpages,
-    settings: data.settings && typeof data.settings === "object" ? data.settings : null,
-    screen: data.screen && typeof data.screen === "object"
-      ? data.screen
-      : (data.settings && data.settings.screen && typeof data.settings.screen === "object"
-        ? data.settings.screen
-        : null),
-  };
+  });
 }
 
 function backupOrderUsedSlots(order, importedCount) {

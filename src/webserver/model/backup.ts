@@ -8,6 +8,48 @@ import {
   type SlotSizeMap,
 } from "./grid";
 
+export const BACKUP_CONFIG_VERSION = 2;
+export const BACKUP_FORMAT = "espcontrol.backup";
+
+export interface BackupSource {
+  device: string;
+  slots: number;
+}
+
+export interface BackupEnvelopeOutputs {
+  buttons: CardConfig[];
+  subpages: Record<string, string>;
+  button_order?: string;
+}
+
+export interface NormalizedBackupEnvelope {
+  version: number;
+  format: string;
+  device: string;
+  source: BackupSource;
+  exported_at: string;
+  button_order: string;
+  button_on_color: string;
+  button_off_color: string;
+  sensor_card_color: string;
+  buttons: CardConfig[];
+  subpages: Record<string, string>;
+  settings: Record<string, unknown> | null;
+  screen: Record<string, unknown> | null;
+}
+
+export interface BackupSnapshotEnvelope {
+  device?: string;
+  slots?: unknown;
+  exported_at?: string;
+  button_order?: unknown;
+  button_on_color?: string;
+  button_off_color?: string;
+  sensor_card_color?: string;
+  settings?: Record<string, unknown>;
+  screen?: Record<string, unknown>;
+}
+
 export interface BackupUsedSlot {
   oldSlot: number;
   size: number;
@@ -24,6 +66,95 @@ export interface BackupButtonLayoutPlan {
   button_order: string;
   importedSizes: SlotSizeMap;
   slotMap: Record<string, number>;
+}
+
+function backupConfigError(message: string): Error & { backupMessage: string } {
+  const err = new Error(message) as Error & { backupMessage: string };
+  err.backupMessage = message;
+  return err;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+export function validateBackupEnvelope(data: unknown): Record<string, unknown> {
+  if (!isRecord(data)) {
+    throw backupConfigError("Invalid config file - backup must be a JSON object");
+  }
+
+  const version = parseInt(String(data.version), 10);
+  if (!version || version < 1) {
+    throw backupConfigError("Invalid config file - missing required fields");
+  }
+  if (version > BACKUP_CONFIG_VERSION) {
+    throw backupConfigError("Backup was created by a newer version of EspControl");
+  }
+  if (version >= 2 && data.format !== BACKUP_FORMAT) {
+    throw backupConfigError("Invalid config file - unsupported backup format");
+  }
+  if (!Array.isArray(data.buttons)) {
+    throw backupConfigError("Invalid config file - missing required fields");
+  }
+
+  return data;
+}
+
+export function backupSource(data: Record<string, unknown>, slots: number): BackupSource {
+  const source = isRecord(data.source) ? data.source : {};
+  return {
+    device: String(source.device || data.device || ""),
+    slots: parseInt(String(source.slots), 10) || slots || 0,
+  };
+}
+
+export function createBackupEnvelope(
+  snapshot: BackupSnapshotEnvelope,
+  outputs: BackupEnvelopeOutputs,
+): NormalizedBackupEnvelope {
+  const slots = parseInt(String(snapshot.slots), 10) || outputs.buttons.length;
+  const device = snapshot.device || "";
+  return {
+    version: BACKUP_CONFIG_VERSION,
+    format: BACKUP_FORMAT,
+    device,
+    source: {
+      device,
+      slots,
+    },
+    exported_at: snapshot.exported_at || new Date().toISOString(),
+    button_order: outputs.button_order != null ? String(outputs.button_order) : "",
+    button_on_color: snapshot.button_on_color || "FF8C00",
+    button_off_color: snapshot.button_off_color || "313131",
+    sensor_card_color: snapshot.sensor_card_color || "212121",
+    buttons: outputs.buttons,
+    subpages: outputs.subpages,
+    settings: snapshot.settings || {},
+    screen: snapshot.screen || {},
+  };
+}
+
+export function normalizeBackupEnvelope(
+  data: Record<string, unknown>,
+  outputs: BackupEnvelopeOutputs,
+): NormalizedBackupEnvelope {
+  return {
+    version: BACKUP_CONFIG_VERSION,
+    format: BACKUP_FORMAT,
+    device: String(data.device || ""),
+    source: backupSource(data, outputs.buttons.length),
+    exported_at: String(data.exported_at || ""),
+    button_order: String(data.button_order || ""),
+    button_on_color: String(data.button_on_color || "FF8C00"),
+    button_off_color: String(data.button_off_color || "313131"),
+    sensor_card_color: String(data.sensor_card_color || "212121"),
+    buttons: outputs.buttons,
+    subpages: outputs.subpages,
+    settings: isRecord(data.settings) ? data.settings : null,
+    screen: isRecord(data.screen)
+      ? data.screen
+      : (isRecord(data.settings) && isRecord(data.settings.screen) ? data.settings.screen : null),
+  };
 }
 
 export function backupOrderUsedSlots(

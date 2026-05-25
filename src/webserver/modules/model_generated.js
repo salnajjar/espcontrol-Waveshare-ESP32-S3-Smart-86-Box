@@ -25,6 +25,8 @@ var EspControlModel = (() => {
   // src/webserver/model/index.ts
   var index_exports = {};
   __export(index_exports, {
+    BACKUP_CONFIG_VERSION: () => BACKUP_CONFIG_VERSION,
+    BACKUP_FORMAT: () => BACKUP_FORMAT,
     CARD_CONFIG_FIELDS: () => CARD_CONFIG_FIELDS,
     MONTH_NAME_DEFAULTS: () => MONTH_NAME_DEFAULTS,
     applySpans: () => applySpans,
@@ -32,18 +34,21 @@ var EspControlModel = (() => {
     backOrderToken: () => backOrderToken,
     backupOrderUsedSlots: () => backupOrderUsedSlots,
     backupPlaceSlotAt: () => backupPlaceSlotAt,
+    backupSource: () => backupSource,
     buildSubpageGrid: () => buildSubpageGrid,
     cardConfigChanged: () => cardConfigChanged,
     clearSpans: () => clearSpans,
     cloneCardConfig: () => cloneCardConfig,
     copyCardConfig: () => copyCardConfig,
     coveredCells: () => coveredCells,
+    createBackupEnvelope: () => createBackupEnvelope,
     decodeConfigField: () => decodeConfigField,
     emptyCardConfig: () => emptyCardConfig,
     encodeConfigField: () => encodeConfigField,
     isBackOrderToken: () => isBackOrderToken,
     legacyButtonConfigSafe: () => legacyButtonConfigSafe,
     markSpannedCells: () => markSpannedCells,
+    normalizeBackupEnvelope: () => normalizeBackupEnvelope,
     normalizeBackupPanelSettings: () => normalizeBackupPanelSettings,
     normalizeBackupScreenSettings: () => normalizeBackupScreenSettings,
     normalizeClockBrightness: () => normalizeClockBrightness,
@@ -74,7 +79,8 @@ var EspControlModel = (() => {
     sizeRowSpan: () => sizeRowSpan,
     sizeToken: () => sizeToken,
     subpageOrderForSerialize: () => subpageOrderForSerialize,
-    trimConfigFields: () => trimConfigFields
+    trimConfigFields: () => trimConfigFields,
+    validateBackupEnvelope: () => validateBackupEnvelope
   });
 
   // src/webserver/model/card.ts
@@ -293,6 +299,81 @@ var EspControlModel = (() => {
   }
 
   // src/webserver/model/backup.ts
+  var BACKUP_CONFIG_VERSION = 2;
+  var BACKUP_FORMAT = "espcontrol.backup";
+  function backupConfigError(message) {
+    const err = new Error(message);
+    err.backupMessage = message;
+    return err;
+  }
+  function isRecord(value) {
+    return !!value && typeof value === "object" && !Array.isArray(value);
+  }
+  function validateBackupEnvelope(data) {
+    if (!isRecord(data)) {
+      throw backupConfigError("Invalid config file - backup must be a JSON object");
+    }
+    const version = parseInt(String(data.version), 10);
+    if (!version || version < 1) {
+      throw backupConfigError("Invalid config file - missing required fields");
+    }
+    if (version > BACKUP_CONFIG_VERSION) {
+      throw backupConfigError("Backup was created by a newer version of EspControl");
+    }
+    if (version >= 2 && data.format !== BACKUP_FORMAT) {
+      throw backupConfigError("Invalid config file - unsupported backup format");
+    }
+    if (!Array.isArray(data.buttons)) {
+      throw backupConfigError("Invalid config file - missing required fields");
+    }
+    return data;
+  }
+  function backupSource(data, slots) {
+    const source = isRecord(data.source) ? data.source : {};
+    return {
+      device: String(source.device || data.device || ""),
+      slots: parseInt(String(source.slots), 10) || slots || 0
+    };
+  }
+  function createBackupEnvelope(snapshot, outputs) {
+    const slots = parseInt(String(snapshot.slots), 10) || outputs.buttons.length;
+    const device = snapshot.device || "";
+    return {
+      version: BACKUP_CONFIG_VERSION,
+      format: BACKUP_FORMAT,
+      device,
+      source: {
+        device,
+        slots
+      },
+      exported_at: snapshot.exported_at || (/* @__PURE__ */ new Date()).toISOString(),
+      button_order: outputs.button_order != null ? String(outputs.button_order) : "",
+      button_on_color: snapshot.button_on_color || "FF8C00",
+      button_off_color: snapshot.button_off_color || "313131",
+      sensor_card_color: snapshot.sensor_card_color || "212121",
+      buttons: outputs.buttons,
+      subpages: outputs.subpages,
+      settings: snapshot.settings || {},
+      screen: snapshot.screen || {}
+    };
+  }
+  function normalizeBackupEnvelope(data, outputs) {
+    return {
+      version: BACKUP_CONFIG_VERSION,
+      format: BACKUP_FORMAT,
+      device: String(data.device || ""),
+      source: backupSource(data, outputs.buttons.length),
+      exported_at: String(data.exported_at || ""),
+      button_order: String(data.button_order || ""),
+      button_on_color: String(data.button_on_color || "FF8C00"),
+      button_off_color: String(data.button_off_color || "313131"),
+      sensor_card_color: String(data.sensor_card_color || "212121"),
+      buttons: outputs.buttons,
+      subpages: outputs.subpages,
+      settings: isRecord(data.settings) ? data.settings : null,
+      screen: isRecord(data.screen) ? data.screen : isRecord(data.settings) && isRecord(data.settings.screen) ? data.settings.screen : null
+    };
+  }
   function backupOrderUsedSlots(order, importedCount) {
     const parts = String(order || "").split(",");
     const usedSlots = [];
