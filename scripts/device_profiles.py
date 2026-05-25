@@ -16,6 +16,7 @@ COMMON_ASSETS = ROOT / "common" / "assets"
 DEVICES_DIR = ROOT / "devices"
 
 VALID_CHIP_FAMILIES = {"ESP32-P4", "ESP32-S3"}
+VALID_DRAG_MODES = {"swap", "displace"}
 VALID_ROTATIONS = {"0", "90", "180", "270"}
 REQUIRED_FONT_ROLES = (
     "icon",
@@ -162,6 +163,31 @@ def validate_fonts(
             errors.append(device_error(slug, f"firmware.fonts.{role} references unknown font id {font_id!r}"))
 
 
+def validate_display(slug: str, device: dict[str, Any], errors: list[str]) -> None:
+    firmware = device.get("firmware")
+    if not isinstance(firmware, dict):
+        return
+    display = require_object(slug, errors, firmware.get("display"), "firmware.display")
+    if display is None:
+        return
+
+    if not isinstance(display.get("wrapTallLabels"), bool):
+        errors.append(device_error(slug, "firmware.display.wrapTallLabels must be true or false"))
+
+    for key in ("widthCompensationPercent", "volumeWidthCompensationPercent"):
+        if key in display and not is_number(display[key]):
+            errors.append(device_error(slug, f"firmware.display.{key} must be a number when set"))
+
+    correction = display.get("colorCorrection")
+    if correction is not None:
+        if not isinstance(correction, dict):
+            errors.append(device_error(slug, "firmware.display.colorCorrection must be an object when set"))
+        else:
+            for key in ("redPercent", "greenPercent", "bluePercent"):
+                if key in correction and not is_number(correction[key]):
+                    errors.append(device_error(slug, f"firmware.display.colorCorrection.{key} must be a number when set"))
+
+
 def validate_rotation(slug: str, device: dict[str, Any], errors: list[str]) -> None:
     if "rotation" not in device:
         return
@@ -199,6 +225,8 @@ def validate_rotation(slug: str, device: dict[str, Any], errors: list[str]) -> N
 
     if "displayOffset" in rotation and not is_number(rotation["displayOffset"]):
         errors.append(device_error(slug, "rotation.displayOffset must be a number when set"))
+    if "rotateWidthCompensation" in rotation and not isinstance(rotation["rotateWidthCompensation"], bool):
+        errors.append(device_error(slug, "rotation.rotateWidthCompensation must be true or false when set"))
 
 
 def validate_internal_relays(slug: str, device: dict[str, Any], errors: list[str]) -> None:
@@ -237,6 +265,14 @@ def validate_package(slug: str, device: dict[str, Any], errors: list[str]) -> No
     if package is None:
         return
 
+    for key in ("firmwareVersion", "deviceFontPackageKey"):
+        if key in package and (not isinstance(package.get(key), str) or not package.get(key)):
+            errors.append(device_error(slug, f"firmware.package.{key} must be a non-empty string when set"))
+
+    for key in ("networkCoprocessor", "ethernetSelectable", "improvSerial"):
+        if key in package and not isinstance(package[key], bool):
+            errors.append(device_error(slug, f"firmware.package.{key} must be true or false when set"))
+
     substitutions = package.get("substitutions")
     if not isinstance(substitutions, dict) or not substitutions:
         errors.append(device_error(slug, "firmware.package.substitutions must be a non-empty object"))
@@ -247,7 +283,7 @@ def validate_package(slug: str, device: dict[str, Any], errors: list[str]) -> No
             if not isinstance(value, str) or not value:
                 errors.append(device_error(slug, f"firmware.package.substitutions.{key} must be a non-empty string"))
 
-    if package.get("ethernetSelectable"):
+    if package.get("ethernetSelectable") or "backlightPwmFrequency" in package:
         frequencies = require_object(
             slug,
             errors,
@@ -263,6 +299,78 @@ def validate_package(slug: str, device: dict[str, Any], errors: list[str]) -> No
                             f"firmware.package.backlightPwmFrequency.{key} must be a non-empty string",
                         )
                     )
+
+
+def validate_screen_box(slug: str, errors: list[str], value: Any, name: str) -> None:
+    screen = require_object(slug, errors, value, name)
+    if screen is None:
+        return
+    for key in ("width", "aspect"):
+        if not isinstance(screen.get(key), str) or not screen.get(key):
+            errors.append(device_error(slug, f"{name}.{key} must be a non-empty string"))
+    aspect = screen.get("aspect")
+    if isinstance(aspect, str) and not re.fullmatch(r"[1-9]\d*/[1-9]\d*", aspect):
+        errors.append(device_error(slug, f"{name}.aspect must look like '1024/600'"))
+
+
+def validate_numeric_fields(slug: str, errors: list[str], value: Any, name: str, fields: tuple[str, ...]) -> None:
+    block = require_object(slug, errors, value, name)
+    if block is None:
+        return
+    for key in fields:
+        if not is_number(block.get(key)):
+            errors.append(device_error(slug, f"{name}.{key} must be a number"))
+
+
+def validate_web(slug: str, device: dict[str, Any], errors: list[str]) -> None:
+    web = require_object(slug, errors, device.get("web"), "web")
+    if web is None:
+        return
+
+    if web.get("dragMode") not in VALID_DRAG_MODES:
+        errors.append(device_error(slug, "web.dragMode must be swap or displace"))
+    if not isinstance(web.get("dragAnimation"), bool):
+        errors.append(device_error(slug, "web.dragAnimation must be true or false"))
+
+    validate_screen_box(slug, errors, web.get("screen"), "web.screen")
+
+    portrait = web.get("portrait")
+    if portrait is not None:
+        portrait_obj = require_object(slug, errors, portrait, "web.portrait")
+        if portrait_obj is not None:
+            for key in ("cols", "rows"):
+                if not is_positive_int(portrait_obj.get(key)):
+                    errors.append(device_error(slug, f"web.portrait.{key} must be a positive integer"))
+            validate_screen_box(slug, errors, portrait_obj.get("screen"), "web.portrait.screen")
+
+    topbar = require_object(slug, errors, web.get("topbar"), "web.topbar")
+    if topbar is not None:
+        for key in ("height", "fontSize"):
+            if not is_number(topbar.get(key)):
+                errors.append(device_error(slug, f"web.topbar.{key} must be a number"))
+        if not isinstance(topbar.get("padding"), str) or not topbar.get("padding"):
+            errors.append(device_error(slug, "web.topbar.padding must be a non-empty string"))
+
+    grid = require_object(slug, errors, web.get("grid"), "web.grid")
+    if grid is not None:
+        for key in ("top", "compactTop", "left", "right", "bottom", "gap"):
+            if not is_number(grid.get(key)):
+                errors.append(device_error(slug, f"web.grid.{key} must be a number"))
+        if not isinstance(grid.get("fr"), str) or not grid.get("fr"):
+            errors.append(device_error(slug, "web.grid.fr must be a non-empty string"))
+
+    btn = require_object(slug, errors, web.get("btn"), "web.btn")
+    if btn is not None:
+        for key in ("radius", "padding", "iconSize", "labelSize"):
+            if not is_number(btn.get(key)):
+                errors.append(device_error(slug, f"web.btn.{key} must be a number"))
+        for key in ("labelLines", "labelLinesDouble"):
+            if not is_positive_int(btn.get(key)):
+                errors.append(device_error(slug, f"web.btn.{key} must be a positive integer"))
+
+    validate_numeric_fields(slug, errors, web.get("emptyCell"), "web.emptyCell", ("radius",))
+    validate_numeric_fields(slug, errors, web.get("sensorBadge"), "web.sensorBadge", ("top", "right", "fontSize"))
+    validate_numeric_fields(slug, errors, web.get("subpageBadge"), "web.subpageBadge", ("bottom", "right", "fontSize"))
 
 
 def validate_manifest_data(data: Any, shared_font_ids: set[str] | None = None) -> list[str]:
@@ -284,9 +392,11 @@ def validate_manifest_data(data: Any, shared_font_ids: set[str] | None = None) -
             continue
         validate_layout(slug, device, errors)
         validate_fonts(slug, device, shared_font_ids, errors)
+        validate_display(slug, device, errors)
         validate_rotation(slug, device, errors)
         validate_internal_relays(slug, device, errors)
         validate_package(slug, device, errors)
+        validate_web(slug, device, errors)
 
     return errors
 
