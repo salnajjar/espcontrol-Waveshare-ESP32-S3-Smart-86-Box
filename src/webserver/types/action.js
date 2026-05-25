@@ -114,6 +114,12 @@ var ACTION_CARD_METADATA = {
       ["text", "Text"],
     ],
   },
+  stateUnitField: {
+    label: "Unit",
+    idSuffix: "action-state-unit",
+    placeholder: "e.g. %",
+    bindName: null,
+  },
   preview: {
     optionBadge: "chevron-down",
     actionBadge: "flash",
@@ -233,11 +239,10 @@ registerButtonType("action", {
     var stateEntityInp = stateEntityField.input;
 
     var numericSection = condField();
-    var stateUnitField = helpers.textField(
-      "Unit", helpers.idPrefix + "action-state-unit", stateUnit, "e.g. %");
+    var stateUnitField = helpers.renderCardTextField(numericSection, b, helpers, Object.assign({}, ACTION_CARD_METADATA.stateUnitField, {
+      value: function () { return stateUnit; },
+    }));
     var stateUnitInp = stateUnitField.input;
-    stateUnitInp.className = "sp-input";
-    numericSection.appendChild(stateUnitField.field);
 
     var statePrecisionField = helpers.precisionField(
       helpers.idPrefix + "action-state-precision",

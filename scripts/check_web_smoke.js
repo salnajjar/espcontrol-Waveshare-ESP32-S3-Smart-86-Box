@@ -55,6 +55,7 @@ function assertGeneratedRotationOptions(slug, generated, key, options) {
 
 const hooks = loadHooks();
 assert(hooks, "web test hooks were not exported");
+assert.deepStrictEqual(Array.from(hooks.buttonTypesMissingCardMetadata()), [], "all registered card types define card metadata");
 assert.deepStrictEqual(Array.from(hooks.SSE_ALIAS_GROUPS.clockBar), [
   "switch-screen__clock_bar",
   "switch-screen_clock_bar",

@@ -249,6 +249,7 @@
   // ── Button type plugin registry ──────────────────────────────────────
   var BUTTON_TYPES = {};
   function registerButtonType(key, def) {
+    // New button types should define cardMetadata for shared settings and preview plumbing.
     BUTTON_TYPES[key] = Object.assign({
       key: key,
       label: key || "Toggle",

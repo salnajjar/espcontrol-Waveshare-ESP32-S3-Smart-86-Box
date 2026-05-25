@@ -25,6 +25,13 @@ var WEATHER_CARD_METADATA = {
     rerender: true,
     requiredMessage: "Add an entity before saving.",
   },
+  labelField: {
+    label: "Label",
+    idSuffix: "label",
+    placeholder: function (b) {
+      return "e.g. " + weatherCardDefaultForecastLabel(b);
+    },
+  },
   largeNumbers: {
     label: "Large Temperature Numbers",
     idSuffix: "large-weather-numbers",
@@ -64,12 +71,9 @@ registerButtonType("weather", {
 
     helpers.renderCardEntityField(panel, b, helpers, WEATHER_CARD_METADATA);
 
-    var labelControl = helpers.textField(
-      "Label", helpers.idPrefix + "label", b.label, "e.g. " + weatherCardDefaultForecastLabel(b),
-      "label", true);
+    var labelControl = helpers.renderCardTextField(panel, b, helpers, WEATHER_CARD_METADATA.labelField);
     var labelField = labelControl.field;
     var labelInp = labelControl.input;
-    panel.appendChild(labelField);
 
     var largeNumbersToggle = helpers.renderCardLargeNumbersToggle(panel, b, helpers, WEATHER_CARD_METADATA);
 

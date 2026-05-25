@@ -49,6 +49,13 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
       state.developerExperimentalFeatures = oldExperimental;
       return visible;
     },
+    buttonTypesMissingCardMetadata: function () {
+      var missing = [];
+      for (var key in BUTTON_TYPES) {
+        if (!BUTTON_TYPES[key].cardMetadata) missing.push(key);
+      }
+      return missing.sort();
+    },
     parseSubpageConfig: parseSubpageConfig,
     serializeSubpageConfig: serializeSubpageConfig,
     buildSubpageGrid: buildSubpageGrid,
