@@ -27,6 +27,8 @@ var EspControlModel = (() => {
   __export(index_exports, {
     CARD_CONFIG_FIELDS: () => CARD_CONFIG_FIELDS,
     applySpans: () => applySpans,
+    backLabelFromOrder: () => backLabelFromOrder,
+    backOrderToken: () => backOrderToken,
     cardConfigChanged: () => cardConfigChanged,
     clearSpans: () => clearSpans,
     cloneCardConfig: () => cloneCardConfig,
@@ -37,14 +39,17 @@ var EspControlModel = (() => {
     encodeConfigField: () => encodeConfigField,
     legacyButtonConfigSafe: () => legacyButtonConfigSafe,
     markSpannedCells: () => markSpannedCells,
+    parseBackOrderToken: () => parseBackOrderToken,
     parseGridOrder: () => parseGridOrder,
     parseRawButtonConfig: () => parseRawButtonConfig,
+    parseSubpageOrder: () => parseSubpageOrder,
     serializeGridOrder: () => serializeGridOrder,
     sizeColSpan: () => sizeColSpan,
     sizeFitsAt: () => sizeFitsAt,
     sizeFromToken: () => sizeFromToken,
     sizeRowSpan: () => sizeRowSpan,
     sizeToken: () => sizeToken,
+    subpageOrderForSerialize: () => subpageOrderForSerialize,
     trimConfigFields: () => trimConfigFields
   });
 
@@ -261,6 +266,60 @@ var EspControlModel = (() => {
     for (let i = 0; i < maxSlots; i += 1) {
       if (grid[i] === -1) grid[i] = 0;
     }
+  }
+
+  // src/webserver/model/subpage.ts
+  var BACK_TOKENS = /* @__PURE__ */ new Set(["B", "Bd", "Bw", "Bb", "Bt", "Bx"]);
+  function parseBackOrderToken(value) {
+    const raw = String(value || "").trim();
+    const eq = raw.indexOf("=");
+    const token = eq >= 0 ? raw.substring(0, eq) : raw;
+    const label = eq >= 0 ? decodeConfigField(raw.substring(eq + 1)) : "Back";
+    if (!BACK_TOKENS.has(token)) {
+      return { token: raw, label: "Back" };
+    }
+    return { token, label: label || "Back" };
+  }
+  function backOrderToken(baseToken, label) {
+    const token = parseBackOrderToken(baseToken).token;
+    const text = label || "Back";
+    return text === "Back" ? token : token + "=" + encodeConfigField(text);
+  }
+  function backLabelFromOrder(order) {
+    for (const item of order || []) {
+      const parsed = parseBackOrderToken(item);
+      if (BACK_TOKENS.has(parsed.token)) {
+        return parsed.label || "Back";
+      }
+    }
+    return "Back";
+  }
+  function parseSubpageOrder(orderStr) {
+    const order = [];
+    let backLabel = "Back";
+    if (orderStr) {
+      const parts = orderStr.split(",");
+      for (const part of parts) {
+        const parsed = parseBackOrderToken(part);
+        order.push(parsed.token);
+        if (BACK_TOKENS.has(parsed.token)) {
+          backLabel = parsed.label || "Back";
+        }
+      }
+    }
+    return { order, backLabel };
+  }
+  function subpageOrderForSerialize(order, backLabel) {
+    const out = [];
+    for (const item of order || []) {
+      const parsed = parseBackOrderToken(item);
+      if (BACK_TOKENS.has(parsed.token)) {
+        out.push(backOrderToken(parsed.token, backLabel || parsed.label || "Back"));
+      } else {
+        out.push(parsed.token);
+      }
+    }
+    return out;
   }
   return __toCommonJS(index_exports);
 })();

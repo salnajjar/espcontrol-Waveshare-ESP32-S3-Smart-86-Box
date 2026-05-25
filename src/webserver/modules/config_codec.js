@@ -754,63 +754,23 @@ function buttonConfigNeedsMigration(str) {
 }
 
 function parseBackOrderToken(value) {
-  var raw = String(value || "").trim();
-  var eq = raw.indexOf("=");
-  var token = eq >= 0 ? raw.substring(0, eq) : raw;
-  var label = eq >= 0 ? decodeSubpageField(raw.substring(eq + 1)) : "Back";
-  if (token !== "B" && token !== "Bd" && token !== "Bw" && token !== "Bb" &&
-      token !== "Bt" && token !== "Bx") {
-    return { token: raw, label: "Back" };
-  }
-  return { token: token, label: label || "Back" };
+  return EspControlModel.parseBackOrderToken(value);
 }
 
 function backOrderToken(baseToken, label) {
-  var token = parseBackOrderToken(baseToken).token;
-  var text = label || "Back";
-  return text === "Back" ? token : token + "=" + encodeSubpageField(text);
+  return EspControlModel.backOrderToken(baseToken, label);
 }
 
 function backLabelFromOrder(order) {
-  for (var i = 0; i < (order || []).length; i++) {
-    var parsed = parseBackOrderToken(order[i]);
-    if (parsed.token === "B" || parsed.token === "Bd" || parsed.token === "Bw" ||
-        parsed.token === "Bb" || parsed.token === "Bt" || parsed.token === "Bx") {
-      return parsed.label || "Back";
-    }
-  }
-  return "Back";
+  return EspControlModel.backLabelFromOrder(order);
 }
 
 function parseSubpageOrder(orderStr) {
-  var order = [];
-  var backLabel = "Back";
-  if (orderStr) {
-    var op = orderStr.split(",");
-    for (var i = 0; i < op.length; i++) {
-      var parsed = parseBackOrderToken(op[i]);
-      order.push(parsed.token);
-      if (parsed.token === "B" || parsed.token === "Bd" || parsed.token === "Bw" ||
-          parsed.token === "Bb" || parsed.token === "Bt" || parsed.token === "Bx") {
-        backLabel = parsed.label || "Back";
-      }
-    }
-  }
-  return { order: order, backLabel: backLabel };
+  return EspControlModel.parseSubpageOrder(orderStr);
 }
 
 function subpageOrderForSerialize(sp) {
-  var order = [];
-  for (var i = 0; i < ((sp && sp.order) || []).length; i++) {
-    var parsed = parseBackOrderToken(sp.order[i]);
-    if (parsed.token === "B" || parsed.token === "Bd" || parsed.token === "Bw" ||
-        parsed.token === "Bb" || parsed.token === "Bt" || parsed.token === "Bx") {
-      order.push(backOrderToken(parsed.token, sp.backLabel || parsed.label || "Back"));
-    } else {
-      order.push(parsed.token);
-    }
-  }
-  return order;
+  return EspControlModel.subpageOrderForSerialize((sp && sp.order) || [], sp && sp.backLabel);
 }
 
 function subpageSerializedOrder(sp) {
