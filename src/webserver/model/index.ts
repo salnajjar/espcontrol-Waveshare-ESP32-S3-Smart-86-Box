@@ -28,8 +28,11 @@ export {
 export {
   backLabelFromOrder,
   backOrderToken,
+  buildSubpageGrid,
+  isBackOrderToken,
   parseBackOrderToken,
   parseSubpageOrder,
+  serializeSubpageGrid,
   subpageOrderForSerialize,
 } from "./subpage";
 
@@ -45,4 +48,5 @@ export type {
 export type {
   BackOrderToken,
   ParsedSubpageOrder,
+  SubpageGridSource,
 } from "./subpage";

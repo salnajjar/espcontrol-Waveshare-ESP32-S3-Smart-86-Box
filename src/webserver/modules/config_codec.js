@@ -1097,78 +1097,14 @@ function getSubpage(homeSlot) {
 }
 
 function buildSubpageGrid(sp) {
-  var grid = [];
-  for (var i = 0; i < NUM_SLOTS; i++) grid.push(0);
-  sp.sizes = sp.sizes || {};
-  if (sp.order.length > 0) {
-    var hasBack = false;
-    for (var i = 0; i < sp.order.length; i++) {
-      var t = parseBackOrderToken(sp.order[i]).token;
-      if (t === "B" || t === "Bd" || t === "Bw" || t === "Bb" || t === "Bt" || t === "Bx") { hasBack = true; break; }
-    }
-    if (hasBack) {
-      for (var i = 0; i < sp.order.length && i < NUM_SLOTS; i++) {
-        var s = parseBackOrderToken(sp.order[i]).token;
-        if (!s) continue;
-        if (s === "B" || s === "Bd" || s === "Bw" || s === "Bb" || s === "Bt" || s === "Bx") {
-          grid[i] = -2;
-          var backSize = sizeFromToken(s.charAt(1));
-          if (backSize > 1) sp.sizes[-2] = backSize;
-          else delete sp.sizes[-2];
-          continue;
-        }
-        var last = s.charAt(s.length - 1);
-        var parsedSize = sizeFromToken(last);
-        var n = parseInt(s, 10);
-        if (n >= 1 && n <= sp.buttons.length && !isNaN(n)) {
-          grid[i] = n;
-          if (parsedSize > 1) sp.sizes[n] = parsedSize;
-        }
-      }
-    } else {
-      grid[0] = -2;
-      delete sp.sizes[-2];
-      for (var i = 0; i < sp.order.length && i + 1 < NUM_SLOTS; i++) {
-        var s = parseBackOrderToken(sp.order[i]).token;
-        if (!s) continue;
-        var last = s.charAt(s.length - 1);
-        var parsedSize = sizeFromToken(last);
-        var n = parseInt(s, 10);
-        if (n >= 1 && n <= sp.buttons.length && !isNaN(n)) {
-          grid[i + 1] = n;
-          if (parsedSize > 1) sp.sizes[n] = parsedSize;
-        }
-      }
-    }
-  } else {
-    grid[0] = -2;
-    delete sp.sizes[-2];
-  }
-  applySpans(grid, sp.sizes, NUM_SLOTS);
-  sp.grid = grid;
-  return grid;
+  var result = EspControlModel.buildSubpageGrid(sp, NUM_SLOTS, GRID_COLS);
+  sp.grid = result.grid;
+  sp.sizes = result.sizes;
+  return sp.grid;
 }
 
 function serializeSubpageGrid(sp) {
-  var grid = sp.grid;
-  var last = -1;
-  for (var i = grid.length - 1; i >= 0; i--) {
-    if (grid[i] > 0 || grid[i] === -2) { last = i; break; }
-  }
-  if (last < 0) return [];
-  var order = [];
-  for (var i = 0; i <= last; i++) {
-    if (grid[i] === -2) {
-      var bsz = sp.sizes[-2];
-      order.push(backOrderToken("B" + sizeToken(bsz), sp.backLabel || "Back"));
-    } else if (grid[i] <= 0) {
-      order.push("");
-    } else {
-      var ssz = sp.sizes[grid[i]];
-      order.push(grid[i] + sizeToken(ssz));
-    }
-  }
-  return order;
+  return EspControlModel.serializeSubpageGrid(sp.grid, sp.sizes || {}, sp.backLabel || "Back");
 }
 
 function enterSubpage(homeSlot) {
