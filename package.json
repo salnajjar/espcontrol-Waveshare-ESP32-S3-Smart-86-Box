@@ -7,7 +7,7 @@
     "check:ci": "npm run check:fast && npm run check:web-browser-smoke",
     "check:config": "node scripts/check_config_formats.js",
     "check:device-matrix": "python3 scripts/check_device_matrix.py",
-    "check:fast": "python3 scripts/check_device_manifest.py && npm run check:local-artifacts && npm run check:config && npm run check:backup-contract && npm run check:web-smoke && npm run check:firmware-parser && npm run check:firmware-modals && npm run check:firmware-release && npm run check:device-matrix && npm run check:release-changelog && npm run check:generated && python3 scripts/generate_device_slots.py --check && python3 scripts/check_icon_groups.py && npm run check:timezones && npm run check:public-firmware-script",
+    "check:fast": "python3 scripts/check_device_manifest.py && npm run check:local-artifacts && npm run check:config && npm run check:backup-contract && npm run check:web-smoke && npm run check:types && npm run check:firmware-parser && npm run check:firmware-modals && npm run check:firmware-release && npm run check:device-matrix && npm run check:release-changelog && npm run check:generated && python3 scripts/generate_device_slots.py --check && python3 scripts/check_icon_groups.py && npm run check:timezones && npm run check:public-firmware-script",
     "check:firmware-parser": "python3 scripts/check_firmware_parser.py",
     "check:firmware-modals": "python3 scripts/check_firmware_modals.py && python3 scripts/check_firmware_modals.py --self-test",
     "check:firmware-release": "python3 scripts/check_firmware_release.py",
@@ -16,6 +16,7 @@
     "check:public-firmware-script": "python3 scripts/check_public_firmware.py --self-test",
     "check:release-changelog": "python3 scripts/check_release_changelog.py",
     "check:timezones": "python3 scripts/check_timezones.py",
+    "check:types": "tsc --noEmit",
     "check:web-smoke": "node scripts/check_web_smoke.js",
     "check:web-browser-smoke": "node scripts/check_web_browser_smoke.js",
     "changelog:release": "python3 scripts/release_changelog.py",
@@ -27,6 +28,7 @@
   "devDependencies": {
     "esbuild": "^0.28.0",
     "playwright": "^1.60.0",
+    "typescript": "^6.0.3",
     "vitepress": "^1.6.3"
   }
 }
