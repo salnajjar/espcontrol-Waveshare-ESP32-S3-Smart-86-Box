@@ -74,6 +74,11 @@ export interface CardTypeSpec {
         legacyIcon?: string;
       }[];
     };
+    climate?: {
+      defaultLabelDisplay: string;
+      defaultNumberDisplay: string;
+      precisionValues: readonly string[];
+    };
   };
 }
 

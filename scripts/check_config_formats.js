@@ -353,6 +353,15 @@ assert.strictEqual(hooks.normalizeAlarmIconDisplayMode("static"), "static", "ala
 assert.strictEqual(hooks.normalizeAlarmIconDisplayMode("bad"), "status", "alarm invalid icon mode falls back to status");
 assert.strictEqual(hooks.normalizeAlarmLabelDisplayMode("name"), "name", "alarm name label mode is spec-backed");
 assert.strictEqual(hooks.normalizeAlarmLabelDisplayMode("bad"), "status", "alarm invalid label mode falls back to status");
+assert.strictEqual(hooks.climateDefaultLabelDisplayMode(), "label", "climate default label display is spec-backed");
+assert.strictEqual(hooks.climateDefaultNumberDisplayMode(), "target", "climate default number display is spec-backed");
+assert.strictEqual(hooks.normalizeClimateLabelDisplayMode("actual"), "actual", "climate actual label display is spec-backed");
+assert.strictEqual(hooks.normalizeClimateLabelDisplayMode("bad"), "label", "climate invalid label display falls back to spec default");
+assert.strictEqual(hooks.normalizeClimateNumberDisplayMode("icon"), "icon", "climate icon number display is spec-backed");
+assert.strictEqual(hooks.normalizeClimateNumberDisplayMode("bad"), "target", "climate invalid number display falls back to spec default");
+assert.deepStrictEqual(Array.from(hooks.climatePrecisionValues()), ["", "1", "2", "3"], "climate precision values are spec-backed");
+assert.strictEqual(hooks.normalizeClimatePrecisionConfig("3:-1.24:5.05"), "3:-1.2:5.1", "climate precision range cleanup is spec-backed");
+assert.strictEqual(hooks.normalizeClimatePrecisionConfig("bad:-25:5"), "0:-25:5", "climate invalid precision preserves custom range with fallback precision");
 const coverOptionSpecs = hooks.cardContractOptions("cover");
 const coverOptionByName = Object.fromEntries(coverOptionSpecs.map((option) => [option.name, option]));
 assert.deepStrictEqual(

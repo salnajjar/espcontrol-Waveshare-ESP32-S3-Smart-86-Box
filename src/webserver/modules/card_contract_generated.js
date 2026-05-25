@@ -262,6 +262,43 @@ var CARD_CONTRACT_CARDS = {
     "domains": [
       "climate"
     ],
+    "options": [
+      {
+        "name": "label_display",
+        "label": "Label Display",
+        "kind": "choice",
+        "values": [
+          "label",
+          "status",
+          "actual",
+          "target"
+        ],
+        "defaultValue": "label"
+      },
+      {
+        "name": "number_display",
+        "label": "Icon & Temperatures",
+        "kind": "choice",
+        "values": [
+          "icon",
+          "actual",
+          "target"
+        ],
+        "defaultValue": "target"
+      }
+    ],
+    "behavior": {
+      "climate": {
+        "defaultLabelDisplay": "label",
+        "defaultNumberDisplay": "target",
+        "precisionValues": [
+          "",
+          "1",
+          "2",
+          "3"
+        ]
+      }
+    },
     "default": {
       "entity": "",
       "label": "Climate",

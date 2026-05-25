@@ -74,6 +74,13 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
     normalizeAlarmIconDisplayMode: normalizeAlarmIconDisplayMode,
     normalizeAlarmLabelDisplayMode: normalizeAlarmLabelDisplayMode,
     alarmVisibleActions: alarmVisibleActions,
+    normalizeClimateLabelDisplayMode: normalizeClimateLabelDisplayMode,
+    normalizeClimateNumberDisplayMode: normalizeClimateNumberDisplayMode,
+    climateDefaultLabelDisplayMode: climateDefaultLabelDisplayMode,
+    climateDefaultNumberDisplayMode: climateDefaultNumberDisplayMode,
+    climatePrecisionValues: climatePrecisionValues,
+    parseClimatePrecisionConfig: parseClimatePrecisionConfig,
+    normalizeClimatePrecisionConfig: normalizeClimatePrecisionConfig,
     alarmCardTypeOptionValues: function (isSub) {
       return alarmCardTypeOptionsForSettings(!!isSub).map(function (option) {
         return option.value;

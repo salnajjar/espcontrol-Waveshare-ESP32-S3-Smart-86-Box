@@ -479,13 +479,16 @@ function setGarageLabelDisplayMode(b, mode) {
 
 function normalizeClimateLabelDisplayMode(value) {
   value = String(value || "").trim();
-  return ["label", "status", "actual", "target"].indexOf(value) >= 0 ? value : "label";
+  var spec = cardContractOptionSpec("climate", CLIMATE_LABEL_DISPLAY_OPTION);
+  var values = spec && spec.values ? spec.values : ["label", "status", "actual", "target"];
+  return values.indexOf(value) >= 0 ? value : climateDefaultLabelDisplayMode();
 }
 
 function normalizeClimateNumberDisplayMode(value) {
   value = String(value || "").trim();
-  if (value === "icon") return "icon";
-  return value === "actual" ? "actual" : "target";
+  var spec = cardContractOptionSpec("climate", CLIMATE_NUMBER_DISPLAY_OPTION);
+  var values = spec && spec.values ? spec.values : ["icon", "actual", "target"];
+  return values.indexOf(value) >= 0 ? value : climateDefaultNumberDisplayMode();
 }
 
 function normalizeClimateOptions(options) {
@@ -494,10 +497,10 @@ function normalizeClimateOptions(options) {
   var numberMode = normalizeClimateNumberDisplayMode(
     configOptionValue(options, CLIMATE_NUMBER_DISPLAY_OPTION));
   var out = "";
-  if (labelMode !== "label") {
+  if (labelMode !== climateDefaultLabelDisplayMode()) {
     out = setConfigOptionValue(out, CLIMATE_LABEL_DISPLAY_OPTION, labelMode);
   }
-  if (numberMode !== "target") {
+  if (numberMode !== climateDefaultNumberDisplayMode()) {
     out = setConfigOptionValue(out, CLIMATE_NUMBER_DISPLAY_OPTION, numberMode);
   }
   return out;
@@ -514,7 +517,7 @@ function setClimateLabelDisplayMode(b, mode) {
   b.options = setConfigOptionValue(
     b.options,
     CLIMATE_LABEL_DISPLAY_OPTION,
-    normalized === "label" ? "" : normalized
+    normalized === climateDefaultLabelDisplayMode() ? "" : normalized
   );
   b.options = normalizeClimateOptions(b.options);
   return b.options;
@@ -531,7 +534,7 @@ function setClimateNumberDisplayMode(b, mode) {
   b.options = setConfigOptionValue(
     b.options,
     CLIMATE_NUMBER_DISPLAY_OPTION,
-    normalized === "target" ? "" : normalized
+    normalized === climateDefaultNumberDisplayMode() ? "" : normalized
   );
   b.options = normalizeClimateOptions(b.options);
   return b.options;
@@ -682,7 +685,7 @@ function parseClimatePrecisionConfig(value) {
   var parts = raw.split(":");
   var precision = parts[0] || "";
   if (precision === "0") precision = "";
-  if (["", "1", "2", "3"].indexOf(precision) < 0) precision = "";
+  if (climatePrecisionValues().indexOf(precision) < 0) precision = "";
   var min = parts.length > 1 ? sanitizeClimateRangeValue(parts[1]) : "";
   var max = parts.length > 2 ? sanitizeClimateRangeValue(parts[2]) : "";
   return { precision: precision, min: min, max: max };
@@ -697,11 +700,34 @@ function sanitizeClimateRangeValue(value) {
 }
 
 function climatePrecisionConfig(precision, min, max) {
-  var p = ["", "1", "2", "3"].indexOf(String(precision || "")) >= 0 ? String(precision || "") : "";
+  var p = climatePrecisionValues().indexOf(String(precision || "")) >= 0 ? String(precision || "") : "";
   var lo = sanitizeClimateRangeValue(min);
   var hi = sanitizeClimateRangeValue(max);
   if (!lo && !hi) return p;
   return (p || "0") + ":" + lo + ":" + hi;
+}
+
+function climatePrecisionValues() {
+  var behavior = climateBehaviorSpec();
+  var values = behavior && behavior.precisionValues;
+  return values && values.length ? values.slice() : ["", "1", "2", "3"];
+}
+
+function climateBehaviorSpec() {
+  var card = cardContractCard("climate");
+  return card && card.behavior && card.behavior.climate || null;
+}
+
+function climateDefaultLabelDisplayMode() {
+  var behavior = climateBehaviorSpec();
+  var fallback = behavior && behavior.defaultLabelDisplay || "label";
+  return cardContractOptionDefaultValue("climate", CLIMATE_LABEL_DISPLAY_OPTION, fallback);
+}
+
+function climateDefaultNumberDisplayMode() {
+  var behavior = climateBehaviorSpec();
+  var fallback = behavior && behavior.defaultNumberDisplay || "target";
+  return cardContractOptionDefaultValue("climate", CLIMATE_NUMBER_DISPLAY_OPTION, fallback);
 }
 
 function normalizeClimatePrecisionConfig(value) {
