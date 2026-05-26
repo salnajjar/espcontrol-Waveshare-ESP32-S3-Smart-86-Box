@@ -24,6 +24,7 @@
     "check:public-firmware-script": "python3 scripts/check_public_firmware.py --self-test",
     "check:release-confidence": "python3 scripts/check_release_confidence.py",
     "check:release-changelog": "python3 scripts/check_release_changelog.py",
+    "check:release-preflight": "npm run check:product && npm run docs:build && npm run check:firmware-release && npm run check:public-firmware-script && npm run check:release-changelog && npm run check:release-confidence",
     "check:timezones": "python3 scripts/check_timezones.py",
     "check:types": "tsc --noEmit",
     "check:web-smoke": "node scripts/check_web_smoke.js",

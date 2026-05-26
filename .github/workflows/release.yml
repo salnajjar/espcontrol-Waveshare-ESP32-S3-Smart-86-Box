@@ -19,8 +19,35 @@ env:
   ESPCONTROL_BUILD_CACHE_MAX_MB: 1024
 
 jobs:
+  preflight:
+    name: Product Preflight
+    runs-on: self-hosted
+    steps:
+      - name: Prepare self-hosted workspace
+        run: |
+          rm -rf "${GITHUB_WORKSPACE:?}/"* "${GITHUB_WORKSPACE:?}/".[!.]* "${GITHUB_WORKSPACE:?}/"..?* 2>/dev/null ||
+            sudo rm -rf "${GITHUB_WORKSPACE:?}/"* "${GITHUB_WORKSPACE:?}/".[!.]* "${GITHUB_WORKSPACE:?}/"..?*
+
+      - uses: actions/checkout@v6
+      - run: git sparse-checkout disable || true
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: |
+          NPM_CACHE="${HOME}/.cache/espcontrol-actions/npm"
+          mkdir -p "${NPM_CACHE}"
+          npm ci --prefer-offline --cache "${NPM_CACHE}"
+          bash scripts/prune_actions_cache.sh "${NPM_CACHE}" 512 --strategy reset
+
+      - name: Run release preflight
+        run: npm run check:release-preflight
+
   device-matrix:
     name: Prepare Device Matrix
+    needs: preflight
     runs-on: self-hosted
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
