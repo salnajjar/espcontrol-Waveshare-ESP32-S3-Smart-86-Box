@@ -62,7 +62,7 @@ inline void send_action_card_action(const ParsedCfg &p) {
 }
 
 inline void send_lock_action(const std::string &entity_id, const std::string &state) {
-  ha_send_entity_action(entity_id, state == "locked" ? "lock.unlock" : "lock.lock");
+  ha_send_entity_action(entity_id, card_runtime_lock_toggle_service(state));
 }
 
 inline void send_lock_action(LockCardCtx *ctx) {
@@ -72,9 +72,7 @@ inline void send_lock_action(LockCardCtx *ctx) {
 
 inline void send_lock_command_action(const ParsedCfg &p) {
   if (p.entity.empty()) return;
-  const char *service = nullptr;
-  if (p.sensor == "lock") service = "lock.lock";
-  else if (p.sensor == "unlock") service = "lock.unlock";
+  const char *service = card_runtime_lock_command_service(p.sensor);
   if (service == nullptr) return;
 
   ha_send_entity_action(p.entity, service);
@@ -103,11 +101,7 @@ inline bool cover_command_mode(const std::string &sensor) {
 }
 
 inline const char *cover_command_service(const std::string &sensor) {
-  if (sensor == "open") return "cover.open_cover";
-  if (sensor == "close") return "cover.close_cover";
-  if (sensor == "stop") return "cover.stop_cover";
-  if (sensor == "set_position") return "cover.set_cover_position";
-  return nullptr;
+  return card_runtime_cover_command_service(sensor);
 }
 
 inline int cover_position_value(const std::string &value) {
@@ -255,9 +249,7 @@ inline bool media_playback_button_mode(const std::string &mode) {
 }
 
 inline const char *media_service_for_mode(const std::string &mode) {
-  if (mode == "previous") return "media_player.media_previous_track";
-  if (mode == "next") return "media_player.media_next_track";
-  return "media_player.media_play_pause";
+  return card_runtime_media_playback_service(mode);
 }
 
 inline void send_media_player_action(const std::string &entity_id,

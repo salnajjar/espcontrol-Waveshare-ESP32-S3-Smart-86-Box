@@ -156,10 +156,7 @@ inline void setup_alarm_action_card(BtnSlot &s, const ParsedCfg &p) {
 }
 
 inline const char *alarm_action_service(const std::string &mode) {
-  if (mode == "away") return "alarm_control_panel.alarm_arm_away";
-  if (mode == "home") return "alarm_control_panel.alarm_arm_home";
-  if (mode == "disarm") return "alarm_control_panel.alarm_disarm";
-  return nullptr;
+  return card_runtime_alarm_action_service(mode);
 }
 
 inline const char *alarm_control_button_label(const std::string &mode) {
