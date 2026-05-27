@@ -514,6 +514,7 @@ inline void todo_card_open_modal(TodoCardCtx *ctx) {
   ui.overlay = shell.overlay;
   ui.panel = shell.panel;
   ui.close_btn = shell.close_btn;
+  lv_obj_set_style_bg_color(ui.panel, lv_color_hex(ctx->secondary_color), LV_PART_MAIN);
 
   ControlModalLayout &layout = shell.layout;
   lv_coord_t content_w = shell.content_w;
