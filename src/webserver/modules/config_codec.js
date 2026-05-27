@@ -172,6 +172,7 @@ var CLIMATE_LABEL_DISPLAY_OPTION = "label_display";
 var CLIMATE_NUMBER_DISPLAY_OPTION = "number_display";
 var TODO_COUNT_DISPLAY_OPTION = "count_display";
 var TODO_LABEL_DISPLAY_OPTION = "label_display";
+var TODO_COMPLETED_DISPLAY_OPTION = "completed_display";
 var ALARM_ACTIONS = [
   { value: "away", label: "Arm Away", service: "alarm_control_panel.alarm_arm_away", icon: "Shield Lock" },
   { value: "home", label: "Arm Home", service: "alarm_control_panel.alarm_arm_home", icon: "Shield Home" },
@@ -328,6 +329,13 @@ function normalizeTodoLabelDisplayMode(value) {
   return values.indexOf(value) >= 0 ? value : "label";
 }
 
+function normalizeTodoCompletedDisplayMode(value) {
+  value = String(value || "").trim();
+  var spec = cardContractOptionSpec("todo", TODO_COMPLETED_DISPLAY_OPTION);
+  var values = spec && spec.values ? spec.values : ["show", "hide"];
+  return values.indexOf(value) >= 0 ? value : "show";
+}
+
 function normalizeTodoOptions(options) {
   var out = "";
   if (normalizeTodoCountDisplayMode(configOptionValue(options, TODO_COUNT_DISPLAY_OPTION)) === "icon") {
@@ -335,6 +343,9 @@ function normalizeTodoOptions(options) {
   }
   if (normalizeTodoLabelDisplayMode(configOptionValue(options, TODO_LABEL_DISPLAY_OPTION)) === "count") {
     out = setConfigOptionValue(out, TODO_LABEL_DISPLAY_OPTION, "count");
+  }
+  if (normalizeTodoCompletedDisplayMode(configOptionValue(options, TODO_COMPLETED_DISPLAY_OPTION)) === "hide") {
+    out = setConfigOptionValue(out, TODO_COMPLETED_DISPLAY_OPTION, "hide");
   }
   return out;
 }
@@ -357,6 +368,17 @@ function todoCardLabelShowsCount(b) {
 function setTodoCardLabelShowsCount(b, enabled) {
   if (!b) return "";
   b.options = setConfigOptionValue(b.options, TODO_LABEL_DISPLAY_OPTION, enabled ? "count" : "");
+  b.options = normalizeTodoOptions(b.options);
+  return b.options;
+}
+
+function todoCardShowsCompletedItems(b) {
+  return normalizeTodoCompletedDisplayMode(configOptionValue(b && b.options, TODO_COMPLETED_DISPLAY_OPTION)) !== "hide";
+}
+
+function setTodoCardShowsCompletedItems(b, enabled) {
+  if (!b) return "";
+  b.options = setConfigOptionValue(b.options, TODO_COMPLETED_DISPLAY_OPTION, enabled ? "" : "hide");
   b.options = normalizeTodoOptions(b.options);
   return b.options;
 }

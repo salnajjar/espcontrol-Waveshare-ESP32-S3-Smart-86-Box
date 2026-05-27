@@ -837,6 +837,16 @@ var CARD_CONTRACT_CARDS = {
           "count"
         ],
         "defaultValue": "label"
+      },
+      {
+        "name": "completed_display",
+        "label": "Show Completed Items",
+        "kind": "choice",
+        "values": [
+          "show",
+          "hide"
+        ],
+        "defaultValue": "show"
       }
     ],
     "default": {

@@ -40,6 +40,15 @@ var TODO_CARD_METADATA = {
       cardHelpers.saveField("options", button.options);
     },
   },
+  completedDisplay: {
+    label: "Show Completed Items",
+    idSuffix: "todo-show-completed",
+    checked: function (b) { return todoCardShowsCompletedItems(b); },
+    onChange: function (button, cardHelpers, checked) {
+      setTodoCardShowsCompletedItems(button, checked);
+      cardHelpers.saveField("options", button.options);
+    },
+  },
   preview: {
     badge: "check",
   },
@@ -91,6 +100,7 @@ registerButtonType("todo", {
         scheduleRender();
       },
     }));
+    helpers.renderCardOptionToggle(panel, b, helpers, TODO_CARD_METADATA.completedDisplay);
     function syncLabelField() {
       labelControl.field.style.display = todoCardLabelShowsCount(b) ? "none" : "";
       labelDisplayToggle.input.checked = todoCardLabelShowsCount(b);

@@ -240,6 +240,10 @@ inline std::string normalize_todo_label_display(const std::string &value) {
   return value == "count" ? "count" : "label";
 }
 
+inline std::string normalize_todo_completed_display(const std::string &value) {
+  return value == "hide" ? "hide" : "show";
+}
+
 inline std::string todo_card_options_normalized(const std::string &options) {
   std::string out;
   if (normalize_todo_count_display(cfg_option_value(options, "count_display")) == "icon") {
@@ -248,6 +252,10 @@ inline std::string todo_card_options_normalized(const std::string &options) {
   if (normalize_todo_label_display(cfg_option_value(options, "label_display")) == "count") {
     if (!out.empty()) out += ",";
     out += "label_display=count";
+  }
+  if (normalize_todo_completed_display(cfg_option_value(options, "completed_display")) == "hide") {
+    if (!out.empty()) out += ",";
+    out += "completed_display=hide";
   }
   return out;
 }
@@ -258,6 +266,10 @@ inline bool todo_card_show_count(const ParsedCfg &p) {
 
 inline bool todo_card_label_shows_count(const ParsedCfg &p) {
   return normalize_todo_label_display(cfg_option_value(p.options, "label_display")) == "count";
+}
+
+inline bool todo_card_shows_completed_items(const ParsedCfg &p) {
+  return normalize_todo_completed_display(cfg_option_value(p.options, "completed_display")) != "hide";
 }
 
 inline std::string normalize_climate_label_display(const std::string &value) {

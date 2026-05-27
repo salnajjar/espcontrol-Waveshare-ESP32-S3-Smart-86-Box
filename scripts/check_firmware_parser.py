@@ -112,6 +112,10 @@ int main() {
   assert(todo_label_count.options == "label_display=count");
   assert(todo_card_label_shows_count(todo_label_count));
 
+  auto todo_hide_completed = parse_cfg("todo.shopping;Shopping;Check;Auto;;;todo;;completed_display=hide");
+  assert(todo_hide_completed.options == "completed_display=hide");
+  assert(!todo_card_shows_completed_items(todo_hide_completed));
+
   assert(cfg_option_token_present("large_numbers,active_color", "active_color"));
   assert(cfg_option_value("state_entity=sensor.room%2Ctemp,state_unit=%25", "state_entity") == "sensor.room,temp");
   assert(cfg_option_value("state_entity=sensor.room%2Ctemp,state_unit=%25", "state_unit") == "%");

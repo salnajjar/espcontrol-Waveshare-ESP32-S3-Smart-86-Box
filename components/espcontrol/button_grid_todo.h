@@ -33,6 +33,7 @@ struct TodoCardCtx {
   bool available = false;
   bool show_count = true;
   bool label_shows_count = false;
+  bool show_completed_items = true;
 };
 
 struct TodoItemClick {
@@ -395,7 +396,7 @@ inline void todo_modal_render_items(TodoCardCtx *ctx, const std::vector<TodoItem
     if (item.more || !todo_completed_contains(ui, item)) has_visible_item = true;
   }
 
-  if (!has_visible_item && ui.completed_items.empty()) {
+  if (!has_visible_item && (ui.completed_items.empty() || !ctx->show_completed_items)) {
     todo_modal_set_status("All done");
     return;
   }
@@ -439,7 +440,7 @@ inline void todo_modal_render_items(TodoCardCtx *ctx, const std::vector<TodoItem
     click_index++;
   }
 
-  if (!ui.completed_items.empty()) {
+  if (ctx->show_completed_items && !ui.completed_items.empty()) {
     lv_coord_t header_h = control_modal_scaled_px(64, layout.short_side);
     if (header_h < 44) header_h = 44;
     todo_modal_create_completed_header(ui.list, header_h, ctx->label_font);
@@ -569,6 +570,7 @@ inline TodoCardCtx *create_todo_card_context(
   ctx->width_compensation_percent = width_compensation_percent;
   ctx->show_count = todo_card_show_count(p);
   ctx->label_shows_count = todo_card_label_shows_count(p);
+  ctx->show_completed_items = todo_card_shows_completed_items(p);
   lv_obj_set_user_data(s.btn, ctx);
   todo_apply_card_text(ctx);
   return ctx;
