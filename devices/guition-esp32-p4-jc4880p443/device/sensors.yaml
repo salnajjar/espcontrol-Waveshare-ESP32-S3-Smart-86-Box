@@ -113,7 +113,8 @@ esphome:
               id(button_order).state,
               id(button_on_color).state,
               id(button_off_color).state,
-              id(sensor_card_color).state);
+              id(sensor_card_color).state,
+              id(main_page)->obj);
         - delay: 100ms
 
         # Phase 2: HA subscriptions + subpage creation

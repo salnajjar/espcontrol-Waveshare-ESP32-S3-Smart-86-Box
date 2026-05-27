@@ -449,6 +449,12 @@ def replace_script_block(text: str, device: dict) -> str:
 def replace_sensor_blocks(text: str, device: dict) -> str:
     text = replace_script_block(text, device)
     text = replace_phase(text, 1, phase1_block(device), "grid_phase1", device["slug"])
+    text = re.sub(
+        r"(?m)^              id\(sensor_card_color\)\.state\);$",
+        "              id(sensor_card_color).state,\n              id(main_page)->obj);",
+        text,
+        count=1,
+    )
     text = replace_phase(text, 2, phase2_block(device), "grid_phase2", device["slug"])
     return text
 

@@ -218,13 +218,20 @@ inline void slider_refresh_geometry(lv_obj_t *slider) {
   slider_update_ctx_fill(c, btn, fill_val);
 }
 
+inline void slider_deferred_geometry_refresh_cb(lv_timer_t *timer) {
+  if (!timer) return;
+  lv_obj_t *slider = (lv_obj_t *)lv_timer_get_user_data(timer);
+  slider_refresh_geometry(slider);
+  lv_timer_del(timer);
+}
+
 inline void slider_bind_geometry_refresh(lv_obj_t *btn, lv_obj_t *slider) {
   if (!btn || !slider) return;
   lv_obj_add_event_cb(btn, [](lv_event_t *e) {
     lv_obj_t *sl = (lv_obj_t *)lv_event_get_user_data(e);
     slider_refresh_geometry(sl);
   }, LV_EVENT_SIZE_CHANGED, slider);
-  slider_refresh_geometry(slider);
+  lv_timer_create(slider_deferred_geometry_refresh_cb, 1, slider);
 }
 
 // Create an invisible LVGL slider with a colored fill overlay inside a button
