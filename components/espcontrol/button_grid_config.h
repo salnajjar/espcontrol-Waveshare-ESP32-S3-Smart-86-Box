@@ -252,6 +252,7 @@ inline std::string door_window_card_options_normalized(const std::string &option
 }
 
 inline std::string normalize_todo_count_display(const std::string &value) {
+  if (value == "top_task") return "top_task";
   return value == "icon" ? "icon" : "count";
 }
 
@@ -265,8 +266,9 @@ inline std::string normalize_todo_completed_display(const std::string &value) {
 
 inline std::string todo_card_options_normalized(const std::string &options) {
   std::string out;
-  if (normalize_todo_count_display(cfg_option_value(options, "count_display")) == "icon") {
-    out = "count_display=icon";
+  std::string count_display = normalize_todo_count_display(cfg_option_value(options, "count_display"));
+  if (count_display != "count") {
+    out = "count_display=" + count_display;
   }
   if (normalize_todo_label_display(cfg_option_value(options, "label_display")) == "count") {
     if (!out.empty()) out += ",";
@@ -281,6 +283,10 @@ inline std::string todo_card_options_normalized(const std::string &options) {
 
 inline bool todo_card_show_count(const ParsedCfg &p) {
   return normalize_todo_count_display(cfg_option_value(p.options, "count_display")) != "icon";
+}
+
+inline bool todo_card_shows_top_task(const ParsedCfg &p) {
+  return normalize_todo_count_display(cfg_option_value(p.options, "count_display")) == "top_task";
 }
 
 inline bool todo_card_label_shows_count(const ParsedCfg &p) {

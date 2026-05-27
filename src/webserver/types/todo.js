@@ -27,12 +27,13 @@ var TODO_CARD_METADATA = {
     options: [
       ["icon", "Icon"],
       ["count", "Item Counter"],
+      ["top_task", "Top Task"],
     ],
     value: function (b) {
-      return todoCardShowCount(b) ? "count" : "icon";
+      return todoCardStatusMode(b);
     },
     onSelect: function (button, cardHelpers, value) {
-      setTodoCardShowCount(button, value === "count");
+      setTodoCardStatusMode(button, value);
       cardHelpers.saveField("options", button.options);
     },
   },
@@ -105,7 +106,7 @@ registerButtonType("todo", {
 
     helpers.renderCardSegmentControl(panel, b, helpers, Object.assign({}, TODO_CARD_METADATA.countDisplay, {
       onSelect: function (button, cardHelpers, value) {
-        setTodoCardShowCount(button, value === "count");
+        setTodoCardStatusMode(button, value);
         cardHelpers.saveField("options", button.options);
         syncIconPicker();
         scheduleRender();
@@ -124,10 +125,13 @@ registerButtonType("todo", {
   },
   renderPreview: function (b, helpers) {
     var label = todoCardLabelShowsCount(b) ? "3 items" : (b.label || b.entity || "Todo");
+    var statusMode = todoCardStatusMode(b);
     return {
-      iconHtml: todoCardShowCount(b)
-        ? cardSensorPreviewHtml(b, helpers, "3", "")
-        : '<span class="sp-btn-icon mdi mdi-' + iconSlug(b.icon || "Check") + '"></span>',
+      iconHtml: statusMode === "icon"
+        ? '<span class="sp-btn-icon mdi mdi-' + iconSlug(b.icon || "Check") + '"></span>'
+        : statusMode === "top_task"
+        ? cardSensorPreviewHtml(b, helpers, "Buy milk", null, "sp-todo-task-preview")
+        : cardSensorPreviewHtml(b, helpers, "3", ""),
       labelHtml: cardBadgeLabelHtml(helpers, label, TODO_CARD_METADATA.preview.badge),
     };
   },

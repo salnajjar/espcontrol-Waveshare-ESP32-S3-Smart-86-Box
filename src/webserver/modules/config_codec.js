@@ -372,8 +372,9 @@ function normalizeTodoCompletedDisplayMode(value) {
 
 function normalizeTodoOptions(options) {
   var out = "";
-  if (normalizeTodoCountDisplayMode(configOptionValue(options, TODO_COUNT_DISPLAY_OPTION)) === "icon") {
-    out = setConfigOptionValue(out, TODO_COUNT_DISPLAY_OPTION, "icon");
+  var countDisplay = normalizeTodoCountDisplayMode(configOptionValue(options, TODO_COUNT_DISPLAY_OPTION));
+  if (countDisplay !== "count") {
+    out = setConfigOptionValue(out, TODO_COUNT_DISPLAY_OPTION, countDisplay);
   }
   if (normalizeTodoLabelDisplayMode(configOptionValue(options, TODO_LABEL_DISPLAY_OPTION)) === "count") {
     out = setConfigOptionValue(out, TODO_LABEL_DISPLAY_OPTION, "count");
@@ -388,9 +389,25 @@ function todoCardShowCount(b) {
   return normalizeTodoCountDisplayMode(configOptionValue(b && b.options, TODO_COUNT_DISPLAY_OPTION)) !== "icon";
 }
 
+function todoCardStatusMode(b) {
+  return normalizeTodoCountDisplayMode(configOptionValue(b && b.options, TODO_COUNT_DISPLAY_OPTION));
+}
+
+function todoCardShowsTopTask(b) {
+  return todoCardStatusMode(b) === "top_task";
+}
+
 function setTodoCardShowCount(b, enabled) {
   if (!b) return "";
   b.options = setConfigOptionValue(b.options, TODO_COUNT_DISPLAY_OPTION, enabled ? "" : "icon");
+  b.options = normalizeTodoOptions(b.options);
+  return b.options;
+}
+
+function setTodoCardStatusMode(b, value) {
+  if (!b) return "";
+  var mode = normalizeTodoCountDisplayMode(value);
+  b.options = setConfigOptionValue(b.options, TODO_COUNT_DISPLAY_OPTION, mode === "count" ? "" : mode);
   b.options = normalizeTodoOptions(b.options);
   return b.options;
 }

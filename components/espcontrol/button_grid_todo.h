@@ -22,6 +22,7 @@ struct TodoCardCtx {
   std::string configured_label;
   std::string friendly_name;
   std::string count_text = "--";
+  std::string top_task_text = "--";
   lv_obj_t *btn = nullptr;
   lv_obj_t *icon_lbl = nullptr;
   lv_obj_t *value_lbl = nullptr;
@@ -35,6 +36,7 @@ struct TodoCardCtx {
   int width_compensation_percent = 100;
   bool available = false;
   bool show_count = true;
+  bool show_top_task = false;
   bool label_shows_count = false;
   bool show_completed_items = true;
 };
@@ -94,6 +96,11 @@ inline void todo_apply_card_text(TodoCardCtx *ctx) {
     lv_label_set_text(ctx->label_lbl, label.c_str());
   }
   if (!ctx->show_count) return;
+  if (ctx->show_top_task) {
+    if (ctx->value_lbl) lv_label_set_text(ctx->value_lbl, ctx->available ? ctx->top_task_text.c_str() : "--");
+    if (ctx->unit_lbl) lv_label_set_text(ctx->unit_lbl, "");
+    return;
+  }
   if (ctx->value_lbl) lv_label_set_text(ctx->value_lbl, ctx->available ? ctx->count_text.c_str() : "--");
   if (ctx->unit_lbl) {
     const char *unit = "";
@@ -114,6 +121,11 @@ inline void setup_todo_card(BtnSlot &s, const ParsedCfg &p, uint32_t secondary_c
   } else {
     lv_obj_clear_flag(s.icon_lbl, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(s.sensor_container, LV_OBJ_FLAG_HIDDEN);
+  }
+  if (todo_card_shows_top_task(p)) {
+    lv_obj_set_width(s.sensor_container, lv_pct(100));
+    lv_obj_set_width(s.sensor_lbl, lv_pct(100));
+    lv_label_set_long_mode(s.sensor_lbl, LV_LABEL_LONG_DOT);
   }
   lv_label_set_text(s.icon_lbl,
     (!p.icon.empty() && p.icon != "Auto") ? find_icon(p.icon.c_str()) : find_icon("Check"));
@@ -161,6 +173,18 @@ inline std::vector<TodoItem> parse_todo_response_payload(const std::string &payl
     start = end + 1;
   }
   return items;
+}
+
+inline void todo_set_top_task_from_items(TodoCardCtx *ctx, const std::vector<TodoItem> &items) {
+  if (!todo_card_context_valid(ctx) || !ctx->show_top_task) return;
+  ctx->top_task_text = "All done";
+  for (const auto &item : items) {
+    if (!item.more && !item.summary.empty()) {
+      ctx->top_task_text = item.summary;
+      break;
+    }
+  }
+  todo_apply_card_text(ctx);
 }
 
 inline std::string todo_item_action_key(const TodoItem &item) {
@@ -368,6 +392,15 @@ inline void todo_modal_render_items(TodoCardCtx *ctx, const std::vector<TodoItem
   ui.visible_items = items;
   todo_modal_clear_items();
   todo_modal_set_status("");
+  if (ctx->show_top_task) {
+    std::vector<TodoItem> top_items;
+    for (const auto &item : items) {
+      if (item.more || todo_completed_contains(ui, item)) continue;
+      top_items.push_back(item);
+      break;
+    }
+    todo_set_top_task_from_items(ctx, top_items);
+  }
 
   bool has_visible_item = false;
   for (const auto &item : items) {
@@ -505,6 +538,37 @@ inline void request_todo_items(TodoCardCtx *ctx) {
   ha_action_send(req);
 }
 
+inline void request_todo_top_task(TodoCardCtx *ctx) {
+  if (!todo_card_context_valid(ctx) || !ctx->show_top_task ||
+      !ctx->available || !todo_entity_id_safe(ctx->entity_id)) return;
+
+  esphome::api::HomeassistantActionRequest req;
+  uint32_t call_id = next_todo_items_call_id();
+  if (!ha_action_begin(req, "todo.get_items", false, 1, call_id)) return;
+  req.wants_response = true;
+  std::string response_template = todo_items_response_template(ctx->entity_id);
+  req.response_template = decltype(req.response_template)(response_template);
+  ha_action_add_entity(req, ctx->entity_id);
+
+  ha_register_action_response_callback(
+    req.call_id,
+    [ctx](const esphome::api::ActionResponse &response) {
+      if (!response.is_success()) {
+        ESP_LOGW("todo", "Todo top task request failed for %s: %s",
+          ctx && !ctx->entity_id.empty() ? ctx->entity_id.c_str() : "todo",
+          response.get_error_message().c_str());
+        return;
+      }
+      auto json = response.get_json();
+      const char *payload = json["response"].as<const char *>();
+      if (payload == nullptr) return;
+      std::vector<TodoItem> items =
+        parse_todo_response_payload(std::string(payload).substr(0, TODO_RESPONSE_TEXT_MAX_LEN));
+      todo_set_top_task_from_items(ctx, items);
+    });
+  ha_action_send(req);
+}
+
 inline void todo_card_open_modal(TodoCardCtx *ctx) {
   if (!todo_card_context_valid(ctx) || ctx->entity_id.empty() || !ctx->available) return;
   ControlModalShell shell = control_modal_open_shell(
@@ -567,6 +631,10 @@ inline TodoCardCtx *create_todo_card_context(
   ctx->icon_font = icon_font;
   ctx->width_compensation_percent = width_compensation_percent;
   ctx->show_count = todo_card_show_count(p);
+  ctx->show_top_task = todo_card_shows_top_task(p);
+  if (ctx->show_top_task && ctx->value_lbl && ctx->list_font) {
+    lv_obj_set_style_text_font(ctx->value_lbl, ctx->list_font, LV_PART_MAIN);
+  }
   ctx->label_shows_count = todo_card_label_shows_count(p);
   ctx->show_completed_items = todo_card_shows_completed_items(p);
   lv_obj_set_user_data(s.btn, ctx);
@@ -586,6 +654,7 @@ inline void subscribe_todo_state(TodoCardCtx *ctx) {
       todo_apply_card_text(ctx);
       if (todo_modal_ui().active == ctx && !ctx->available) todo_modal_set_status("Could not load");
       else if (todo_modal_ui().active == ctx) request_todo_items(ctx);
+      else request_todo_top_task(ctx);
     })
   );
 }

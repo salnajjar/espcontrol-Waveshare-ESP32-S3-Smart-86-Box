@@ -34,6 +34,8 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
     normalizeTodoLabelDisplayMode: normalizeTodoLabelDisplayMode,
     normalizeTodoCompletedDisplayMode: normalizeTodoCompletedDisplayMode,
     todoCardShowCount: todoCardShowCount,
+    todoCardStatusMode: todoCardStatusMode,
+    todoCardShowsTopTask: todoCardShowsTopTask,
     todoCardLabelShowsCount: todoCardLabelShowsCount,
     todoCardShowsCompletedItems: todoCardShowsCompletedItems,
     dateTimeModeOptionValues: dateTimeModeOptionValues,

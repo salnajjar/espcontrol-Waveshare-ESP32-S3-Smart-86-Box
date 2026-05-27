@@ -696,7 +696,7 @@
           "name": "count_display",
           "label": "Status",
           "kind": "choice",
-          "values": ["icon", "count"],
+          "values": ["icon", "count", "top_task"],
           "defaultValue": "count"
         },
         {

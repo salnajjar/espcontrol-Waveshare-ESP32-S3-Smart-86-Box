@@ -116,6 +116,11 @@ int main() {
   assert(todo_icon.options == "count_display=icon");
   assert(!todo_card_show_count(todo_icon));
 
+  auto todo_top_task = parse_cfg("todo.shopping;Shopping;Check;Auto;;;todo;;count_display=top_task");
+  assert(todo_top_task.options == "count_display=top_task");
+  assert(todo_card_show_count(todo_top_task));
+  assert(todo_card_shows_top_task(todo_top_task));
+
   auto todo_label_count = parse_cfg("todo.shopping;Shopping;Check;Auto;;;todo;;label_display=count");
   assert(todo_label_count.options == "label_display=count");
   assert(todo_card_label_shows_count(todo_label_count));

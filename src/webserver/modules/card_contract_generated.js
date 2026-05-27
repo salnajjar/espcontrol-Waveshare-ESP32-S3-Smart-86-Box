@@ -833,7 +833,8 @@ var CARD_CONTRACT_CARDS = {
         "kind": "choice",
         "values": [
           "icon",
-          "count"
+          "count",
+          "top_task"
         ],
         "defaultValue": "count"
       },

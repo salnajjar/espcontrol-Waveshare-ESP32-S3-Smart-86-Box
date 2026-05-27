@@ -1542,6 +1542,8 @@ assert.deepStrictEqual(
 );
 assert.strictEqual(hooks.todoCardShowCount({ type: "todo", options: "" }), true, "todo shows item count by default");
 assert.strictEqual(hooks.todoCardShowCount({ type: "todo", options: "count_display=icon" }), false, "todo can show the icon instead of the count");
+assert.strictEqual(hooks.todoCardStatusMode({ type: "todo", options: "count_display=top_task" }), "top_task", "todo can show the top task");
+assert.strictEqual(hooks.todoCardShowsTopTask({ type: "todo", options: "count_display=top_task" }), true, "todo detects top task status mode");
 assert.strictEqual(hooks.todoCardLabelShowsCount({ type: "todo", options: "" }), false, "todo label is static by default");
 assert.strictEqual(hooks.todoCardLabelShowsCount({ type: "todo", options: "label_display=count" }), true, "todo label can show item count");
 assert.strictEqual(hooks.todoCardShowsCompletedItems({ type: "todo", options: "" }), true, "todo shows completed items by default");
