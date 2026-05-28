@@ -126,6 +126,7 @@ inline void setup_todo_card(BtnSlot &s, const ParsedCfg &p, uint32_t secondary_c
     (!p.icon.empty() && p.icon != "Auto") ? find_icon(p.icon.c_str()) : find_icon("Check"));
   lv_label_set_text(s.sensor_lbl, "--");
   lv_label_set_text(s.unit_lbl, "");
+  lv_obj_add_flag(s.unit_lbl, LV_OBJ_FLAG_HIDDEN);
   lv_label_set_text(s.text_lbl, todo_card_label_shows_count(p) ? "--" : (p.label.empty() ? "Todo" : p.label.c_str()));
   apply_push_button_transition(s.btn);
 }
@@ -179,7 +180,7 @@ inline void todo_set_top_task_from_items(TodoCardCtx *ctx, const std::vector<Tod
   if (!todo_card_context_valid(ctx) || !ctx->show_top_task) return;
   ctx->top_task_text = "All done";
   for (const auto &item : items) {
-    if (!item.more && !item.summary.empty()) {
+    if (!item.more && !item.completed && !item.summary.empty()) {
       ctx->top_task_text = item.summary;
       break;
     }

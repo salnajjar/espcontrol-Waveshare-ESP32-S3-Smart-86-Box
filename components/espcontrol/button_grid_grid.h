@@ -145,6 +145,7 @@ inline void setup_card_visual(BtnSlot &s, const ParsedCfg &p,
   apply_button_colors(s.btn, palette.has_on, palette.on_val,
     palette.has_off, palette.off_val);
   if (s.unit_lbl) lv_obj_set_style_translate_y(s.unit_lbl, 0, LV_PART_MAIN);
+  if (s.unit_lbl) lv_obj_clear_flag(s.unit_lbl, LV_OBJ_FLAG_HIDDEN);
   if (s.text_lbl) lv_obj_clear_flag(s.text_lbl, LV_OBJ_FLAG_HIDDEN);
   if (s.sensor_container) lv_obj_align(s.sensor_container, LV_ALIGN_TOP_LEFT, 0, 0);
 
@@ -876,7 +877,7 @@ inline void grid_phase2(
           display_volume_label_font(display)
             ? display_volume_label_font(display)
             : lv_obj_get_style_text_font(s.text_lbl, LV_PART_MAIN),
-          display_climate_option_title_font(
+          display_media_title_font_or(
             display, lv_obj_get_style_text_font(s.text_lbl, LV_PART_MAIN)),
           display_icon_font(display),
           display_main_width_percent(display));
@@ -1401,7 +1402,7 @@ inline void grid_phase2(
             display_volume_label_font(display)
               ? display_volume_label_font(display)
               : lv_obj_get_style_text_font(sub_slot.text_lbl, LV_PART_MAIN),
-            display_climate_option_title_font(
+            display_media_title_font_or(
               display, lv_obj_get_style_text_font(sub_slot.text_lbl, LV_PART_MAIN)),
             display_icon_font(display),
             display_main_width_percent(display));
