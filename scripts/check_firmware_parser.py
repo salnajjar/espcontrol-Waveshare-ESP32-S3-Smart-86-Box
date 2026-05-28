@@ -135,6 +135,13 @@ int main() {
   auto subpage_large = parse_cfg(";Open Windows;Window Closed;Auto;sensor.open_windows;%;subpage;;large_numbers");
   assert(subpage_large.options == "large_numbers");
   assert(card_large_numbers_enabled(subpage_large));
+  auto subpage_lights = parse_cfg("light.living_room;Lighting;Lightbulb;Auto;indicator;;subpage;;subpage_kind=lights,large_numbers");
+  assert(subpage_lights.options == "subpage_kind=lights");
+  assert(!card_large_numbers_enabled(subpage_lights));
+  auto subpage_media = parse_cfg("media_player.living_room;Media;Speaker;Auto;indicator;;subpage;;subpage_kind=media");
+  assert(subpage_media.options == "subpage_kind=media");
+  auto subpage_bad_kind = parse_cfg("media_player.bad;Bad;Speaker;Auto;indicator;;subpage;;subpage_kind=audio");
+  assert(subpage_bad_kind.options == "");
 
   auto todo = parse_cfg("todo.shopping;Shopping;Check;Auto;;;todo");
   assert(todo.entity == "todo.shopping");
@@ -169,6 +176,7 @@ int main() {
   assert(ha_entity_state_unavailable_ref("button.test", ""));
   assert(ha_entity_state_unavailable_ref("sensor.test", "unknown"));
   assert(ha_entity_state_unavailable_ref("light.test", "unknown"));
+  assert(is_entity_on_ref("playing"));
   assert(normalize_width_compensation_percent(0) == 100);
   assert(normalize_width_compensation_percent(25) == 50);
   assert(normalize_width_compensation_percent(175) == 150);

@@ -975,6 +975,17 @@ var CARD_CONTRACT_CARDS = {
     "domains": [],
     "options": [
       {
+        "name": "subpage_kind",
+        "label": "Subpage Type",
+        "kind": "choice",
+        "values": [
+          "",
+          "lights",
+          "media"
+        ],
+        "defaultValue": ""
+      },
+      {
         "name": "large_numbers",
         "label": "Large State Numbers",
         "kind": "flag"

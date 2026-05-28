@@ -151,6 +151,7 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
     backOrderToken: backOrderToken,
     backLabelFromOrder: backLabelFromOrder,
     subpageStateDisplayMode: subpageStateDisplayMode,
+    subpageKind: subpageKind,
     buttonConfigNeedsMigration: buttonConfigNeedsMigration,
     subpageConfigNeedsMigration: subpageConfigNeedsMigration,
     normalizeTemperatureUnit: normalizeTemperatureUnit,

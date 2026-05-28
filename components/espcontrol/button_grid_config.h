@@ -239,6 +239,24 @@ inline std::string sensor_card_options_normalized(const std::string &options,
   return out;
 }
 
+inline std::string normalize_subpage_kind(const std::string &value) {
+  return value == "lights" || value == "media" ? value : "";
+}
+
+inline std::string subpage_card_options_normalized(const std::string &options,
+                                                   const std::string &sensor,
+                                                   const std::string &precision) {
+  std::string out;
+  std::string kind = normalize_subpage_kind(cfg_option_value(options, "subpage_kind"));
+  if (!kind.empty()) out = "subpage_kind=" + kind;
+  if (!sensor.empty() && sensor != "indicator" && precision != "text" &&
+      cfg_option_token_present(options, "large_numbers")) {
+    if (!out.empty()) out += ",";
+    out += "large_numbers";
+  }
+  return out;
+}
+
 inline std::string normalize_door_window_subtype(const std::string &value) {
   return value == "window" ? "window" : "door";
 }
@@ -529,6 +547,9 @@ inline ParsedCfg normalize_parsed_cfg(ParsedCfg p) {
     p.precision.clear();
     p.options.clear();
   }
+  if (p.type == "subpage") {
+    p.options = subpage_card_options_normalized(p.options, p.sensor, p.precision);
+  }
   if (p.type == "option_select") {
     p.type = "action";
     p.sensor = card_runtime_option_select_canonical_action();
@@ -554,7 +575,7 @@ inline ParsedCfg normalize_parsed_cfg(ParsedCfg p) {
     if (p.icon_on.empty() || p.icon_on == "Auto") p.icon_on = door_window_open_icon_name(p.precision);
     p.options = door_window_card_options_normalized(p.options);
   }
-  if (!p.type.empty() && p.type != "action" && p.type != "alarm" && p.type != "alarm_action" && p.type != "climate" && p.type != "garage" && p.type != "webhook" && p.type != "todo" && p.type != "sensor" && p.type != "door_window" && p.type != "media" && !fan_card_type(p.type) && !card_large_numbers_supported(p)) {
+  if (!p.type.empty() && p.type != "action" && p.type != "alarm" && p.type != "alarm_action" && p.type != "climate" && p.type != "garage" && p.type != "webhook" && p.type != "todo" && p.type != "sensor" && p.type != "door_window" && p.type != "media" && p.type != "subpage" && !fan_card_type(p.type) && !card_large_numbers_supported(p)) {
     p.options.clear();
   }
   if (p.type == "sensor") {

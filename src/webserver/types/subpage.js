@@ -1,5 +1,14 @@
 // Navigation folder: tap opens a nested grid screen with its own button layout
 var SUBPAGE_CARD_METADATA = {
+  kind: {
+    label: "Type",
+    idSuffix: "subpage-kind",
+    options: [
+      ["", "Generic"],
+      ["lights", "Lights"],
+      ["media", "Media"],
+    ],
+  },
   labelField: {
     label: "Label",
     placeholder: "e.g. Lighting",
@@ -31,6 +40,24 @@ var SUBPAGE_CARD_METADATA = {
     value: function (b) {
       return subpageStateDisplayMode(b) === "icon" ? (b.entity || "") : "";
     },
+  },
+  lightsEntity: {
+    label: "Light Entity",
+    idSuffix: "lights-state-entity",
+    placeholder: "e.g. light.living_room",
+    domains: ["light"],
+    bindName: "entity",
+    rerender: true,
+    requiredMessage: "Add a light entity before saving.",
+  },
+  mediaEntity: {
+    label: "Media Entity",
+    idSuffix: "media-state-entity",
+    placeholder: "e.g. media_player.living_room",
+    domains: ["media_player"],
+    bindName: "entity",
+    rerender: true,
+    requiredMessage: "Add a media entity before saving.",
   },
   sensorEntity: {
     label: "Sensor Entity",
@@ -73,9 +100,40 @@ registerButtonType("subpage", {
   labelPlaceholder: "e.g. Lighting",
   cardMetadata: SUBPAGE_CARD_METADATA,
   onSelect: function (b) {
-    b.entity = ""; b.sensor = ""; b.unit = ""; b.icon = "Auto"; b.icon_on = "Auto";
+    b.entity = ""; b.sensor = ""; b.unit = ""; b.icon = "Auto"; b.icon_on = "Auto"; b.options = "";
   },
   renderSettings: function (panel, b, slot, helpers) {
+    var kind = subpageKind(b);
+    helpers.renderCardSegmentControl(panel, b, helpers, {
+      segment: Object.assign({}, SUBPAGE_CARD_METADATA.kind, {
+        value: function () { return kind; },
+        onSelect: function (button, cardHelpers, value) {
+          var nextKind = normalizeSubpageKind(value);
+          button.options = setConfigOptionValue(button.options, SUBPAGE_KIND_OPTION, nextKind);
+          applySubpagePresetConfig(button);
+          button.options = normalizeSubpageOptions(button.options, button.sensor, button.precision);
+          cardHelpers.saveField("options", button.options);
+          cardHelpers.saveField("label", button.label || "");
+          cardHelpers.saveField("icon", button.icon || "Auto");
+          cardHelpers.saveField("icon_on", button.icon_on || "Auto");
+          cardHelpers.saveField("sensor", button.sensor || "");
+          cardHelpers.saveField("unit", button.unit || "");
+          cardHelpers.saveField("precision", button.precision || "");
+          renderButtonSettings();
+        },
+      }),
+    });
+
+    if (kind === "lights" || kind === "media") {
+      helpers.renderCardEntityField(panel, b, helpers, {
+        entity: kind === "lights"
+          ? SUBPAGE_CARD_METADATA.lightsEntity
+          : SUBPAGE_CARD_METADATA.mediaEntity,
+      });
+      appendEditSubpageButton(panel, slot);
+      return;
+    }
+
     var mode = subpageStateDisplayMode(b);
     var showState = mode !== "off";
     var sensorEntity = b.sensor && b.sensor !== "indicator" ? b.sensor : "";
@@ -243,11 +301,13 @@ registerButtonType("subpage", {
     appendEditSubpageButton(panel, slot);
   },
   renderPreview: function (b, helpers) {
-    var label = b.label || b.entity || "Configure";
+    var defaults = subpagePresetDefaults(subpageKind(b));
+    var label = b.label || (defaults && defaults.label) || b.entity || "Configure";
     var mode = subpageStateDisplayMode(b);
 
     if (mode === "icon") {
-      var stateIconName = b.icon && b.icon !== "Auto" ? iconSlug(b.icon) : "cog";
+      var stateIconName = b.icon && b.icon !== "Auto" ? iconSlug(b.icon) :
+        (defaults ? iconSlug(defaults.icon) : "cog");
       return {
         iconHtml: '<span class="sp-btn-icon mdi mdi-' + stateIconName + '"></span>',
         labelHtml: subpageBadgeLabelHtml(helpers, label),

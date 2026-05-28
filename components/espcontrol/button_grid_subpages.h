@@ -139,6 +139,9 @@ inline SubpageBtn normalize_subpage_btn(SubpageBtn b) {
     b.precision.clear();
     b.options.clear();
   }
+  if (b.type == "subpage") {
+    b.options = subpage_card_options_normalized(b.options, b.sensor, b.precision);
+  }
   if (b.type == "option_select") {
     b.type = "action";
     b.sensor = "input_select.select_option";
@@ -165,6 +168,7 @@ inline SubpageBtn normalize_subpage_btn(SubpageBtn b) {
       b.type != "webhook" &&
       b.type != "todo" &&
       b.type != "sensor" && b.type != "door_window" &&
+      b.type != "subpage" &&
       !fan_card_type(b.type) && !card_large_numbers_supported(p)) {
     b.options.clear();
   }

@@ -101,6 +101,10 @@ function normalizeButtonConfig(b) {
     b.precision = "";
     b.options = "";
   }
+  if (b && b.type === "subpage") {
+    applySubpagePresetConfig(b);
+    b.options = normalizeSubpageOptions(b.options, b.sensor, b.precision);
+  }
   if (b && b.type === "option_select") {
     b.type = "action";
     b.sensor = ACTION_CARD_OPTION_SELECT_ACTION;
@@ -129,7 +133,7 @@ function normalizeButtonConfig(b) {
     if (!b.icon || b.icon === "Auto") b.icon = doorWindowClosedIcon(b.precision);
     if (!b.icon_on || b.icon_on === "Auto") b.icon_on = doorWindowOpenIcon(b.precision);
     b.options = normalizeDoorWindowOptions(b.options);
-  } else if (b && b.type !== "action" && b.type !== "alarm" && b.type !== "alarm_action" && b.type !== "climate" && b.type !== "garage" && b.type !== "webhook" && b.type !== "todo" && b.type !== "media" && !cardLargeNumbersSupported(b)) {
+  } else if (b && b.type !== "action" && b.type !== "alarm" && b.type !== "alarm_action" && b.type !== "climate" && b.type !== "garage" && b.type !== "webhook" && b.type !== "todo" && b.type !== "media" && b.type !== "subpage" && !cardLargeNumbersSupported(b)) {
     b.options = "";
   }
   return b;
@@ -175,6 +179,7 @@ var TODO_COUNT_DISPLAY_OPTION = "count_display";
 var TODO_LABEL_DISPLAY_OPTION = "label_display";
 var TODO_COMPLETED_DISPLAY_OPTION = "completed_display";
 var MEDIA_VOLUME_MAX_OPTION = "volume_max";
+var SUBPAGE_KIND_OPTION = "subpage_kind";
 var ALARM_ACTIONS = [
   { value: "away", label: "Arm Away", service: "alarm_control_panel.alarm_arm_away", icon: "Shield Lock" },
   { value: "home", label: "Arm Home", service: "alarm_control_panel.alarm_arm_home", icon: "Shield Home" },
@@ -277,6 +282,49 @@ function normalizeMediaOptions(options, mode) {
     out = setConfigOptionValue(out, MEDIA_VOLUME_MAX_OPTION, maxVolume);
   }
   if (configOptionEnabled(options, SENSOR_LARGE_NUMBERS_OPTION)) {
+    out = setConfigOption(out, SENSOR_LARGE_NUMBERS_OPTION, true);
+  }
+  return out;
+}
+
+function normalizeSubpageKind(value) {
+  value = String(value || "").trim();
+  return value === "lights" || value === "media" ? value : "";
+}
+
+function subpageKind(b) {
+  return normalizeSubpageKind(configOptionValue(b && b.options, SUBPAGE_KIND_OPTION));
+}
+
+function subpagePresetDefaults(kind) {
+  kind = normalizeSubpageKind(kind);
+  if (kind === "lights") {
+    return { label: "Lighting", icon: "Lightbulb", entityDomain: "light" };
+  }
+  if (kind === "media") {
+    return { label: "Media", icon: "Speaker", entityDomain: "media_player" };
+  }
+  return null;
+}
+
+function applySubpagePresetConfig(b) {
+  if (!b) return;
+  var defaults = subpagePresetDefaults(subpageKind(b));
+  if (!defaults) return;
+  b.label = defaults.label;
+  b.icon = defaults.icon;
+  b.icon_on = "Auto";
+  b.sensor = "indicator";
+  b.unit = "";
+  b.precision = "";
+}
+
+function normalizeSubpageOptions(options, sensor, precision) {
+  var out = "";
+  var kind = normalizeSubpageKind(configOptionValue(options, SUBPAGE_KIND_OPTION));
+  if (kind) out = setConfigOptionValue(out, SUBPAGE_KIND_OPTION, kind);
+  if (sensor && sensor !== "indicator" && precision !== "text" &&
+      configOptionEnabled(options, SENSOR_LARGE_NUMBERS_OPTION)) {
     out = setConfigOption(out, SENSOR_LARGE_NUMBERS_OPTION, true);
   }
   return out;
@@ -883,6 +931,10 @@ function trimConfigFields(fields) {
 
 function buttonConfigFields(b) {
   var type = b && b.type || "";
+  if (b && type === "subpage" && subpageKind(b)) {
+    b = EspControlModel.cloneCardConfig(b);
+    applySubpagePresetConfig(b);
+  }
   var isActionOptionSelect = !!(b && (actionCardIsOptionSelect(b) || isOptionSelectType(type)));
   if (isActionOptionSelect) type = "action";
   var sensor = isActionOptionSelect ? ACTION_CARD_OPTION_SELECT_ACTION :
@@ -915,6 +967,8 @@ function buttonConfigFields(b) {
     options = normalizeClimateOptions(options);
   } else if (type === "media") {
     options = normalizeMediaOptions(options, sensor);
+  } else if (type === "subpage") {
+    options = normalizeSubpageOptions(options, sensor, precision);
   } else if (type === "webhook" && typeof normalizeWebhookConfig === "function") {
     var webhookButton = EspControlModel.cloneCardConfig(b || {});
     normalizeWebhookConfig(webhookButton);

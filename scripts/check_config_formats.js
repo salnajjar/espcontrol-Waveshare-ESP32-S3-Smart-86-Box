@@ -1598,6 +1598,24 @@ const subpageStateText = buttonShape({
   type: "subpage",
   precision: "text",
 });
+const subpageLightsPreset = buttonShape({
+  entity: "light.living_room",
+  label: "Lighting",
+  icon: "Lightbulb",
+  icon_on: "Auto",
+  sensor: "indicator",
+  type: "subpage",
+  options: "subpage_kind=lights",
+});
+const subpageMediaPreset = buttonShape({
+  entity: "media_player.living_room",
+  label: "Media",
+  icon: "Speaker",
+  icon_on: "Auto",
+  sensor: "indicator",
+  type: "subpage",
+  options: "subpage_kind=media",
+});
 
 assertButtonRoundTrip(hooks, "subpage state off", subpageStateOff, false);
 assertButtonRoundTrip(hooks, "subpage state icon", subpageStateIcon, false);
@@ -1605,12 +1623,27 @@ assertButtonRoundTrip(hooks, "subpage state icon entity", subpageStateIconEntity
 assertButtonRoundTrip(hooks, "subpage state numeric", subpageStateNumeric, false);
 assertButtonRoundTrip(hooks, "subpage state numeric precision", subpageStateNumericPrecision, false);
 assertButtonRoundTrip(hooks, "subpage state text", subpageStateText, false);
+assertButtonRoundTrip(hooks, "subpage lights preset", subpageLightsPreset, false);
+assertButtonRoundTrip(hooks, "subpage media preset", subpageMediaPreset, false);
 
 assert.strictEqual(hooks.subpageStateDisplayMode(subpageStateOff), "off", "subpage state off");
 assert.strictEqual(hooks.subpageStateDisplayMode(subpageStateIcon), "icon", "subpage icon state");
 assert.strictEqual(hooks.subpageStateDisplayMode(subpageStateIconEntity), "icon", "subpage icon entity state");
 assert.strictEqual(hooks.subpageStateDisplayMode(subpageStateNumeric), "numeric", "subpage numeric state");
 assert.strictEqual(hooks.subpageStateDisplayMode(subpageStateText), "text", "subpage text state");
+assert.strictEqual(hooks.subpageKind(subpageStateOff), "", "generic subpage has no preset kind");
+assert.strictEqual(hooks.subpageKind(subpageLightsPreset), "lights", "lights subpage preset kind");
+assert.strictEqual(hooks.subpageKind(subpageMediaPreset), "media", "media subpage preset kind");
+assert.deepStrictEqual(buttonShape(hooks.parseButtonConfig(
+  "media_player.bad;Bad;Speaker;Auto;indicator;;subpage;;subpage_kind=audio"
+)), buttonShape({
+  entity: "media_player.bad",
+  label: "Bad",
+  icon: "Speaker",
+  icon_on: "Auto",
+  sensor: "indicator",
+  type: "subpage",
+}), "invalid subpage preset kind normalizes back to generic");
 
 assertButtonMigration(hooks, "legacy weather forecast card", "weather.forecast_home;Weather;Auto;Auto;;;weather_forecast", {
   entity: "weather.forecast_home",
