@@ -70,6 +70,8 @@ inline TodoRequestState &todo_request_state() {
   return state;
 }
 
+inline void todo_modal_set_status(const char *text);
+
 inline void todo_clear_request_state(uint32_t call_id) {
   TodoRequestState &state = todo_request_state();
   if (state.call_id == call_id) state = TodoRequestState();
@@ -85,6 +87,7 @@ inline void todo_cancel_pending_request(const char *reason) {
   uint32_t call_id = todo_request_state().call_id;
   if (call_id == 0) return;
   todo_cancel_request(call_id, reason);
+  if (todo_modal_ui().active != nullptr) todo_modal_set_status("Waiting for Home Assistant");
 }
 
 inline void todo_cancel_stale_request() {
@@ -485,7 +488,7 @@ inline void request_todo_items(TodoCardCtx *ctx) {
   todo_cancel_stale_request();
   if (todo_request_state().call_id != 0) return;
   if (!ha_api_state_connected()) {
-    todo_modal_set_status("Could not load");
+    todo_modal_set_status("Waiting for Home Assistant");
     return;
   }
 
@@ -528,6 +531,13 @@ inline void request_todo_items(TodoCardCtx *ctx) {
     todo_cancel_request(req.call_id, "send failed");
     todo_modal_set_status("Could not load");
   }
+}
+
+inline void todo_reload_active_modal() {
+  TodoModalUi &ui = todo_modal_ui();
+  if (!todo_card_context_valid(ui.active) || ui.list == nullptr) return;
+  if (todo_request_state().call_id != 0 || !ha_api_state_connected()) return;
+  request_todo_items(ui.active);
 }
 
 inline void todo_card_open_modal(TodoCardCtx *ctx) {

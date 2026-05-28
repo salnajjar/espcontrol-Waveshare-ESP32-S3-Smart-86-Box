@@ -30,9 +30,13 @@ api:
   on_client_connected:
     - lambda: |-
         refresh_weather_forecast_cards();
-    - delay: 10s
+    - delay: 2s
+    - lambda: |-
+        todo_reload_active_modal();
+    - delay: 8s
     - lambda: |-
         refresh_weather_forecast_cards();
+        todo_reload_active_modal();
   on_client_disconnected:
     - lambda: |-
         todo_cancel_pending_request("api disconnected");
