@@ -341,11 +341,11 @@ inline lv_obj_t *todo_modal_create_list_item_row(
       lv_obj_set_style_text_color(check, lv_color_hex(check_color), LV_PART_MAIN);
       lv_obj_set_style_text_align(check, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
       if (icon_font) lv_obj_set_style_text_font(check, icon_font, LV_PART_MAIN);
-      uint16_t check_zoom = 128;
+      uint16_t check_zoom = 96;
       if (icon_font && icon_font->line_height > 0) {
-        int fit_zoom = static_cast<int>(checkbox_size) * 360 / icon_font->line_height;
-        if (fit_zoom < 96) fit_zoom = 96;
-        if (fit_zoom > 150) fit_zoom = 150;
+        int fit_zoom = static_cast<int>(checkbox_size) * 300 / icon_font->line_height;
+        if (fit_zoom < 72) fit_zoom = 72;
+        if (fit_zoom > 110) fit_zoom = 110;
         check_zoom = static_cast<uint16_t>(fit_zoom);
       }
       lv_obj_update_layout(check);
