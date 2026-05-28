@@ -29,6 +29,7 @@ api:
         - script.execute: home_screen_idle_check
   on_client_connected:
     - lambda: |-
+        ESP_LOGI("api", "Home Assistant API client connected");
         refresh_weather_forecast_cards();
     - delay: 2s
     - lambda: |-
@@ -39,6 +40,7 @@ api:
         todo_reload_active_modal();
   on_client_disconnected:
     - lambda: |-
+        ESP_LOGW("api", "Home Assistant API client disconnected");
         weather_forecast_cancel_pending_requests();
         cover_stop_cancel_pending_request();
         todo_cancel_pending_request("api disconnected");

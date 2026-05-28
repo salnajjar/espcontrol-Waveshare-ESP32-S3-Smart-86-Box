@@ -79,6 +79,8 @@ inline void todo_clear_request_state(uint32_t call_id) {
 
 inline void todo_cancel_request(uint32_t call_id, const char *reason) {
   if (call_id == 0) return;
+  ESP_LOGW("todo", "Cancelling todo request %u: %s",
+    (unsigned) call_id, reason ? reason : "cancelled");
   todo_clear_request_state(call_id);
   ha_cancel_action_response_callback(call_id, reason);
 }
@@ -486,8 +488,14 @@ inline void request_todo_items(TodoCardCtx *ctx) {
   todo_modal_clear_items();
   todo_modal_set_status("Loading");
   todo_cancel_stale_request();
-  if (todo_request_state().call_id != 0) return;
+  if (todo_request_state().call_id != 0) {
+    ESP_LOGI("todo", "Todo request already pending for %s",
+      ctx->entity_id.c_str());
+    return;
+  }
   if (!ha_api_state_connected()) {
+    ESP_LOGI("todo", "Waiting for Home Assistant before loading %s",
+      ctx->entity_id.c_str());
     todo_modal_set_status("Waiting for Home Assistant");
     return;
   }
@@ -496,6 +504,7 @@ inline void request_todo_items(TodoCardCtx *ctx) {
   uint32_t call_id = next_todo_items_call_id();
   std::string response_template = todo_items_response_template(ctx->entity_id);
   if (!todo_begin_get_items_request(req, ctx, call_id, response_template)) {
+    ESP_LOGW("todo", "Could not build todo request for %s", ctx->entity_id.c_str());
     todo_modal_set_status("Could not load");
     return;
   }
@@ -515,11 +524,19 @@ inline void request_todo_items(TodoCardCtx *ctx) {
       auto json = response.get_json();
       std::vector<TodoItem> items;
       if (!parse_todo_response_json(json, ctx ? ctx->entity_id : "", items)) {
+        ESP_LOGW("todo", "Could not parse todo response %u for %s",
+          (unsigned) call_id,
+          ctx && !ctx->entity_id.empty() ? ctx->entity_id.c_str() : "todo");
         todo_modal_set_status("Could not load");
         return;
       }
+      ESP_LOGI("todo", "Todo request %u loaded %u rows for %s",
+        (unsigned) call_id, (unsigned) items.size(),
+        ctx && !ctx->entity_id.empty() ? ctx->entity_id.c_str() : "todo");
       todo_modal_render_items(ctx, items);
     })) {
+    ESP_LOGW("todo", "Could not register todo response callback %u for %s",
+      (unsigned) req.call_id, ctx->entity_id.c_str());
     todo_modal_set_status("Could not load");
     return;
   }
@@ -527,6 +544,8 @@ inline void request_todo_items(TodoCardCtx *ctx) {
   TodoRequestState &state = todo_request_state();
   state.call_id = req.call_id;
   state.started_ms = esphome::millis();
+  ESP_LOGI("todo", "Sending todo request %u for %s",
+    (unsigned) req.call_id, ctx->entity_id.c_str());
   if (!ha_action_send(req)) {
     todo_cancel_request(req.call_id, "send failed");
     todo_modal_set_status("Could not load");
@@ -537,6 +556,7 @@ inline void todo_reload_active_modal() {
   TodoModalUi &ui = todo_modal_ui();
   if (!todo_card_context_valid(ui.active) || ui.list == nullptr) return;
   if (todo_request_state().call_id != 0 || !ha_api_state_connected()) return;
+  ESP_LOGI("todo", "Reloading open todo modal after Home Assistant reconnect");
   request_todo_items(ui.active);
 }
 
