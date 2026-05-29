@@ -104,11 +104,11 @@ registerButtonType("subpage", {
   },
   renderSettings: function (panel, b, slot, helpers) {
     var kind = subpageKind(b);
-    helpers.renderCardSegmentControl(panel, b, helpers, {
-      segment: Object.assign({}, SUBPAGE_CARD_METADATA.kind, {
+    helpers.renderCardModeSelector(panel, b, helpers, {
+      mode: Object.assign({}, SUBPAGE_CARD_METADATA.kind, {
         value: function () { return kind; },
-        onSelect: function (button, cardHelpers, value) {
-          var nextKind = normalizeSubpageKind(value);
+        onChange: function (button, cardHelpers) {
+          var nextKind = normalizeSubpageKind(this.value);
           button.options = setConfigOptionValue(button.options, SUBPAGE_KIND_OPTION, nextKind);
           applySubpagePresetConfig(button);
           button.options = normalizeSubpageOptions(button.options, button.sensor, button.precision);
