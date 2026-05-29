@@ -18,7 +18,7 @@ var DATE_TIME_CARD_METADATA = {
   },
   largeNumbers: {
     label: function (b) {
-      return dateTimeCardMode(b) === "clock" ? "Large Clock" : "Large Clock/Date";
+      return dateTimeLargeNumbersLabel(b);
     },
     idSuffix: "large-date-time-numbers",
     supportedCardSize: function (b, helpers) {
@@ -37,6 +37,14 @@ function dateTimeCardMode(b) {
   if (b && b.type === "clock") return "clock";
   if (b && b.type === "timezone") return "timezone";
   return b && b.precision === "datetime" ? "datetime" : "";
+}
+
+function dateTimeLargeNumbersLabel(b) {
+  var mode = dateTimeCardMode(b);
+  if (mode === "clock") return "Large Clock";
+  if (mode === "datetime") return "Large Time";
+  if (mode === "timezone") return "Large World Clock";
+  return "Large Date";
 }
 
 function defaultTimezoneCardEntity() {

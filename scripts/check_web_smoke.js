@@ -264,6 +264,10 @@ const datePreview = hooks.buttonTypePreviewFor("calendar", {
 });
 assert(datePreview.labelHtml.includes("mdi-calendar-month"), "date preview uses the calendar badge");
 assert(datePreview.iconHtml.includes("sp-sensor-preview"), "date preview uses the shared sensor preview");
+assert.strictEqual(hooks.dateTimeLargeNumbersLabel({ type: "calendar", precision: "" }), "Large Date");
+assert.strictEqual(hooks.dateTimeLargeNumbersLabel({ type: "calendar", precision: "datetime" }), "Large Time");
+assert.strictEqual(hooks.dateTimeLargeNumbersLabel({ type: "clock" }), "Large Clock");
+assert.strictEqual(hooks.dateTimeLargeNumbersLabel({ type: "timezone" }), "Large World Clock");
 
 const largeDatePreview = hooks.buttonTypePreviewFor("calendar", {
   type: "calendar",

@@ -45,6 +45,7 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
     todoCardShowsCompletedItems: todoCardShowsCompletedItems,
     dateTimeModeOptionValues: dateTimeModeOptionValues,
     normalizeDateTimeCardMode: normalizeDateTimeCardMode,
+    dateTimeLargeNumbersLabel: dateTimeLargeNumbersLabel,
     weatherModeOptionValues: weatherModeOptionValues,
     normalizeWeatherCardMode: normalizeWeatherCardMode,
     weatherCardIsForecastMode: weatherCardIsForecastMode,
