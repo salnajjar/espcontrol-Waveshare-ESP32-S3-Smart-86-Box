@@ -6,9 +6,6 @@
 # it at startup. Main page (lvgl.yaml) is included after setup screens.
 # =============================================================================
 
-defaults:
-  provisioning_package_suffix: "_deployed"
-
 substitutions:
   device_slug: "guition-esp32-s3-4848s040"
   firmware_manifest_slug: "guition-esp32-s3-4848s040"
@@ -69,7 +66,7 @@ packages:
   # ---------------------------------------------------------------------------
   # Addons
   # ---------------------------------------------------------------------------
-  connectivity:    !include ../../common/addon/connectivity${provisioning_package_suffix}.yaml
+  connectivity:    !include ../../common/addon/connectivity.yaml
   time_sync:       !include ../../common/addon/time.yaml
   backlight:       !include ../../common/addon/backlight.yaml
   bl_schedule:     !include ../../common/addon/backlight_schedule.yaml
