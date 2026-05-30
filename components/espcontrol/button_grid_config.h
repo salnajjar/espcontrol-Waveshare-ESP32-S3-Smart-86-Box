@@ -1310,6 +1310,27 @@ inline WeatherForecastRetryRequest *weather_forecast_retry_requests() {
   return requests;
 }
 
+inline uint32_t &weather_forecast_action_ready_ms() {
+  static uint32_t due_ms = 0;
+  return due_ms;
+}
+
+inline bool weather_forecast_actions_ready() {
+  if (!ha_api_state_connected()) {
+    weather_forecast_action_ready_ms() = 0;
+    return false;
+  }
+  uint32_t &due_ms = weather_forecast_action_ready_ms();
+  uint32_t now = esphome::millis();
+  if (due_ms == 0) {
+    due_ms = now + 10000;
+    ESP_LOGI("weather_forecast",
+      "Waiting 10 seconds for Home Assistant action subscription before requesting forecasts");
+    return false;
+  }
+  return (int32_t) (now - due_ms) >= 0;
+}
+
 inline bool weather_forecast_pending_key(const std::string &entity_id,
                                          const std::string &day) {
   WeatherForecastPendingRequest *requests = weather_forecast_pending_requests();
@@ -1486,6 +1507,7 @@ inline bool weather_forecast_enqueue_due_retries() {
 inline void weather_forecast_send_next_queued();
 
 inline void weather_forecast_cancel_pending_requests() {
+  weather_forecast_action_ready_ms() = 0;
   weather_forecast_clear_queue();
   weather_forecast_clear_retries();
   WeatherForecastPendingRequest *requests = weather_forecast_pending_requests();
@@ -1516,7 +1538,9 @@ inline bool weather_forecast_cancel_stale_requests() {
 
 inline void request_weather_forecast_entity(const std::string &entity_id,
                                             const std::string &day) {
-  if (!weather_forecast_entity_id_safe(entity_id) || !ha_api_state_connected()) {
+  if (!weather_forecast_entity_id_safe(entity_id) ||
+      !ha_api_state_connected() ||
+      !weather_forecast_actions_ready()) {
     apply_weather_forecast_unavailable_for_entity(entity_id);
     return;
   }
@@ -1591,7 +1615,7 @@ inline void request_weather_forecast_entity(const std::string &entity_id,
 }
 
 inline void weather_forecast_send_next_queued() {
-  if (!ha_api_state_connected() || weather_forecast_any_pending()) return;
+  if (!weather_forecast_actions_ready() || weather_forecast_any_pending()) return;
   weather_forecast_enqueue_due_retries();
   std::string entity_id;
   std::string day;
