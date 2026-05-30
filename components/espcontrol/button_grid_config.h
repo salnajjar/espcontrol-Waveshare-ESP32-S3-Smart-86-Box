@@ -1137,6 +1137,9 @@ inline void apply_weather_forecast_to_entity(const std::string &entity_id,
                                              const std::string &day,
                                              bool valid, int high, int low,
                                              const std::string &unit) {
+  ESP_LOGI("weather_forecast", "Applying %s forecast for %s: %s high=%d low=%d unit=%s",
+    day.c_str(), entity_id.c_str(), valid ? "valid" : "unavailable",
+    high, low, unit.c_str());
   WeatherForecastCardRef *refs = weather_forecast_card_refs();
   int count = weather_forecast_card_count();
   for (int i = 0; i < count; i++) {
@@ -1151,6 +1154,7 @@ inline void apply_weather_forecast_to_entity(const std::string &entity_id,
 }
 
 inline void apply_weather_forecast_unavailable_for_entity(const std::string &entity_id) {
+  ESP_LOGW("weather_forecast", "Marking forecast unavailable for %s", entity_id.c_str());
   WeatherForecastCardRef *refs = weather_forecast_card_refs();
   int count = weather_forecast_card_count();
   for (int i = 0; i < count; i++) {
@@ -1522,6 +1526,8 @@ inline void request_weather_forecast_entity(const std::string &entity_id,
       auto json = response.get_json();
       const char *payload = json["response"].as<const char *>();
       if (payload == nullptr) {
+        ESP_LOGW("weather_forecast", "Forecast response for %s did not include a rendered payload",
+          entity_id.c_str());
         apply_weather_forecast_unavailable_for_entity(entity_id);
         weather_forecast_schedule_retry(entity_id, day, "empty response");
         weather_forecast_send_next_queued();
@@ -1530,7 +1536,8 @@ inline void request_weather_forecast_entity(const std::string &entity_id,
       WeatherForecastPayload forecast;
       bool valid = parse_weather_forecast_payload(payload, forecast);
       if (!valid) {
-        ESP_LOGW("weather_forecast", "No usable forecast temperatures for %s", entity_id.c_str());
+        ESP_LOGW("weather_forecast", "No usable forecast temperatures for %s: %s",
+          entity_id.c_str(), payload);
       }
       apply_weather_forecast_to_entity(entity_id, "today", forecast.today_valid,
         forecast.today_high, forecast.today_low, forecast.unit);
@@ -1547,6 +1554,7 @@ inline void request_weather_forecast_entity(const std::string &entity_id,
     apply_weather_forecast_unavailable_for_entity(entity_id);
     return;
   }
+  ESP_LOGI("weather_forecast", "Requesting daily forecast for %s", entity_id.c_str());
   if (!ha_action_send(req)) {
     weather_forecast_clear_pending(req.call_id);
     ha_cancel_action_response_callback(req.call_id, "send failed");
