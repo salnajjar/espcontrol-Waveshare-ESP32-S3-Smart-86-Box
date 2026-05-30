@@ -667,7 +667,6 @@
           },
           "deviceFontPackageKey": "fonts_device",
           "apiNavigateAction": false,
-          "improvSerial": true,
           "provisioningSelectable": true
         }
       }

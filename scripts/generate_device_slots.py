@@ -83,7 +83,7 @@ def package_file_text(device: dict) -> str:
         lines.extend(
             [
                 "defaults:",
-                '  provisioning_package_suffix: ""',
+                '  provisioning_package_suffix: "_deployed"',
                 "",
             ]
         )
@@ -138,13 +138,6 @@ def package_file_text(device: dict) -> str:
     )
     if package.get("apiNavigateAction", True):
         lines.append(include_line("api_navigate", "!include ../../common/device/api_navigate.yaml"))
-    if package.get("improvSerial"):
-        lines.append(
-            include_line(
-                "improv_serial",
-                f"!include ../../common/addon/improv_serial{provisioning_suffix}.yaml",
-            )
-        )
     lines.extend(
         [
             include_line("time_sync", "!include ../../common/addon/time.yaml"),

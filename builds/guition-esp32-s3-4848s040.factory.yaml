@@ -12,7 +12,10 @@ substitutions:
   espcontrol_component_ref: "HEAD"
 
 packages:
-  core: !include ../devices/guition-esp32-s3-4848s040/packages.yaml
+  core: !include
+    file: ../devices/guition-esp32-s3-4848s040/packages.yaml
+    vars:
+      provisioning_package_suffix: ""
 
 esphome:
   name_add_mac_suffix: true
