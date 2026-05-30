@@ -53,6 +53,8 @@ constexpr int MAX_SUBPAGE_ITEMS = MAX_GRID_SLOTS * MAX_GRID_SLOTS;
 constexpr const char *SENSOR_STATE_LABELS_OPTION = "state_labels";
 constexpr const char *SENSOR_STATE_INPUT_OPTION = "state_input";
 constexpr const char *SENSOR_STATE_OUTPUT_OPTION = "state_output";
+constexpr const char *SENSOR_STATE_INPUT_2_OPTION = "state_input_2";
+constexpr const char *SENSOR_STATE_OUTPUT_2_OPTION = "state_output_2";
 constexpr const char *SENSOR_STATE_LOW_LABEL_OPTION = "state_low_label";
 constexpr const char *SENSOR_STATE_HIGH_LABEL_OPTION = "state_high_label";
 
@@ -261,6 +263,16 @@ inline std::string sensor_card_options_normalized(const std::string &options,
     if (!output.empty()) {
       out += ",";
       out += std::string(SENSOR_STATE_OUTPUT_OPTION) + "=" + encode_compact_field(output);
+    }
+    std::string input_2 = cfg_option_value(options, SENSOR_STATE_INPUT_2_OPTION);
+    std::string output_2 = cfg_option_value(options, SENSOR_STATE_OUTPUT_2_OPTION);
+    if (!input_2.empty()) {
+      out += ",";
+      out += std::string(SENSOR_STATE_INPUT_2_OPTION) + "=" + encode_compact_field(input_2);
+    }
+    if (!output_2.empty()) {
+      out += ",";
+      out += std::string(SENSOR_STATE_OUTPUT_2_OPTION) + "=" + encode_compact_field(output_2);
     }
   }
   return out;
@@ -892,6 +904,11 @@ inline std::string sensor_state_display_text(const ParsedCfg &p,
       input = "low";
       output = cfg_option_value(p.options, SENSOR_STATE_LOW_LABEL_OPTION);
     }
+    if (!input.empty() && state == sensor_state_translation_key(input)) {
+      return output;
+    }
+    input = cfg_option_value(p.options, SENSOR_STATE_INPUT_2_OPTION);
+    output = cfg_option_value(p.options, SENSOR_STATE_OUTPUT_2_OPTION);
     if (!input.empty() && state == sensor_state_translation_key(input)) {
       return output;
     }

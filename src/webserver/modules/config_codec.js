@@ -3,6 +3,8 @@
 var SENSOR_STATE_LABELS_OPTION = "state_labels";
 var SENSOR_STATE_INPUT_OPTION = "state_input";
 var SENSOR_STATE_OUTPUT_OPTION = "state_output";
+var SENSOR_STATE_INPUT_2_OPTION = "state_input_2";
+var SENSOR_STATE_OUTPUT_2_OPTION = "state_output_2";
 var SENSOR_STATE_LOW_LABEL_OPTION = "state_low_label";
 var SENSOR_STATE_HIGH_LABEL_OPTION = "state_high_label";
 
@@ -463,12 +465,30 @@ function sensorStateOutput(b) {
     : "";
 }
 
+function sensorStateInput2(b) {
+  return sensorStateLabelsEnabled(b)
+    ? configOptionValue(b.options, SENSOR_STATE_INPUT_2_OPTION)
+    : "";
+}
+
+function sensorStateOutput2(b) {
+  return sensorStateLabelsEnabled(b)
+    ? configOptionValue(b.options, SENSOR_STATE_OUTPUT_2_OPTION)
+    : "";
+}
+
 function setSensorStateTranslation(b, enabled, inputText, outputText) {
+  return setSensorStateTranslations(b, enabled, inputText, outputText, "", "");
+}
+
+function setSensorStateTranslations(b, enabled, inputText, outputText, inputText2, outputText2) {
   if (!b) return "";
   var options = b.options || "";
   options = setConfigOption(options, SENSOR_STATE_LABELS_OPTION, enabled);
   options = setConfigOptionValue(options, SENSOR_STATE_INPUT_OPTION, enabled ? inputText : "");
   options = setConfigOptionValue(options, SENSOR_STATE_OUTPUT_OPTION, enabled ? outputText : "");
+  options = setConfigOptionValue(options, SENSOR_STATE_INPUT_2_OPTION, enabled ? inputText2 : "");
+  options = setConfigOptionValue(options, SENSOR_STATE_OUTPUT_2_OPTION, enabled ? outputText2 : "");
   options = setConfigOptionValue(options, SENSOR_STATE_LOW_LABEL_OPTION, "");
   options = setConfigOptionValue(options, SENSOR_STATE_HIGH_LABEL_OPTION, "");
   b.options = normalizeSensorOptions(options, b.precision);
@@ -491,6 +511,10 @@ function normalizeSensorOptions(options, precision) {
       configOptionValue(options, SENSOR_STATE_INPUT_OPTION) || legacySensorStateInput(options));
     out = setConfigOptionValue(out, SENSOR_STATE_OUTPUT_OPTION,
       configOptionValue(options, SENSOR_STATE_OUTPUT_OPTION) || legacySensorStateOutput(options));
+    out = setConfigOptionValue(out, SENSOR_STATE_INPUT_2_OPTION,
+      configOptionValue(options, SENSOR_STATE_INPUT_2_OPTION));
+    out = setConfigOptionValue(out, SENSOR_STATE_OUTPUT_2_OPTION,
+      configOptionValue(options, SENSOR_STATE_OUTPUT_2_OPTION));
   }
   return out;
 }

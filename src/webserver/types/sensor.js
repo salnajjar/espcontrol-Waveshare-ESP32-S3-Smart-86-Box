@@ -115,6 +115,10 @@ registerButtonType("sensor", {
     panel.appendChild(advancedToggle.row);
     if (hasStateLabels) advanced.classList.add("sp-visible");
 
+    var stateTextGrid = document.createElement("div");
+    stateTextGrid.className = "sp-state-translation-grid";
+    advanced.appendChild(stateTextGrid);
+
     var inputTextField = helpers.textField(
       "Input Status",
       helpers.idPrefix + "sensor-state-input",
@@ -122,7 +126,7 @@ registerButtonType("sensor", {
       "e.g. high"
     );
     var inputTextInp = inputTextField.input;
-    advanced.appendChild(inputTextField.field);
+    stateTextGrid.appendChild(inputTextField.field);
 
     var outputTextField = helpers.textField(
       "Display Text",
@@ -131,15 +135,42 @@ registerButtonType("sensor", {
       "e.g. Please empty"
     );
     var outputTextInp = outputTextField.input;
-    advanced.appendChild(outputTextField.field);
+    stateTextGrid.appendChild(outputTextField.field);
+
+    var inputText2Field = helpers.textField(
+      "Input Status 2",
+      helpers.idPrefix + "sensor-state-input-2",
+      sensorStateInput2(b),
+      "e.g. low"
+    );
+    var inputText2Inp = inputText2Field.input;
+    stateTextGrid.appendChild(inputText2Field.field);
+
+    var outputText2Field = helpers.textField(
+      "Display Text 2",
+      helpers.idPrefix + "sensor-state-output-2",
+      sensorStateOutput2(b),
+      "e.g. Full"
+    );
+    var outputText2Inp = outputText2Field.input;
+    stateTextGrid.appendChild(outputText2Field.field);
 
     function saveStateTranslation() {
-      setSensorStateTranslation(b, advancedToggle.input.checked, inputTextInp.value, outputTextInp.value);
+      setSensorStateTranslations(
+        b,
+        advancedToggle.input.checked,
+        inputTextInp.value,
+        outputTextInp.value,
+        inputText2Inp.value,
+        outputText2Inp.value
+      );
       helpers.saveField("options", b.options);
     }
 
     inputTextInp.addEventListener("change", saveStateTranslation);
     outputTextInp.addEventListener("change", saveStateTranslation);
+    inputText2Inp.addEventListener("change", saveStateTranslation);
+    outputText2Inp.addEventListener("change", saveStateTranslation);
     advancedToggle.input.addEventListener("change", function () {
       if (this.checked) {
         if (!isTextMode) setMode("text", true);
@@ -148,6 +179,8 @@ registerButtonType("sensor", {
         advanced.classList.remove("sp-visible");
         inputTextInp.value = "";
         outputTextInp.value = "";
+        inputText2Inp.value = "";
+        outputText2Inp.value = "";
       }
       saveStateTranslation();
     });
@@ -184,6 +217,8 @@ registerButtonType("sensor", {
         advanced.classList.remove("sp-visible");
         inputTextInp.value = "";
         outputTextInp.value = "";
+        inputText2Inp.value = "";
+        outputText2Inp.value = "";
         var iconPreview = textIconPicker.querySelector(".sp-icon-picker-preview");
         if (iconPreview) iconPreview.className = "sp-icon-picker-preview mdi mdi-cog";
         var iconInput = textIconPicker.querySelector(".sp-icon-picker-input");

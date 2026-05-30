@@ -191,6 +191,8 @@ var CSS =
   "margin-bottom:var(--gap);border:1px solid var(--border)}" +
 
   ".sp-field{margin-bottom:28px}.sp-field:last-child{margin-bottom:0}" +
+  ".sp-state-translation-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px 14px;margin-bottom:28px}" +
+  ".sp-state-translation-grid .sp-field{margin-bottom:0}" +
   ".sp-field-stack{display:grid;gap:10px}" +
   ".sp-field-stack.sp-hidden{display:none}" +
   ".sp-field-label{display:block;font-size:.8rem;font-weight:500;color:var(--text2);margin-bottom:8px}" +

@@ -86,10 +86,10 @@ int main() {
   assert(compact.type == "sensor");
   assert(compact.precision == "1");
   assert(card_large_numbers_enabled(compact));
-  auto state_labels = parse_cfg(";;;;sensor.bin_level;;sensor;text;state_labels,state_input=high,state_output=Please%20empty");
+  auto state_labels = parse_cfg(";;;;sensor.bin_level;;sensor;text;state_labels,state_input=high,state_output=Please%20empty,state_input_2=low,state_output_2=Full");
   assert(sensor_state_labels_enabled(state_labels));
-  assert(state_labels.options == "state_labels,state_input=high,state_output=Please empty");
-  assert(sensor_state_display_text(state_labels, "low") == "Low");
+  assert(state_labels.options == "state_labels,state_input=high,state_output=Please empty,state_input_2=low,state_output_2=Full");
+  assert(sensor_state_display_text(state_labels, "low") == "Full");
   assert(sensor_state_display_text(state_labels, "high") == "Please empty");
   assert(sensor_state_display_text(state_labels, "High") == "Please empty");
   assert(sensor_state_display_text(state_labels, "medium") == "Medium");

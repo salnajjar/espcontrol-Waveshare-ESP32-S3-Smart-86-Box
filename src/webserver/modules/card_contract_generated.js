@@ -956,6 +956,26 @@ var CARD_CONTRACT_CARDS = {
             "text"
           ]
         }
+      },
+      {
+        "name": "state_input_2",
+        "label": "Input Status 2",
+        "kind": "text",
+        "supportedWhen": {
+          "precision": [
+            "text"
+          ]
+        }
+      },
+      {
+        "name": "state_output_2",
+        "label": "Display Text 2",
+        "kind": "text",
+        "supportedWhen": {
+          "precision": [
+            "text"
+          ]
+        }
       }
     ],
     "default": {
