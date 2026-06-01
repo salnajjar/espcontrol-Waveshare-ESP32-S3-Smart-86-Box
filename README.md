@@ -52,7 +52,7 @@ Start here: [Install EspControl](https://jtenniswood.github.io/espcontrol/gettin
 
 ## Supported Screens
 
-EspControl supports several low-cost ESP32 touchscreens. Larger screens give you more room for controls; smaller screens are useful beside doors, on desks, or in individual rooms.
+EspControl supports several low-cost ESP32 touchscreens, including the Waveshare ESP32-S3 Smart 86 Box. Larger screens give you more room for controls; smaller screens are useful beside doors, on desks, or in individual rooms.
 
 | | 10.1" JC8012P4A1 | 7" JC1060P470 | 4.3" JC4880P443 | 4" ESP32-P4 86 Panel | 4" 4848S040 |
 |---|:-:|:-:|:-:|:-:|:-:|
