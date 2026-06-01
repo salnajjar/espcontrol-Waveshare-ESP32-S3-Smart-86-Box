@@ -239,6 +239,10 @@ def test_generated_yaml(profiles: dict[str, dict]) -> None:
                 ), (
                     f"{slug}: weather forecast unit label must align like the web preview"
                 )
+                assert (
+                    "border_width: 2" in tile
+                    and "lv_obj_set_style_border_width(slot.btn, 2, LV_PART_MAIN)" in sensors
+                ), f"{slug}: TRMNL card border width must match the generated web preview outline"
                 assert "radius: 2" in tile and "lv_obj_set_style_radius(slot.btn, 2, LV_PART_MAIN)" in sensors, (
                     f"{slug}: TRMNL card corner radius must match the nearly-square web preview cards"
                 )

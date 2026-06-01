@@ -4,7 +4,7 @@ button:
   bg_color: 0xFFFFFF
   bg_opa: cover
   border_color: 0x000000
-  border_width: 1
+  border_width: 2
   radius: 2
   shadow_width: 0
   pad_all: 9
