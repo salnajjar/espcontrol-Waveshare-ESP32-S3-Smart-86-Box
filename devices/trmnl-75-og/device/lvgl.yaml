@@ -109,19 +109,20 @@ lvgl:
 
     - id: main_page
       scrollbar_mode: "off"
+      align: top_left
+      x: 10
+      y: 68
       layout:
         type: grid
         grid_columns: [FR(1), FR(1), FR(1), FR(1)]
         grid_rows: [FR(1), FR(1), FR(1)]
-        pad_row: 10
-        pad_column: 10
-      width: 100%
+        pad_row: 6
+        pad_column: 6
+      width: 780
+      height: 402
       bg_color: 0xFFFFFF
       bg_opa: cover
-      pad_top: 42
-      pad_bottom: 5
-      pad_left: 5
-      pad_right: 5
+      pad_all: 0
       widgets:
         - !include { file: trmnl_tile_widget.yaml, vars: { num: "1" } }
         - !include { file: trmnl_tile_widget.yaml, vars: { num: "2" } }
