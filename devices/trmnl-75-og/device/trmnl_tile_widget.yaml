@@ -36,7 +36,7 @@ button:
           - label:
               id: button_${num}_sensor_label
               text: ""
-              text_font: font_trmnl_value_24
+              text_font: font_trmnl_value_32
               text_color: 0x000000
               long_mode: dot
           - label:

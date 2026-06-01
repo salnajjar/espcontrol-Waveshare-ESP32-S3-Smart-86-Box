@@ -736,10 +736,10 @@
         },
         "fonts": {
           "icon": "font_trmnl_mdi_26_icons",
-          "sensor": "font_trmnl_value_24",
+          "sensor": "font_trmnl_value_32",
           "largeSensor": "font_trmnl_value_large_80",
           "mediaTitle": "font_trmnl_label_14",
-          "volumeNumber": "font_trmnl_value_24",
+          "volumeNumber": "font_trmnl_value_32",
           "volumeLabel": "font_trmnl_label_14"
         },
         "display": {
@@ -754,7 +754,7 @@
             "content_width": "\"760\"",
             "icon_font": "font_trmnl_mdi_26_icons",
             "label_font": "font_trmnl_label_14",
-            "sensor_value_font": "font_trmnl_value_24"
+            "sensor_value_font": "font_trmnl_value_32"
           },
           "deviceFontPackageKey": "fonts_device",
           "apiNavigateAction": false

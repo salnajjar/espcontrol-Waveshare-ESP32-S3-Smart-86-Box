@@ -87,12 +87,12 @@ script:
           cfg.subpage_chevrons_enabled = false;
           cfg.wrap_tall_labels = true;
           cfg.icon_font = id(font_trmnl_mdi_26_icons)->get_lv_font();
-          cfg.sp_sensor_font = id(font_trmnl_value_24)->get_lv_font();
+          cfg.sp_sensor_font = id(font_trmnl_value_32)->get_lv_font();
           cfg.sp_large_sensor_font = id(font_trmnl_value_large_80)->get_lv_font();
           cfg.large_sensor_unit_offset_percent = -10;
           cfg.media_title_font = id(font_trmnl_label_14)->get_lv_font();
-          cfg.option_select_value_font = id(font_trmnl_value_24)->get_lv_font();
-          cfg.volume_number_font = id(font_trmnl_value_24)->get_lv_font();
+          cfg.option_select_value_font = id(font_trmnl_value_32)->get_lv_font();
+          cfg.volume_number_font = id(font_trmnl_value_32)->get_lv_font();
           cfg.volume_label_font = id(font_trmnl_label_14)->get_lv_font();
           cfg.climate_card_icon_font = id(font_trmnl_mdi_26_icons)->get_lv_font();
           cfg.subpage_chevron_font = id(font_trmnl_label_14)->get_lv_font();
