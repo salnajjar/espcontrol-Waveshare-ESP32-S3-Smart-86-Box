@@ -56,7 +56,7 @@ lvgl:
       scrollbar_mode: "off"
       align: top_left
       x: 10
-      y: 42
+      y: 68
       layout:
         type: grid
         grid_columns: [FR(1), FR(1), FR(1), FR(1)]
@@ -64,10 +64,10 @@ lvgl:
         pad_row: 6
         pad_column: 6
       width: 780
-      height: 428
+      height: 402
       bg_color: 0xFFFFFF
       bg_opa: cover
-      pad_all: 6
+      pad_all: 0
       widgets:
         - !include { file: ../../../common/device/button_widget.yaml, vars: { num: "1" } }
         - !include { file: ../../../common/device/button_widget.yaml, vars: { num: "2" } }
