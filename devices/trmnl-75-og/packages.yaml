@@ -9,6 +9,11 @@ substitutions:
   screen_width: "800"
   screen_height: "480"
   content_width: "760"
+  setup_icon_font_id: font_icon_main
+  setup_title_font_id: font_text_title
+  setup_body_font_id: font_text_body
+  setup_pad_row: "18"
+  setup_loading_pad_row: "34"
   screen_theme_initial_option: "Light"
   button_on_color_initial: "000000"
   button_off_color_initial: "FFFFFF"
@@ -46,5 +51,6 @@ packages:
   btn_11:          !include { file: ../../common/config/button_template.yaml, vars: { num: "11" } }
   btn_12:          !include { file: ../../common/config/button_template.yaml, vars: { num: "12" } }
   network:         !include ../../common/addon/network.yaml
+  onboarding:      !include device/onboarding.yaml
   lvgl:            !include device/lvgl.yaml
   sensors:         !include device/sensors.yaml

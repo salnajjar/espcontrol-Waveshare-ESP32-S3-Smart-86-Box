@@ -203,6 +203,38 @@ text:
 
 switch:
   - platform: template
+    name: "${entity_screen_clock_bar}"
+    internal: true
+    id: clock_bar_enabled
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+    icon: "mdi:clock-digital"
+    web_server:
+      sorting_group_id: sg_display
+    on_turn_on:
+      - script.execute: trmnl_dashboard_content_changed
+    on_turn_off:
+      - script.execute: trmnl_dashboard_content_changed
+
+  - platform: template
+    name: "${entity_screen_network_status_icon}"
+    internal: true
+    id: network_status_enabled
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+    icon: "mdi:wifi"
+    web_server:
+      sorting_group_id: sg_display
+    on_turn_on:
+      - script.execute: network_status_refresh
+      - script.execute: trmnl_dashboard_content_changed
+    on_turn_off:
+      - lambda: 'network_status_hide_modal();'
+      - script.execute: trmnl_dashboard_content_changed
+
+  - platform: template
     name: "${entity_indoor_temp_enable}"
     internal: true
     id: indoor_temp_enable
