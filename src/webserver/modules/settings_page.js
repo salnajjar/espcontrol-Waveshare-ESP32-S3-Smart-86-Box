@@ -681,6 +681,17 @@ function buildSettingsPage(parent) {
     coverArtOptions.appendChild(trackOverlayField);
     els.setCoverArtTrackOverlayDuration = trackOverlaySelect;
 
+    var coverArtProgressBarToggle = toggleRow(
+      "Show Track Progress Bar",
+      "sp-set-ss-cover-art-progress-bar",
+      state.coverArtProgressBarOn);
+    coverArtOptions.appendChild(coverArtProgressBarToggle.row);
+    coverArtProgressBarToggle.input.addEventListener("change", function () {
+      state.coverArtProgressBarOn = this.checked;
+      postSwitch(entityName("screen_saver_cover_art_progress_bar"), state.coverArtProgressBarOn);
+    });
+    els.setCoverArtProgressBarToggle = coverArtProgressBarToggle.input;
+
     var coverArtOpenSubpageToggle = toggleRow(
       "Open Media Subpage While Playing",
       "sp-set-ss-cover-art-open-media",
@@ -1041,6 +1052,9 @@ function syncCoverArtScreensaverUi() {
       els.setCoverArtTrackOverlayDuration,
       value,
       value > 0 ? formatDuration(value) : "Hidden");
+  }
+  if (els.setCoverArtProgressBarToggle) {
+    els.setCoverArtProgressBarToggle.checked = !!state.coverArtProgressBarOn;
   }
   if (els.setCoverArtOpenMediaSubpageToggle) {
     els.setCoverArtOpenMediaSubpageToggle.checked = !!state.coverArtOpenMediaSubpageOn;

@@ -39,6 +39,7 @@ function exportConfig() {
       cover_art_home_assistant_url: state.coverArtHomeAssistantUrl,
       cover_art_delay: state.coverArtDelay,
       cover_art_track_overlay_duration: state.coverArtTrackOverlayDuration,
+      cover_art_progress_bar: state.coverArtProgressBarOn,
       cover_art_open_media_subpage: state.coverArtOpenMediaSubpageOn,
       cover_art_media_subpage_target: state.coverArtMediaSubpageTarget,
       screensaver_action: normalizeScreensaverAction(state.screensaverAction),
@@ -217,6 +218,7 @@ function importConfig() {
         postText(entityName("screen_saver_cover_art_ha_url"), importedSettings.coverArtHomeAssistantUrl);
         postNumber(entityName("screen_saver_cover_art_delay"), importedSettings.coverArtDelay);
         postNumber(entityName("screen_saver_track_overlay_duration"), importedSettings.coverArtTrackOverlayDuration);
+        postSwitch(entityName("screen_saver_cover_art_progress_bar"), importedSettings.coverArtProgressBar);
         postSwitch(entityName("screen_saver_open_media_subpage"), importedSettings.coverArtOpenMediaSubpage);
         postText(entityName("screen_saver_media_subpage"), importedSettings.coverArtMediaSubpageTarget);
         var importedScreensaverAction = importedSettings.screensaverAction;
@@ -263,6 +265,7 @@ function importConfig() {
         state.coverArtHomeAssistantUrl = importedSettings.coverArtHomeAssistantUrl;
         state.coverArtDelay = importedSettings.coverArtDelay;
         state.coverArtTrackOverlayDuration = importedSettings.coverArtTrackOverlayDuration;
+        state.coverArtProgressBarOn = importedSettings.coverArtProgressBar;
         state.coverArtOpenMediaSubpageOn = importedSettings.coverArtOpenMediaSubpage;
         state.coverArtMediaSubpageTarget = importedSettings.coverArtMediaSubpageTarget || "";
         state.screensaverAction = importedScreensaverAction;

@@ -143,8 +143,11 @@ lvgl:
           scrollbar_mode: "off"
           clickable: true
           hidden: true
-          on_press:
+          on_click:
             then:
+              - globals.set:
+                  id: screensaver_wake_touch_guard_skip_once
+                  value: 'true'
               - script.execute: screensaver_wake
           widgets:
             - obj:
@@ -446,7 +449,13 @@ script:
                 lv_obj_set_style_text_line_space(id(cover_art_title_label), ${cover_art_title_line_space}, 0);
             - lvgl.widget.show: cover_art_accent_overlay
             - lvgl.widget.show: cover_art_track_panel
-            - lvgl.widget.show: cover_art_progress_bar
+            - if:
+                condition:
+                  lambda: 'return id(cover_art_progress_bar_enabled).state;'
+                then:
+                  - lvgl.widget.show: cover_art_progress_bar
+                else:
+                  - lvgl.widget.hide: cover_art_progress_bar
             - script.execute: cover_art_refresh_progress
             - if:
                 condition:
@@ -506,9 +515,11 @@ script:
                   - script.execute: cover_art_show_black_screen
       - if:
           condition:
-            lambda: 'return id(cover_art_image_available);'
+            lambda: 'return id(cover_art_image_available) && id(cover_art_progress_bar_enabled).state;'
           then:
             - lvgl.widget.show: cover_art_progress_bar
+          else:
+            - lvgl.widget.hide: cover_art_progress_bar
       - script.execute: cover_art_refresh_progress
       - script.execute: backlight_apply_brightness
 

@@ -65,6 +65,7 @@ var state = {
   coverArtHomeAssistantUrl: "",
   coverArtDelay: 10,
   coverArtTrackOverlayDuration: 5,
+  coverArtProgressBarOn: true,
   coverArtOpenMediaSubpageOn: false,
   coverArtMediaSubpageTarget: "",
   screensaverMode: "disabled",
