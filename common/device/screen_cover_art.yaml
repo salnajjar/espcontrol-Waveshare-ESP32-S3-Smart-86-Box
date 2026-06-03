@@ -30,6 +30,9 @@ globals:
   - id: cover_art_media_position
     type: float
     initial_value: '0.0'
+  - id: cover_art_position_anchor
+    type: float
+    initial_value: '0.0'
   - id: cover_art_position_anchor_epoch
     type: int
     initial_value: '0'
@@ -277,7 +280,7 @@ script:
 
           if (id(cover_art_media_playing) && now.is_valid()) {
             if (id(cover_art_position_anchor_epoch) != 0) {
-              position = id(cover_art_media_position) +
+              position = id(cover_art_position_anchor) +
                          (float)(now.timestamp - id(cover_art_position_anchor_epoch));
             } else if (id(cover_art_last_position_timestamp) != 0) {
               position = id(cover_art_media_position) +
@@ -288,7 +291,9 @@ script:
           if (position < 0.0f) position = 0.0f;
           if (duration > 0.0f && position > duration) position = duration;
           id(cover_art_media_position) = position;
-          if (now.is_valid()) id(cover_art_last_position_timestamp) = now.timestamp;
+          if (now.is_valid() && id(cover_art_position_anchor_epoch) == 0) {
+            id(cover_art_last_position_timestamp) = now.timestamp;
+          }
 
           int elapsed = (int) position;
           if (elapsed < 0) elapsed = 0;
@@ -438,7 +443,9 @@ script:
                 bool playing = state_text == "playing";
                 id(cover_art_media_playing) = playing;
                 auto now = id(panel_time).now();
-                if (playing && now.is_valid()) id(cover_art_last_position_timestamp) = now.timestamp;
+                if (playing && now.is_valid() && id(cover_art_position_anchor_epoch) == 0) {
+                  id(cover_art_last_position_timestamp) = now.timestamp;
+                }
                 if (playing) id(cover_art_playback_started).execute();
                 else id(cover_art_playback_stopped).execute();
               })
@@ -517,9 +524,16 @@ script:
               [cover_entity](esphome::StringRef position) {
                 if (cover_entity != id(cover_art_media_player_entity).state) return;
                 std::string value = string_ref_limited(position, HA_SHORT_STATE_MAX_LEN);
-                id(cover_art_media_position) = value.empty() ? 0.0f : strtof(value.c_str(), nullptr);
+                float next_position = value.empty() ? 0.0f : strtof(value.c_str(), nullptr);
+                if (next_position < 0.0f) next_position = 0.0f;
+                id(cover_art_position_anchor) = next_position;
+                id(cover_art_media_position) = next_position;
                 auto now = id(panel_time).now();
-                id(cover_art_last_position_timestamp) = now.is_valid() ? now.timestamp : 0;
+                if (id(cover_art_position_anchor_epoch) != 0) {
+                  id(cover_art_last_position_timestamp) = id(cover_art_position_anchor_epoch);
+                } else {
+                  id(cover_art_last_position_timestamp) = now.is_valid() ? now.timestamp : 0;
+                }
                 id(cover_art_last_progress_percent) = -1;
                 if (id(cover_art_screensaver_active)) id(cover_art_refresh_progress).execute();
               })
@@ -586,6 +600,7 @@ script:
           value: 'false'
       - lambda: |-
           id(cover_art_media_position) = 0.0f;
+          id(cover_art_position_anchor) = 0.0f;
           id(cover_art_media_duration) = 0.0f;
           id(cover_art_position_anchor_epoch) = 0;
           id(cover_art_last_position_timestamp) = 0;
