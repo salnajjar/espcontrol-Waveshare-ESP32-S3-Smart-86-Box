@@ -7,9 +7,6 @@ function buildSettingsPage(parent) {
 
   var config = document.createElement("div");
   config.className = "sp-config fade-in";
-  var displayBody = settingsGroupBody();
-  var sleepScheduleBody = settingsGroupBody();
-  var systemBody = settingsGroupBody();
 
   var appearBody = document.createElement("div");
 
@@ -56,7 +53,7 @@ function buildSettingsPage(parent) {
     els.setSensorColor = sensorColor;
   }
 
-  appendSettingsGroupSection(displayBody, "Appearance", appearBody);
+  config.appendChild(makeCollapsibleCard("Appearance", appearBody, true));
 
   var languageBody = document.createElement("div");
   var languageField = document.createElement("div");
@@ -76,7 +73,7 @@ function buildSettingsPage(parent) {
   });
   languageField.appendChild(languageSelect);
   languageBody.appendChild(languageField);
-  appendSettingsGroupSection(systemBody, "Language", languageBody);
+  config.appendChild(makeCollapsibleCard("Language", languageBody, true));
   els.setLanguage = languageSelect;
 
   var blBody = document.createElement("div");
@@ -107,7 +104,7 @@ function buildSettingsPage(parent) {
   els.sunInfo = sunInfo;
   updateSunInfo();
 
-  appendSettingsGroupSection(displayBody, "Backlight", blBody);
+  config.appendChild(makeCollapsibleCard("Backlight", blBody, true));
 
   var scheduleBody = document.createElement("div");
   var scheduleToggle = toggleRow("Night Schedule", "sp-set-schedule-enabled", state.scheduleEnabled);
@@ -269,6 +266,7 @@ function buildSettingsPage(parent) {
   scheduleBadge.innerHTML = '<span class="sp-card-badge-dot"></span><span>ON</span>';
   els.setScheduleBadge = scheduleBadge;
   syncScreenScheduleUi();
+  var scheduleCard = makeCollapsibleCard("Night Schedule", scheduleBody, true, scheduleBadge);
 
   var clockBody = document.createElement("div");
 
@@ -422,7 +420,7 @@ function buildSettingsPage(parent) {
   syncMonthNameUi();
   clockBody.appendChild(monthNamesField);
 
-  appendSettingsGroupSection(systemBody, "Time Settings", clockBody);
+  var timeSettingsCard = makeCollapsibleCard("Time Settings", clockBody, true);
 
   var clockBarBody = document.createElement("div");
 
@@ -485,7 +483,7 @@ function buildSettingsPage(parent) {
   els.setClockBarBadge = clockBarBadge;
   syncClockBarUi();
   syncTemperatureUi();
-  appendSettingsGroupSection(displayBody, "Clock Bar", clockBarBody, clockBarBadge);
+  config.appendChild(makeCollapsibleCard("Clock Bar", clockBarBody, true, clockBarBadge));
 
   if (CFG.features && CFG.features.screenRotation) {
     var rotationBody = document.createElement("div");
@@ -507,7 +505,7 @@ function buildSettingsPage(parent) {
     });
     rotField.appendChild(rotSelect);
     rotationBody.appendChild(rotField);
-    appendSettingsGroupSection(displayBody, "Rotation", rotationBody);
+    config.appendChild(makeCollapsibleCard("Rotation", rotationBody, true));
     els.setScreenRotation = rotSelect;
   }
 
@@ -541,7 +539,7 @@ function buildSettingsPage(parent) {
   els.setTemperatureUnit = unitSelect;
 
   syncTemperatureUi();
-  appendSettingsGroupSection(displayBody, "Temperature", tempBody);
+  config.appendChild(makeCollapsibleCard("Temperature", tempBody, true));
 
   var ssBody = document.createElement("div");
   var ssMode = getActiveScreensaverMode();
@@ -813,6 +811,8 @@ function buildSettingsPage(parent) {
   els.setSsMode = setSsMode;
   setSsMode(ssMode);
 
+  var screensaverCard = makeCollapsibleCard("Screensaver", ssBody, true, ssBadge);
+
   var idleBody = document.createElement("div");
   idleBody.appendChild(fieldLabel("Return Home After"));
   var hsSelect = document.createElement("select");
@@ -846,12 +846,12 @@ function buildSettingsPage(parent) {
   idleBadge.innerHTML = '<span class="sp-card-badge-dot"></span><span>ON</span>';
   els.setIdleBadge = idleBadge;
   syncIdleUi();
-  appendSettingsGroupSection(sleepScheduleBody, "Idle", idleBody, idleBadge);
-  appendSettingsGroupSection(sleepScheduleBody, "Screensaver", ssBody, ssBadge);
+  config.appendChild(makeCollapsibleCard("Idle", idleBody, true, idleBadge));
+  config.appendChild(screensaverCard);
   if (!isEpaperPreview()) {
-    appendSettingsGroupSection(sleepScheduleBody, "Media Cover Art", coverArtBody);
+    config.appendChild(makeCollapsibleCard("Media Cover Art", coverArtBody, true));
   }
-  appendSettingsGroupSection(sleepScheduleBody, "Night Schedule", scheduleBody, scheduleBadge);
+  config.appendChild(scheduleCard);
 
   var backupBody = document.createElement("div");
 
@@ -871,7 +871,8 @@ function buildSettingsPage(parent) {
   backupRow.appendChild(importBtn);
 
   backupBody.appendChild(backupRow);
-  appendSettingsGroupSection(systemBody, "Backup", backupBody);
+  config.appendChild(timeSettingsCard);
+  config.appendChild(makeCollapsibleCard("Backup", backupBody, true));
 
   var fwBody = document.createElement("div");
 
@@ -973,7 +974,7 @@ function buildSettingsPage(parent) {
   els.setUpdateFreq = freqSelect;
   syncFirmwareUpdateUi();
 
-  appendSettingsGroupSection(systemBody, "Firmware", fwBody);
+  config.appendChild(makeCollapsibleCard("Firmware", fwBody, true));
 
   if (developerExperimentalUrlFlag()) {
     var devBody = document.createElement("div");
@@ -989,41 +990,14 @@ function buildSettingsPage(parent) {
       scheduleRender();
     });
     els.setDeveloperExperimentalFeatures = experimentalToggle.input;
-    appendSettingsGroupSection(systemBody, "Developer", devBody);
+    config.appendChild(makeCollapsibleCard("Developer", devBody, true));
   }
-
-  config.appendChild(makeCollapsibleCard("Display", displayBody, true));
-  config.appendChild(makeCollapsibleCard("Sleep & Schedule", sleepScheduleBody, true));
-  config.appendChild(makeCollapsibleCard("System", systemBody, true));
 
   page.appendChild(config);
   page.appendChild(buildApplyBar());
 
   parent.appendChild(page);
   els.settingsPage = page;
-}
-
-function settingsGroupBody() {
-  var body = document.createElement("div");
-  body.className = "sp-settings-group";
-  return body;
-}
-
-function appendSettingsGroupSection(parent, title, bodyElement, badgeElement) {
-  var section = document.createElement("section");
-  section.className = "sp-settings-section";
-
-  var header = document.createElement("div");
-  header.className = "sp-settings-section-header";
-
-  var heading = document.createElement("h4");
-  heading.textContent = title;
-  header.appendChild(heading);
-  if (badgeElement) header.appendChild(badgeElement);
-
-  section.appendChild(header);
-  section.appendChild(bodyElement);
-  parent.appendChild(section);
 }
 
 // ── Settings sync helpers ───────────────────────────────────────────
