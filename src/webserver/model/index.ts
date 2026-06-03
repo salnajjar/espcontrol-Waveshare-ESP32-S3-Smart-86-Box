@@ -48,11 +48,13 @@ export {
   parseCompactSubpageConfig,
   parseLegacySubpageConfig,
   parseRawSubpageConfig,
+  parseStructuredSubpageConfig,
   parseSubpageOrder,
   serializeCompactSubpageConfig,
   serializeLegacySubpageConfig,
   serializeSubpageGrid,
   splitSubpageConfigChunks,
+  structuredSubpageFromParsed,
   subpageOrderForSerialize,
 } from "./subpage";
 
@@ -107,5 +109,6 @@ export type {
   BackOrderToken,
   ParsedSubpageConfig,
   ParsedSubpageOrder,
+  StructuredSubpageConfig,
   SubpageGridSource,
 } from "./subpage";

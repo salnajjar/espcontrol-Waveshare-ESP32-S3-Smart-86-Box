@@ -7,6 +7,7 @@ import {
   sizeFromToken,
   type SlotSizeMap,
 } from "./grid";
+import type { StructuredSubpageConfig } from "./subpage";
 
 export const BACKUP_CONFIG_VERSION = 2;
 export const BACKUP_FORMAT = "espcontrol.backup";
@@ -19,6 +20,7 @@ export interface BackupSource {
 export interface BackupEnvelopeOutputs {
   buttons: CardConfig[];
   subpages: Record<string, string>;
+  subpage_objects?: Record<string, StructuredSubpageConfig>;
   button_order?: string;
 }
 
@@ -34,6 +36,7 @@ export interface NormalizedBackupEnvelope {
   sensor_card_color: string;
   buttons: CardConfig[];
   subpages: Record<string, string>;
+  subpage_objects: Record<string, StructuredSubpageConfig>;
   settings: Record<string, unknown> | null;
   screen: Record<string, unknown> | null;
 }
@@ -129,6 +132,7 @@ export function createBackupEnvelope(
     sensor_card_color: snapshot.sensor_card_color || "DEDEDE",
     buttons: outputs.buttons,
     subpages: outputs.subpages,
+    subpage_objects: outputs.subpage_objects || {},
     settings: snapshot.settings || {},
     screen: snapshot.screen || {},
   };
@@ -150,6 +154,7 @@ export function normalizeBackupEnvelope(
     sensor_card_color: String(data.sensor_card_color || "DEDEDE"),
     buttons: outputs.buttons,
     subpages: outputs.subpages,
+    subpage_objects: outputs.subpage_objects || {},
     settings: isRecord(data.settings) ? data.settings : null,
     screen: isRecord(data.screen)
       ? data.screen

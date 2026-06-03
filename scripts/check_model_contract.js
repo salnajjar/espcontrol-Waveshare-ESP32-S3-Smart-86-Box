@@ -104,6 +104,46 @@ assert.strictEqual(
   "1,B|scene.movie:Movie",
   "subpage serialization chooses the shorter compatible format"
 );
+const structuredSubpageSource = {
+  order: ["2d", "3w", "Bt", "1"],
+  buttons: [
+    { entity: "scene.movie", label: "Movie", icon: "Flash", icon_on: "Auto", sensor: "scene.turn_on", unit: "", type: "action", precision: "", options: "state_entity=light.living" },
+    { entity: "media_player.living", label: "Living", icon: "Auto", icon_on: "Auto", sensor: "play_pause", unit: "", type: "media", precision: "state", options: "" },
+    { entity: "climate.hallway", label: "Hallway", icon: "Thermostat", icon_on: "Radiator", sensor: "", unit: "", type: "climate", precision: "1", options: "number_display=icon" },
+    { entity: "", label: "Temp", icon: "Thermometer", icon_on: "Auto", sensor: "sensor.hallway_temperature", unit: "\u00B0C", type: "sensor", precision: "1", options: "large_numbers" },
+    { entity: "", label: "", icon: "Auto", icon_on: "Auto", sensor: "", unit: "", type: "", precision: "", options: "" },
+  ],
+  backLabel: "Return Home",
+};
+const structuredSubpageObject = model.structuredSubpageFromParsed(structuredSubpageSource);
+assert.deepStrictEqual(plain(structuredSubpageObject), {
+  order: ["2d", "3w", "Bt", "1"],
+  back_label: "Return Home",
+  buttons: structuredSubpageSource.buttons,
+}, "structured subpage export preserves readable order, back label, and buttons");
+assert.deepStrictEqual(
+  plain(model.parseStructuredSubpageConfig(structuredSubpageObject)),
+  plain(structuredSubpageSource),
+  "structured subpage import round-trips action, media, climate, sensor, and empty buttons"
+);
+assert.deepStrictEqual(plain(model.parseStructuredSubpageConfig({
+  order: ["B=Encoded%20Back", "1"],
+  buttons: [{ label: "Partial" }],
+})), {
+  order: ["B", "1"],
+  buttons: [{
+    entity: "",
+    label: "Partial",
+    icon: "Auto",
+    icon_on: "Auto",
+    sensor: "",
+    unit: "",
+    type: "",
+    precision: "",
+    options: "",
+  }],
+  backLabel: "Encoded Back",
+}, "structured subpage import defaults missing card fields and decodes legacy back labels");
 
 const layoutPlan = model.planBackupButtonLayout([
   { entity: "light.kitchen", label: "Kitchen" },

@@ -72,6 +72,7 @@ var EspControlModel = (() => {
     parseLegacySubpageConfig: () => parseLegacySubpageConfig,
     parseRawButtonConfig: () => parseRawButtonConfig,
     parseRawSubpageConfig: () => parseRawSubpageConfig,
+    parseStructuredSubpageConfig: () => parseStructuredSubpageConfig,
     parseSubpageOrder: () => parseSubpageOrder,
     planBackupButtonLayout: () => planBackupButtonLayout,
     scheduleModeOption: () => scheduleModeOption,
@@ -87,6 +88,7 @@ var EspControlModel = (() => {
     sizeRowSpan: () => sizeRowSpan,
     sizeToken: () => sizeToken,
     splitSubpageConfigChunks: () => splitSubpageConfigChunks,
+    structuredSubpageFromParsed: () => structuredSubpageFromParsed,
     subpageOrderForSerialize: () => subpageOrderForSerialize,
     trimConfigFields: () => trimConfigFields,
     validateBackupEnvelope: () => validateBackupEnvelope
@@ -362,6 +364,7 @@ var EspControlModel = (() => {
       sensor_card_color: snapshot.sensor_card_color || "DEDEDE",
       buttons: outputs.buttons,
       subpages: outputs.subpages,
+      subpage_objects: outputs.subpage_objects || {},
       settings: snapshot.settings || {},
       screen: snapshot.screen || {}
     };
@@ -379,6 +382,7 @@ var EspControlModel = (() => {
       sensor_card_color: String(data.sensor_card_color || "DEDEDE"),
       buttons: outputs.buttons,
       subpages: outputs.subpages,
+      subpage_objects: outputs.subpage_objects || {},
       settings: isRecord(data.settings) ? data.settings : null,
       screen: isRecord(data.screen) ? data.screen : isRecord(data.settings) && isRecord(data.settings.screen) ? data.settings.screen : null
     };
@@ -467,6 +471,13 @@ var EspControlModel = (() => {
 
   // src/webserver/model/subpage.ts
   var BACK_TOKENS = /* @__PURE__ */ new Set(["B", "Bd", "Bw", "Bb", "Bt", "Bx"]);
+  function isRecord2(value) {
+    return !!value && typeof value === "object" && !Array.isArray(value);
+  }
+  function stringField(record, key, fallback = "") {
+    const value = record[key];
+    return value == null ? fallback : String(value || fallback);
+  }
   function isBackOrderToken(token) {
     return BACK_TOKENS.has(String(token || ""));
   }
@@ -574,6 +585,39 @@ var EspControlModel = (() => {
   function parseRawSubpageConfig(value, typeFromCode) {
     if (value && value.charAt(0) === "~") return parseCompactSubpageConfig(value, typeFromCode);
     return parseLegacySubpageConfig(value);
+  }
+  function structuredSubpageFromParsed(subpage) {
+    return {
+      order: (subpage?.order || []).map((item) => parseBackOrderToken(item).token),
+      back_label: subpage?.backLabel || backLabelFromOrder(subpage?.order) || "Back",
+      buttons: (subpage?.buttons || []).map((button) => cloneCardConfig(button))
+    };
+  }
+  function parseStructuredSubpageConfig(value) {
+    if (!isRecord2(value)) return { order: [], buttons: [], backLabel: "Back" };
+    const orderValues = Array.isArray(value.order) ? value.order.map((item) => String(item || "")) : [];
+    const parsedOrder = parseSubpageOrder(orderValues.join(","));
+    const backLabel = stringField(value, "back_label", stringField(value, "backLabel", parsedOrder.backLabel));
+    const rawButtons = Array.isArray(value.buttons) ? value.buttons : [];
+    const buttons = rawButtons.map((button) => {
+      const record = isRecord2(button) ? button : {};
+      return cloneCardConfig({
+        entity: stringField(record, "entity"),
+        label: stringField(record, "label"),
+        icon: stringField(record, "icon", "Auto"),
+        icon_on: stringField(record, "icon_on", "Auto"),
+        sensor: stringField(record, "sensor"),
+        unit: stringField(record, "unit"),
+        type: stringField(record, "type"),
+        precision: stringField(record, "precision"),
+        options: stringField(record, "options")
+      });
+    });
+    return {
+      order: parsedOrder.order,
+      buttons,
+      backLabel: backLabel || "Back"
+    };
   }
   function legacySubpageFieldsSafe(buttonFields) {
     for (const fields of buttonFields) {
