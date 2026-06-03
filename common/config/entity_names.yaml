@@ -45,7 +45,7 @@ substitutions:
   entity_screen_saver_cover_art_entity: "Screen Saver: Cover Art Entity"
   entity_screen_saver_cover_art_ha_url: "Screen Saver: Home Assistant URL"
   entity_screen_saver_cover_art_delay: "Screen Saver: Cover Art Delay"
-  entity_screen_saver_track_overlay_duration: "Screen Saver: Track Overlay Duration"
+  entity_screen_saver_track_overlay_duration: "Screen Saver: Show Track Overlay"
   entity_screen_saver_open_media_subpage: "Screen Saver: Open Media Subpage While Playing"
   entity_screen_saver_media_subpage: "Screen Saver: Media Subpage"
   entity_screen_saver_daytime_clock_brightness: "Screen Saver: Daytime Clock Brightness"
