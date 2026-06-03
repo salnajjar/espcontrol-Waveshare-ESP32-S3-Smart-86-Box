@@ -572,7 +572,7 @@ function buildSettingsPage(parent) {
   els.setTemperatureUnit = unitSelect;
 
   syncTemperatureUi();
-  var temperatureCard = makeCollapsibleCard("Temperature", tempBody, true);
+  var temperatureCard = makeCollapsibleCard("Temperature Settings", tempBody, true);
 
   var ssBody = document.createElement("div");
   var ssMode = getActiveScreensaverMode();
@@ -1030,7 +1030,6 @@ function buildSettingsPage(parent) {
     backlightCard,
     clockBarCard,
     rotationCard,
-    temperatureCard,
   ]);
   appendSettingsSection(config, "Sleep & Schedule", [
     idleCard,
@@ -1041,6 +1040,7 @@ function buildSettingsPage(parent) {
   appendSettingsSection(config, "System", [
     languageCard,
     timeSettingsCard,
+    temperatureCard,
     backupCard,
     firmwareCard,
     developerCard,
