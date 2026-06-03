@@ -35,7 +35,7 @@ substitutions:
   clock_cy: "360"
   network_transport: "wifi"
   disable_updates: "false"
-  voice_microphone_channel: "0"
+  voice_wake_microphone_channel: "0"
   network_package_suffix: ${ "_ethernet" if network_transport == "ethernet" else "" }
   firmware_update_package_suffix: ${ "_disabled" if disable_updates == "true" else "" }
   backlight_pwm_frequency: ${ "20000Hz" if network_transport == "ethernet" else "100Hz" }

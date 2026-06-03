@@ -77,7 +77,6 @@ media_player:
     id: voice_media_player
     name: Voice Media Player
     icon: mdi:speaker
-    codec_support_enabled: true
     volume_min: 0.0
     volume_max: 0.85
     volume_increment: 0.05
@@ -139,7 +138,7 @@ sensor:
     id: voice_mic_sound_level
     microphone:
       microphone: voice_microphone
-      channels: ${voice_microphone_channel}
+      channels: ${voice_wake_microphone_channel}
       gain_factor: 4
     measurement_duration: 500ms
     passive: true
@@ -178,13 +177,13 @@ text_sensor:
     entity_category: diagnostic
 
   - platform: template
-    id: voice_assistant_active_mic_channel
-    name: Voice Assistant Active Mic Channel
+    id: voice_assistant_microphone_channels
+    name: Voice Assistant Microphone Channels
     icon: mdi:microphone-question
     entity_category: diagnostic
     update_interval: never
     lambda: |-
-      return {"Channel ${voice_microphone_channel}"};
+      return {"Channels 0 + 1"};
 
 number:
   - platform: template
@@ -209,7 +208,7 @@ micro_wake_word:
   id: onboard_wake_word
   microphone:
     microphone: voice_microphone
-    channels: ${voice_microphone_channel}
+    channels: ${voice_wake_microphone_channel}
     gain_factor: 4
   stop_after_detection: true
   vad:
@@ -271,13 +270,13 @@ script:
 
 select:
   - platform: template
-    id: voice_microphone_channel_select
-    name: Voice Microphone Channel
+    id: voice_wake_microphone_channel_select
+    name: Voice Wake Microphone Channel
     icon: mdi:microphone-question
     entity_category: config
     optimistic: true
     restore_value: false
-    initial_option: Channel ${voice_microphone_channel}
+    initial_option: Channel ${voice_wake_microphone_channel}
     options:
       - Channel 0
       - Channel 1
@@ -285,7 +284,7 @@ select:
       - logger.log:
           level: WARN
           tag: voice
-          format: "Voice microphone channel is selected at build time; reflash to apply %s"
+          format: "Voice wake microphone channel is selected at build time; reflash to apply %s"
           args: [x.c_str()]
 
   - platform: template
@@ -339,9 +338,12 @@ select:
 voice_assistant:
   id: ha_voice_assistant
   microphone:
-    microphone: voice_microphone
-    channels: ${voice_microphone_channel}
-    gain_factor: 4
+    - microphone: voice_microphone
+      channels: 0
+      gain_factor: 4
+    - microphone: voice_microphone
+      channels: 1
+      gain_factor: 1
   media_player: voice_media_player
   micro_wake_word: onboard_wake_word
   use_wake_word: false
