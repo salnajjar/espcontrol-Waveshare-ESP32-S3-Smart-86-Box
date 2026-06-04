@@ -111,13 +111,8 @@ esphome:
       then:
         - lambda: |-
             ESP_LOGI("jc1060p470", "Bootfix marker 2026-05-22 active");
-    - priority: -100
+    - priority: -50
       then:
-        - lambda: 'id(screen_rotation_ready) = true;'
-        - script.execute: apply_screen_rotation
-    - priority: -200
-      then:
-        - delay: 5s
         - lambda: |-
             if (id(button_on_color).state == "000000" &&
                 id(button_off_color).state == "FFFFFF" &&
@@ -134,8 +129,13 @@ esphome:
               sensor.set_value("212121");
               sensor.perform();
 
+              global_preferences->sync();
               ESP_LOGI("jc1060p470", "Reset e-paper color defaults to color display colors");
             }
+    - priority: -100
+      then:
+        - lambda: 'id(screen_rotation_ready) = true;'
+        - script.execute: apply_screen_rotation
 
 # ---------------------------------------------------------------------------
 # PSRAM (video frame buffer memory)

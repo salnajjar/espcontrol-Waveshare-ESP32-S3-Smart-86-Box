@@ -21,9 +21,6 @@ substitutions:
   setup_action_button_width: "200"
   setup_action_button_height: "56"
   setup_action_button_radius: "12"
-  button_on_color_initial: "000000"
-  button_off_color_initial: "FFFFFF"
-  sensor_card_color_initial: "FFFFFF"
   icon_font: font_icon_main
   subpage_chevron_font: font_icon_status
   label_font: font_text_body
