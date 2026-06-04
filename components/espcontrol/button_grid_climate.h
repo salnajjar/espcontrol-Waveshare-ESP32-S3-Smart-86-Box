@@ -315,10 +315,15 @@ inline std::string climate_option_label(const std::string &raw) {
   if (value == "heat") return espcontrol_i18n(std::string("Heat"));
   if (value == "cool") return espcontrol_i18n(std::string("Cool"));
   if (value == "heat_cool") return espcontrol_i18n(std::string("Heat/Cool"));
-  if (value == "auto") return "Auto";
+  if (value == "auto") return espcontrol_i18n(std::string("Auto"));
   if (value == "dry") return espcontrol_i18n(std::string("Dry"));
   if (value == "fan_only") return espcontrol_i18n(std::string("Fan"));
-  return sentence_cap_text(value);
+  if (value == "nohold") return espcontrol_i18n(std::string("Nohold"));
+  if (value == "holduntil" || value == "hold_until") return espcontrol_i18n(std::string("Holduntil"));
+  if (value == "permanenthold" || value == "permanent_hold") return espcontrol_i18n(std::string("Permanenthold"));
+  if (value == "temporaryhold" || value == "temporary_hold") return espcontrol_i18n(std::string("Temporaryhold"));
+  if (value == "vacationhold" || value == "vacation_hold") return espcontrol_i18n(std::string("Vacationhold"));
+  return espcontrol_i18n(sentence_cap_text(value));
 }
 
 inline lv_coord_t climate_option_menu_width(const std::vector<std::string> &,

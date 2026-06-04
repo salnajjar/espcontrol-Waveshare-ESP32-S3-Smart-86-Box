@@ -175,7 +175,7 @@ inline std::vector<std::string> fan_parse_options(esphome::StringRef value) {
 
 inline std::string fan_option_label(const std::string &value) {
   if (value.empty()) return espcontrol_i18n(std::string("None"));
-  return sentence_cap_text(value);
+  return espcontrol_i18n(sentence_cap_text(value));
 }
 
 inline bool fan_preset_active(const std::string &value) {
