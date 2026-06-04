@@ -36,6 +36,9 @@ globals:
   - id: cover_art_retry_url
     type: std::string
     initial_value: '""'
+  - id: cover_art_fallback_url
+    type: std::string
+    initial_value: '""'
   - id: cover_art_retry_count
     type: int
     initial_value: '0'
@@ -578,17 +581,34 @@ script:
             - script.stop: cover_art_retry_download
             - lambda: |-
                 id(cover_art_retry_url).clear();
+                id(cover_art_fallback_url).clear();
                 id(cover_art_retry_count) = 0;
           else:
-            - lambda: |-
-                if (id(cover_art_retry_count) < 4) {
-                  ESP_LOGW("cover_art", "Artwork download failed, scheduling retry %d/4",
-                           id(cover_art_retry_count) + 1);
-                } else {
-                  ESP_LOGW("cover_art", "Artwork download failed, retries exhausted");
-                }
-            - script.execute: cover_art_show_black_screen
-            - script.execute: cover_art_retry_download
+            - if:
+                condition:
+                  lambda: |-
+                    return !id(cover_art_fallback_url).empty() &&
+                           id(cover_art_url) != id(cover_art_fallback_url);
+                then:
+                  - lambda: |-
+                      ESP_LOGW("cover_art", "Artwork download failed; trying Home Assistant proxy fallback");
+                      id(cover_art_url) = id(cover_art_fallback_url);
+                      id(cover_art_fallback_url).clear();
+                      id(cover_art_retry_url) = id(cover_art_url);
+                      id(cover_art_retry_count) = 0;
+                  - script.execute: cover_art_show_black_screen
+                  - script.execute: cover_art_deferred_download
+                else:
+                  - lambda: |-
+                      if (id(cover_art_retry_count) < 4) {
+                        ESP_LOGW("cover_art", "Artwork download failed, scheduling retry %d/4 (url %u chars)",
+                                 id(cover_art_retry_count) + 1, (unsigned) id(cover_art_url).size());
+                      } else {
+                        ESP_LOGW("cover_art", "Artwork download failed, retries exhausted (url %u chars)",
+                                 (unsigned) id(cover_art_url).size());
+                      }
+                  - script.execute: cover_art_show_black_screen
+                  - script.execute: cover_art_retry_download
 
   - id: cover_art_disable
     mode: restart
@@ -620,6 +640,7 @@ script:
           id(cover_art_request_id)++;
           id(cover_art_loaded_url).clear();
           id(cover_art_retry_url).clear();
+          id(cover_art_fallback_url).clear();
           id(cover_art_retry_count) = 0;
           id(cover_art_title).clear();
           id(cover_art_artist).clear();
@@ -1013,6 +1034,7 @@ script:
           id(cover_art_artwork_pending_count) = 2;
           id(cover_art_pending_remote_url).clear();
           id(cover_art_pending_local_url).clear();
+          id(cover_art_fallback_url).clear();
 
           auto normalize_picture_url = [](esphome::StringRef picture) -> std::string {
             constexpr size_t COVER_ART_URL_MAX_LEN = 1024;
@@ -1051,12 +1073,15 @@ script:
               chosen = id(cover_art_pending_remote_url);
             }
             if (!chosen.empty()) {
+              std::string fallback;
               std::string capped = esphome::artwork_image::cap_artwork_url(chosen, ${cover_art_size});
               if (capped != chosen) {
                 ESP_LOGI("cover_art", "Using capped JPEG artwork URL (%u chars)",
                          (unsigned) capped.size());
+                fallback = chosen;
                 chosen = capped;
               }
+              id(cover_art_fallback_url) = fallback;
             }
 
             if (chosen.empty()) {
@@ -1065,6 +1090,7 @@ script:
                 id(cover_art_url).clear();
                 id(cover_art_loaded_url).clear();
                 id(cover_art_retry_url).clear();
+                id(cover_art_fallback_url).clear();
                 id(cover_art_retry_count) = 0;
                 id(cover_art_image_available) = false;
                 id(cover_art_retry_download).stop();

@@ -46,6 +46,22 @@ static std::string sanitize_artwork_url_for_log(const std::string &url) {
   return url.substr(0, query) + "?...";
 }
 
+static const char *classify_artwork_url_for_log(const std::string &url) {
+  if (url.find("mzstatic.com") != std::string::npos) return "apple-cdn";
+  if (url.find("/api/media_player_proxy/") != std::string::npos) return "ha-media-proxy";
+  if (url.rfind("http://", 0) == 0) return "http";
+  if (url.rfind("https://", 0) == 0) return "https";
+  return "unknown";
+}
+
+static std::string response_header_for_log(http_request::HttpContainer *container, const std::string &header) {
+  if (container == nullptr) return "(none)";
+  std::string value = container->get_response_header(header);
+  if (value.empty()) return "(none)";
+  if (value.size() > 96) return value.substr(0, 96) + "...";
+  return value;
+}
+
 #ifdef USE_ESP_IDF
 class LocalHttpContainer : public http_request::HttpContainer {
  public:
@@ -236,6 +252,7 @@ void ArtworkImage::update() {
     return;
   }
   ESP_LOGI(TAG, "Updating image %s", sanitize_artwork_url_for_log(this->url_).c_str());
+  ESP_LOGD(TAG, "Artwork URL source: %s", classify_artwork_url_for_log(this->url_));
   this->log_state_("request-start");
 
   std::vector<http_request::Header> headers = {};
@@ -280,7 +297,8 @@ void ArtworkImage::update() {
   }
 
   if (this->downloader_ == nullptr) {
-    ESP_LOGE(TAG, "Download failed.");
+    ESP_LOGE(TAG, "Download failed before response; source=%s url=%s",
+             classify_artwork_url_for_log(this->url_), sanitize_artwork_url_for_log(this->url_).c_str());
     this->end_connection_();
     this->download_error_callback_.call();
     this->start_pending_update_();
@@ -298,7 +316,10 @@ void ArtworkImage::update() {
     return;
   }
   if (http_code != HTTP_CODE_OK) {
-    ESP_LOGE(TAG, "HTTP result: %d", http_code);
+    ESP_LOGE(TAG, "Artwork HTTP result: status=%d content_length=%zu content_type=%s source=%s url=%s",
+             http_code, this->downloader_->content_length,
+             response_header_for_log(this->downloader_.get(), CONTENT_TYPE_HEADER_NAME).c_str(),
+             classify_artwork_url_for_log(this->url_), sanitize_artwork_url_for_log(this->url_).c_str());
     this->end_connection_();
     this->download_error_callback_.call();
     this->start_pending_update_();
@@ -428,7 +449,8 @@ std::shared_ptr<http_request::HttpContainer> ArtworkImage::get_local_idf_(
   esp_err_t err = esp_http_client_open(client, 0);
   App.feed_wdt();
   if (err != ESP_OK) {
-    ESP_LOGE(TAG, "Local artwork request failed: %s", esp_err_to_name(err));
+    ESP_LOGE(TAG, "Local artwork request failed: %s source=%s url=%s", esp_err_to_name(err),
+             classify_artwork_url_for_log(url), safe_url.c_str());
     container->end();
     return nullptr;
   }
@@ -504,7 +526,9 @@ void ArtworkImage::loop() {
 
     ImageFormat resolved = this->detect_format_();
     if (resolved == ImageFormat::AUTO) {
-      ESP_LOGE(TAG, "Could not determine image format from headers or file content");
+      ESP_LOGE(TAG, "Could not determine image format from headers or file content; content_type=%s bytes=%zu source=%s",
+               response_header_for_log(this->downloader_.get(), CONTENT_TYPE_HEADER_NAME).c_str(),
+               this->download_buffer_.unread(), classify_artwork_url_for_log(this->url_));
       this->end_connection_();
       this->download_error_callback_.call();
       this->start_pending_update_();
@@ -794,7 +818,8 @@ bool ArtworkImage::detect_heic_() {
 
 bool ArtworkImage::create_decoder_(ImageFormat format, size_t total_size) {
   if (format == ImageFormat::HEIC) {
-    ESP_LOGE(TAG, "HEIC/HEIF artwork detected, but no native HEIC decoder is bundled for this firmware");
+    ESP_LOGE(TAG, "HEIC/HEIF artwork detected, but no native HEIC decoder is bundled for this firmware; source=%s",
+             classify_artwork_url_for_log(this->url_));
     return false;
   }
 #ifdef USE_ARTWORK_IMAGE_BMP_SUPPORT
