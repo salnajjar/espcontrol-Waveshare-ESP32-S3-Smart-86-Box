@@ -436,12 +436,12 @@
           "aspect": "1/1"
         },
         "topbar": {
-          "height": 7.5,
-          "padding": "0.83cqw",
+          "height": 8.0,
+          "padding": "1.25cqw 0.83cqw 0.83cqw",
           "fontSize": 3.75
         },
         "grid": {
-          "top": 8.5,
+          "top": 9.33,
           "compactTop": 0.83,
           "left": 1.04,
           "right": 1.04,
@@ -516,7 +516,7 @@
             "sensor_value_font": "font_number_value",
             "padding": "21px",
             "radius": "12px",
-            "main_page_pad_top": "\"57\"",
+            "main_page_pad_top": "\"63\"",
             "main_page_compact_pad_top": "\"6\"",
             "clock_font_size": "\"224\"",
             "clock_cx": "\"360\"",
@@ -580,12 +580,12 @@
           "aspect": "1/1"
         },
         "topbar": {
-          "height": 7.5,
-          "padding": "0.83cqw",
+          "height": 8.0,
+          "padding": "1.25cqw 0.83cqw 0.83cqw",
           "fontSize": 3.75
         },
         "grid": {
-          "top": 8.5,
+          "top": 9.33,
           "compactTop": 0.83,
           "left": 1.04,
           "right": 1.04,
@@ -659,7 +659,7 @@
             "sensor_value_font": "font_number_value",
             "padding": "14px",
             "radius": "8px",
-            "main_page_pad_top": "\"38\"",
+            "main_page_pad_top": "\"42\"",
             "main_page_compact_pad_top": "\"4\"",
             "clock_font_size": "\"160\"",
             "clock_cx": "\"240\"",
