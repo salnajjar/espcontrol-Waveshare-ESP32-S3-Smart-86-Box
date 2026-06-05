@@ -43,6 +43,9 @@ constexpr lv_coord_t CLIMATE_MODAL_STEP_BUTTON_GAP_REF_PX = 16;
 constexpr uint16_t CLIMATE_MODAL_STEP_ICON_ZOOM = 214;
 constexpr int CLIMATE_OPTION_ROW_WIDTH_PERCENT = 88;
 constexpr int CLIMATE_OPTION_MAX_OPTIONS = 32;
+constexpr lv_coord_t CLIMATE_OPTION_MENU_ROW_MIN_H_PX = 52;
+constexpr lv_coord_t CLIMATE_OPTION_MENU_ROW_PAD_Y_PX = 8;
+constexpr lv_coord_t CLIMATE_OPTION_MENU_ROW_GAP_PX = 2;
 
 struct ClimateControlCtx {
   std::string entity_id;
@@ -1236,9 +1239,13 @@ inline void climate_open_option_menu(ClimateControlCtx *ctx, const std::string &
     climate_option_menu_width(*options, kind, ctx->option_menu_font), 14, climate_hide_option_menu);
   ui.menu_overlay = shell.overlay;
   lv_obj_t *box = shell.panel;
+  lv_obj_set_style_pad_row(box, CLIMATE_OPTION_MENU_ROW_GAP_PX, LV_PART_MAIN);
 
-  lv_coord_t option_h = ctx->option_menu_font ? ctx->option_menu_font->line_height + 24 : 68;
-  if (option_h < 68) option_h = 68;
+  lv_coord_t option_h = ctx->option_menu_font
+    ? ctx->option_menu_font->line_height + CLIMATE_OPTION_MENU_ROW_PAD_Y_PX * 2
+    : CLIMATE_OPTION_MENU_ROW_MIN_H_PX;
+  if (option_h < CLIMATE_OPTION_MENU_ROW_MIN_H_PX)
+    option_h = CLIMATE_OPTION_MENU_ROW_MIN_H_PX;
 
   for (const auto &option : *options) {
     ClimateOptionClick *click = climate_next_option_click(ui, ctx, kind, option);
@@ -1250,8 +1257,8 @@ inline void climate_open_option_menu(ClimateControlCtx *ctx, const std::string &
     lv_obj_set_style_bg_opa(btn, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(btn, 0, LV_PART_MAIN);
     lv_obj_set_style_shadow_width(btn, 0, LV_PART_MAIN);
-    lv_obj_set_style_pad_top(btn, 12, LV_PART_MAIN);
-    lv_obj_set_style_pad_bottom(btn, 12, LV_PART_MAIN);
+    lv_obj_set_style_pad_top(btn, CLIMATE_OPTION_MENU_ROW_PAD_Y_PX, LV_PART_MAIN);
+    lv_obj_set_style_pad_bottom(btn, CLIMATE_OPTION_MENU_ROW_PAD_Y_PX, LV_PART_MAIN);
     lv_obj_set_style_pad_left(btn, 12, LV_PART_MAIN);
     lv_obj_set_style_pad_right(btn, 12, LV_PART_MAIN);
     lv_obj_t *label = lv_label_create(btn);
