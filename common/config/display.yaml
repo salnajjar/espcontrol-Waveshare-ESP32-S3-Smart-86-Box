@@ -36,8 +36,8 @@ script:
           bool show_weather = visible && id(clock_bar_weather_icon_enabled).state;
           int clock_bar_label_y = ${main_page_pad_top} / 5;
           int clock_bar_gap = ${screen_width} / 8;
-          if (clock_bar_gap < 92) clock_bar_gap = 92;
-          if (clock_bar_gap > 120) clock_bar_gap = 120;
+          if (clock_bar_gap < 72) clock_bar_gap = 72;
+          if (clock_bar_gap > 92) clock_bar_gap = 92;
           lv_obj_t *temperature_labels[] = {
             id(temperatures),
             id(temperature_2),
@@ -53,6 +53,11 @@ script:
                                  id(display_time),
                                  id(network_status_button),
                                  id(clock_bar_weather_icon_label),
+                                 show_time,
+                                 show_network,
+                                 show_weather,
+                                 visible && id(indoor_temp_enable).state,
+                                 visible && id(outdoor_temp_enable).state,
                                  ${screen_width} >= 700 ? 12 : 8,
                                  clock_bar_label_y,
                                  ${screen_width} >= 700 ? 20 : 16,
