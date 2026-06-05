@@ -61,7 +61,7 @@ script:
                                  ${screen_width} >= 700 ? 12 : 8,
                                  clock_bar_label_y,
                                  ${screen_width} >= 700 ? 20 : 16,
-                                 clock_bar_label_y > 7 ? clock_bar_label_y - 7 : 1,
+                                 clock_bar_label_y,
                                  clock_bar_gap);
           lv_obj_set_style_pad_top(
             id(main_page)->obj,
