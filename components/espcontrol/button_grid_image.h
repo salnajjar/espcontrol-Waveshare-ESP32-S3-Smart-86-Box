@@ -371,6 +371,10 @@ inline void image_card_align_label(lv_obj_t *label, lv_obj_t *btn) {
   lv_obj_move_foreground(label);
 }
 
+inline bool image_card_entity_supported(const std::string &entity_id) {
+  return entity_id.rfind("camera.", 0) == 0 || entity_id.rfind("image.", 0) == 0;
+}
+
 inline void subscribe_image_card_label(lv_obj_t *label, lv_obj_t *btn,
                                        const std::string &entity_id) {
   ha_subscribe_attribute(
@@ -576,8 +580,8 @@ inline bool bind_image_card(BtnSlot &s, const ParsedCfg &p, const GridConfig &cf
     image_card_set_loading_state(loading, "Configure");
     return true;
   }
-  if (p.entity.rfind("camera.", 0) != 0) {
-    ESP_LOGW("image_card", "Image card only supports camera entities: %s", p.entity.c_str());
+  if (!image_card_entity_supported(p.entity)) {
+    ESP_LOGW("image_card", "Image card only supports camera and image entities: %s", p.entity.c_str());
     image_card_set_loading_state(loading, "Unavailable");
     return true;
   }

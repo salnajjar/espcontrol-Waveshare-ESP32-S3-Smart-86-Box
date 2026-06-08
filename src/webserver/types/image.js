@@ -1,13 +1,13 @@
-// Read-only Home Assistant camera image card.
+// Read-only Home Assistant camera/image entity card.
 var IMAGE_CARD_METADATA = {
   entity: {
-    label: "Camera Entity",
+    label: "Image Entity",
     idSuffix: "entity",
-    placeholder: "e.g. camera.front_door",
+    placeholder: "e.g. camera.front_door or image.front_door",
     domains: function () { return cardContractDomains("image"); },
     bindName: "entity",
     rerender: true,
-    requiredMessage: "Add a camera entity before saving.",
+    requiredMessage: "Add a camera or image entity before saving.",
   },
 };
 
@@ -44,13 +44,13 @@ function renderImageLabelSettings(panel, b, helpers) {
   panel.appendChild(toggle.row);
 
   var labelField = helpers.renderCardTextField(panel, b, helpers, {
-    text: {
-      label: "Label",
-      idSuffix: "image-label",
-      placeholder: "Uses camera name when blank",
-      bindName: "label",
-      rerender: true,
-    },
+      text: {
+        label: "Label",
+        idSuffix: "image-label",
+        placeholder: "Uses entity name when blank",
+        bindName: "label",
+        rerender: true,
+      },
   });
 
   function syncLabelField() {

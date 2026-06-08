@@ -952,7 +952,7 @@
       "label": "Image",
       "allowInSubpage": true,
       "experimental": "developer",
-      "domains": ["camera"],
+      "domains": ["camera", "image"],
       "options": [
         {
           "name": "image_label",

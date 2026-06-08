@@ -612,6 +612,26 @@ def firmware_cover_art_stale_image_errors(path: Path, root: Path) -> list[str]:
     return errors
 
 
+def firmware_image_card_entity_errors(firmware_dir: Path, root: Path) -> list[str]:
+    path = firmware_dir / "button_grid_image.h"
+    if not path.exists():
+        return []
+    rel = path.relative_to(root)
+    text = path.read_text(encoding="utf-8")
+    errors: list[str] = []
+    if "image_card_entity_supported" not in text:
+        errors.append(f"{rel}: centralize image card entity-domain support")
+    if 'entity_id.rfind("camera.", 0) == 0' not in text:
+        errors.append(f"{rel}: keep camera entities supported by image cards")
+    if 'entity_id.rfind("image.", 0) == 0' not in text:
+        errors.append(f"{rel}: support Home Assistant image entities in image cards")
+    if 'if (!image_card_entity_supported(p.entity))' not in text:
+        errors.append(f"{rel}: use the shared image card entity-domain guard")
+    if "only supports camera entities" in text:
+        errors.append(f"{rel}: do not reject Home Assistant image entities as unavailable")
+    return errors
+
+
 def firmware_screensaver_wake_guard_errors(backlight_path: Path, cover_art_path: Path, root: Path) -> list[str]:
     errors: list[str] = []
     if backlight_path.exists():
@@ -795,6 +815,7 @@ def run_scan() -> int:
     errors.extend(firmware_cover_request_errors(FIRMWARE_DIR, CORE_INFRA_PATH, ROOT))
     errors.extend(firmware_cover_art_external_input_errors(COVER_ART_PATH, ROOT))
     errors.extend(firmware_cover_art_stale_image_errors(COVER_ART_PATH, ROOT))
+    errors.extend(firmware_image_card_entity_errors(FIRMWARE_DIR, ROOT))
     errors.extend(firmware_screensaver_wake_guard_errors(BACKLIGHT_PATH, COVER_ART_PATH, ROOT))
     errors.extend(firmware_climate_step_errors(FIRMWARE_DIR, ROOT))
     errors.extend(
@@ -1072,6 +1093,20 @@ def expect_cover_art_stale_image_errors(name: str, text: str, expected: tuple[st
         path.write_text(text, encoding="utf-8")
 
         errors = firmware_cover_art_stale_image_errors(path, root)
+        for item in expected:
+            assert any(item in error for error in errors), f"{name}: missing {item!r} in {errors!r}"
+        if not expected:
+            assert not errors, f"{name}: expected no errors, got {errors!r}"
+
+
+def expect_image_card_entity_errors(name: str, text: str, expected: tuple[str, ...]) -> None:
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        firmware_dir = root / "components" / "espcontrol"
+        firmware_dir.mkdir(parents=True)
+        (firmware_dir / "button_grid_image.h").write_text(text, encoding="utf-8")
+
+        errors = firmware_image_card_entity_errors(firmware_dir, root)
         for item in expected:
             assert any(item in error for error in errors), f"{name}: missing {item!r} in {errors!r}"
         if not expected:
@@ -1946,6 +1981,30 @@ def run_self_test() -> int:
         "    then:\n"
         "      - lvgl.widget.hide: cover_art_image_widget\n",
         ("do not show an unavailable cover art message",),
+    )
+    expect_image_card_entity_errors(
+        "legacy camera-only image card guard",
+        "inline bool image_card_entity_supported(const std::string &entity_id) {\n"
+        "  return entity_id.rfind(\"camera.\", 0) == 0;\n"
+        "}\n"
+        "if (p.entity.rfind(\"camera.\", 0) != 0) {\n"
+        "  ESP_LOGW(\"image_card\", \"Image card only supports camera entities: %s\", p.entity.c_str());\n"
+        "}\n",
+        (
+            "support Home Assistant image entities in image cards",
+            "use the shared image card entity-domain guard",
+            "do not reject Home Assistant image entities as unavailable",
+        ),
+    )
+    expect_image_card_entity_errors(
+        "camera and image entities accepted",
+        "inline bool image_card_entity_supported(const std::string &entity_id) {\n"
+        "  return entity_id.rfind(\"camera.\", 0) == 0 || entity_id.rfind(\"image.\", 0) == 0;\n"
+        "}\n"
+        "if (!image_card_entity_supported(p.entity)) {\n"
+        "  ESP_LOGW(\"image_card\", \"Image card only supports camera and image entities: %s\", p.entity.c_str());\n"
+        "}\n",
+        (),
     )
     valid_cover_art_wake_guard = (
         "script:\n"

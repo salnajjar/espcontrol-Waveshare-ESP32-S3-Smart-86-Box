@@ -1139,7 +1139,8 @@ var CARD_CONTRACT_CARDS = {
     "allowInSubpage": true,
     "experimental": "developer",
     "domains": [
-      "camera"
+      "camera",
+      "image"
     ],
     "options": [
       {
