@@ -48,6 +48,7 @@ struct GridConfig {
   std::function<void()> pause_home_idle;
   std::function<void()> resume_home_idle;
   esphome::artwork_image::ArtworkImage **image_card_images = nullptr;
+  esphome::artwork_image::ArtworkImage **image_card_modal_images = nullptr;
   int image_card_image_count = 0;
   std::function<std::string()> home_assistant_base_url;
 };

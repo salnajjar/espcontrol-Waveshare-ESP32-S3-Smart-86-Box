@@ -204,6 +204,7 @@ var IMAGE_LABEL_OPTION = "image_label";
 var IMAGE_MODAL_MODE_OPTION = "image_modal_mode";
 var IMAGE_REFRESH_OPTION = "image_refresh";
 var IMAGE_REFRESH_MODE_OPTION = "image_refresh_mode";
+var IMAGE_CARD_LIMIT = 4;
 var ALARM_ACTIONS = [
   { value: "away", label: "Arm Away", service: "alarm_control_panel.alarm_arm_away", icon: "Shield Lock" },
   { value: "home", label: "Arm Home", service: "alarm_control_panel.alarm_arm_home", icon: "Shield Home" },
@@ -359,6 +360,105 @@ function imageRefreshInterval(b) {
 
 function imageRefreshMode(b) {
   return normalizeImageRefreshMode(configOptionValue(b && b.options, IMAGE_REFRESH_MODE_OPTION));
+}
+
+function imageCardLimit() {
+  return IMAGE_CARD_LIMIT;
+}
+
+function imageCardLimitMessage() {
+  return "Image cards use shared firmware download slots. You can save up to " +
+    IMAGE_CARD_LIMIT + " image cards total across the main page and subpages.";
+}
+
+function isImageCard(button) {
+  return !!button && button.type === "image";
+}
+
+function activeGridSlots(grid) {
+  var slots = [];
+  var seen = {};
+  (grid || []).forEach(function (slot) {
+    if (slot <= 0 || seen[slot]) return;
+    seen[slot] = true;
+    slots.push(slot);
+  });
+  return slots;
+}
+
+function imageCardCountInButtons(buttons, grid) {
+  var count = 0;
+  var slots = activeGridSlots(grid);
+  if (!slots.length && buttons && buttons.length) {
+    for (var fallbackSlot = 1; fallbackSlot <= buttons.length; fallbackSlot++) {
+      slots.push(fallbackSlot);
+    }
+  }
+  slots.forEach(function (slot) {
+    if (isImageCard(buttons && buttons[slot - 1])) count++;
+  });
+  return count;
+}
+
+function imageCardCountInSubpage(sp) {
+  return imageCardCountInButtons(sp && sp.buttons, sp && sp.grid);
+}
+
+function imageCardCountInClipboardEntry(entry) {
+  var count = isImageCard(entry) ? 1 : 0;
+  if (entry && entry.subpageConfig) {
+    count += imageCardCountInSubpage(parseSubpageConfig(entry.subpageConfig));
+  }
+  return count;
+}
+
+function imageCardCountInClipboardEntries(entries) {
+  var count = 0;
+  (entries || []).forEach(function (entry) {
+    count += imageCardCountInClipboardEntry(entry);
+  });
+  return count;
+}
+
+function imageCardCountWithCandidate(candidate) {
+  var count = 0;
+  var matchedCandidate = false;
+
+  activeGridSlots(state.grid).forEach(function (slot) {
+    var button = state.buttons[slot - 1];
+    if (candidate && !candidate.isSub && candidate.slot === slot) {
+      button = candidate.button;
+      matchedCandidate = true;
+    }
+    if (isImageCard(button)) count++;
+  });
+
+  for (var homeSlot in state.subpages) {
+    var sp = state.subpages[homeSlot];
+    activeGridSlots(sp && sp.grid).forEach(function (slot) {
+      var button = sp && sp.buttons && sp.buttons[slot - 1];
+      if (candidate && candidate.isSub &&
+          String(candidate.homeSlot) === String(homeSlot) &&
+          candidate.slot === slot) {
+        button = candidate.button;
+        matchedCandidate = true;
+      }
+      if (isImageCard(button)) count++;
+    });
+  }
+
+  if (candidate && !matchedCandidate && isImageCard(candidate.button)) count++;
+  return count;
+}
+
+function canAddImageCards(extraCount) {
+  extraCount = parseInt(extraCount || 0, 10);
+  if (!isFinite(extraCount) || extraCount <= 0) return true;
+  return imageCardCountWithCandidate() + extraCount <= IMAGE_CARD_LIMIT;
+}
+
+function showImageCardLimitBanner() {
+  showBanner(imageCardLimitMessage(), "error");
 }
 
 function imageModalMode(b) {

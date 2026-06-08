@@ -599,6 +599,12 @@ function duplicateButton(srcSlot) {
   if (placement.pos < 0) return;
 
   var src = state.buttons[srcSlot - 1];
+  var extraImageCards = isImageCard(src) ? 1 : 0;
+  if (state.subpages[srcSlot]) extraImageCards += imageCardCountInSubpage(state.subpages[srcSlot]);
+  if (!canAddImageCards(extraImageCards)) {
+    showImageCardLimitBanner();
+    return;
+  }
   state.buttons[newSlot - 1] = {
     entity: src.entity, label: src.label, icon: src.icon,
     icon_on: src.icon_on, sensor: src.sensor, unit: src.unit,
@@ -638,6 +644,10 @@ function duplicateSubpageButton(srcSlot) {
   if (placement.pos < 0) return;
 
   var src = sp.buttons[srcSlot - 1];
+  if (!canAddImageCards(isImageCard(src) ? 1 : 0)) {
+    showImageCardLimitBanner();
+    return;
+  }
   sp.buttons[newSlot - 1] = {
     entity: src.entity, label: src.label, icon: src.icon,
     icon_on: src.icon_on, sensor: src.sensor, unit: src.unit,
@@ -1076,6 +1086,10 @@ function pasteButton(pos) {
   if (isConfigLocked()) return;
   if (!state.clipboard) return;
   var entries = state.clipboard.buttons;
+  if (!canAddImageCards(imageCardCountInClipboardEntries(entries))) {
+    showImageCardLimitBanner();
+    return;
+  }
   var lastSlot = -1;
   for (var i = 0; i < entries.length; i++) {
     var newSlot = firstFreeSlot();
@@ -1116,6 +1130,10 @@ function pasteSubpageButton(pos) {
   var sp = getSubpage(homeSlot);
   var maxPos = NUM_SLOTS;
   var entries = state.clipboard.buttons;
+  if (!canAddImageCards(imageCardCountInClipboardEntries(entries))) {
+    showImageCardLimitBanner();
+    return;
+  }
   var lastSlot = -1;
   for (var i = 0; i < entries.length; i++) {
     var e = entries[i];

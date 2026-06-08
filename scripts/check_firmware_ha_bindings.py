@@ -668,6 +668,14 @@ def firmware_image_card_quality_errors(firmware_dir: Path, root: Path) -> list[s
         errors.append(f"{rel}: detach image sources before deleting image card modals")
     if "ctx->image->set_target_size(width, height)" not in text:
         errors.append(f"{rel}: set image card download target size before requesting images")
+    if "modal_image" not in text or "image_card_request_modal_source_url" not in text:
+        errors.append(f"{rel}: use a separate modal image downloader for expanded image-card quality")
+    if "ctx->modal_image->request_update_url(ctx->modal_url)" not in text:
+        errors.append(f"{rel}: request expanded image-card downloads through the modal downloader")
+    if "image_card_set_widget_source(ui.image_widget, ctx->modal_image)" not in text:
+        errors.append(f"{rel}: swap expanded image cards to the modal-quality image after it downloads")
+    if "ctx->modal_image->release()" not in text:
+        errors.append(f"{rel}: release modal image-card buffers when the modal closes")
     if "lv_obj_set_style_clip_corner(ui.panel, true, LV_PART_MAIN)" not in text:
         errors.append(f"{rel}: clip image card modal content to rounded panel corners")
     if "image_card_apply_corner_clip" not in text:
@@ -2174,6 +2182,10 @@ def run_self_test() -> int:
             "defer image downloads while image card modals are open",
             "detach image sources before deleting image card modals",
             "set image card download target size before requesting images",
+            "use a separate modal image downloader for expanded image-card quality",
+            "request expanded image-card downloads through the modal downloader",
+            "swap expanded image cards to the modal-quality image after it downloads",
+            "release modal image-card buffers when the modal closes",
             "clip image card modal content to rounded panel corners",
             "preserve image card rounded corners while pressed",
             "apply image card corner clipping to the pressed state",
@@ -2189,13 +2201,18 @@ def run_self_test() -> int:
         "inline void image_card_request_source_url(ImageCardCtx *ctx) {\n"
         "  ctx->image->set_target_size(width, height);\n"
         "}\n"
+        "inline void image_card_request_modal_source_url(ImageCardCtx *ctx) {\n"
+        "  ctx->modal_image->request_update_url(ctx->modal_url);\n"
+        "}\n"
         "inline void image_card_open_modal(ImageCardCtx *ctx) {\n"
         "  lv_obj_set_style_clip_corner(ui.panel, true, LV_PART_MAIN);\n"
         "  image_card_clear_widget_source(ui.image_widget);\n"
+        "  image_card_set_widget_source(ui.image_widget, ctx->modal_image);\n"
         "  if (image_card_modal_active_for(ctx)) {\n"
         "    ESP_LOGD(\"image_card\", \"Deferring image refresh while modal is open for %s\", ctx->entity_id.c_str());\n"
         "  }\n"
         "  ctx->image->cancel_update();\n"
+        "  ctx->modal_image->release();\n"
         "}\n",
         (),
     )

@@ -476,7 +476,12 @@ def cfg_lines(device: dict) -> list[str]:
     for num in range(1, 5):
         lines.append(f"              id(image_card_download_{num}),")
     lines.append("            };")
+    lines.append("            static esphome::artwork_image::ArtworkImage *image_card_modal_downloaders[] = {")
+    for num in range(1, 5):
+        lines.append(f"              id(image_card_modal_download_{num}),")
+    lines.append("            };")
     lines.append("            cfg.image_card_images = image_card_downloaders;")
+    lines.append("            cfg.image_card_modal_images = image_card_modal_downloaders;")
     lines.append("            cfg.image_card_image_count = 4;")
     lines.append("            cfg.home_assistant_base_url = []() {")
     lines.append("              std::string base = id(cover_art_home_assistant_base_url);")

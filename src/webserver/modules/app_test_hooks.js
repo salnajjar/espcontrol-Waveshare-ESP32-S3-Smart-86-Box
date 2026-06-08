@@ -88,6 +88,37 @@ if (typeof globalThis !== "undefined" && globalThis.__ESPCONTROL_TEST_HOOKS__) {
     imageModalMode: imageModalMode,
     imageRefreshInterval: imageRefreshInterval,
     imageRefreshMode: imageRefreshMode,
+    imageCardLimit: imageCardLimit,
+    imageCardCountForTest: function (snapshot, candidate) {
+      var oldGrid = state.grid;
+      var oldButtons = state.buttons;
+      var oldSubpages = state.subpages;
+      state.grid = (snapshot && snapshot.grid) || [];
+      state.buttons = (snapshot && snapshot.buttons) || [];
+      state.subpages = (snapshot && snapshot.subpages) || {};
+      try {
+        return imageCardCountWithCandidate(candidate);
+      } finally {
+        state.grid = oldGrid;
+        state.buttons = oldButtons;
+        state.subpages = oldSubpages;
+      }
+    },
+    imageCardCandidateAllowedForTest: function (snapshot, candidate) {
+      var oldGrid = state.grid;
+      var oldButtons = state.buttons;
+      var oldSubpages = state.subpages;
+      state.grid = (snapshot && snapshot.grid) || [];
+      state.buttons = (snapshot && snapshot.buttons) || [];
+      state.subpages = (snapshot && snapshot.subpages) || {};
+      try {
+        return imageCardCountWithCandidate(candidate) <= imageCardLimit();
+      } finally {
+        state.grid = oldGrid;
+        state.buttons = oldButtons;
+        state.subpages = oldSubpages;
+      }
+    },
     actionCardStateEntity: actionCardStateEntity,
     actionCardStateUnit: actionCardStateUnit,
     actionCardStatePrecision: actionCardStatePrecision,

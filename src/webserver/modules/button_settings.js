@@ -604,6 +604,18 @@ function renderButtonSettings(forceOpen) {
     return false;
   }
 
+  function validateImageCardLimit() {
+    var count = imageCardCountWithCandidate({
+      isSub: c.isSub,
+      homeSlot: state.editingSubpage,
+      slot: slot,
+      button: b,
+    });
+    if (count <= imageCardLimit()) return true;
+    showImageCardLimitBanner();
+    return false;
+  }
+
   function applySettingsDraft() {
     if (!state.settingsDraft || state.settingsDraft.key !== draftKey) return false;
     var draft = state.settingsDraft;
@@ -1126,6 +1138,7 @@ function renderButtonSettings(forceOpen) {
   saveBtn.textContent = "Save";
   saveBtn.addEventListener("click", function () {
     if (!validateSettingsDraft()) return;
+    if (!validateImageCardLimit()) return;
     if (!validateConfigSize()) return;
     if (!applySettingsDraft()) return;
     closeSettings();

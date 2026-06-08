@@ -19,11 +19,13 @@ struct ImageCardCtx {
   lv_obj_t *loading_label = nullptr;
   const lv_font_t *icon_font = nullptr;
   esphome::artwork_image::ArtworkImage *image = nullptr;
+  esphome::artwork_image::ArtworkImage *modal_image = nullptr;
   std::string entity_id;
   std::string base_url;
   std::function<std::string()> base_url_provider;
   std::string source_url;
   std::string url;
+  std::string modal_url;
   uint32_t refresh_interval_ms = 0;
   uint32_t next_refresh_ms = 0;
   uint32_t retry_deadline_ms = 0;
@@ -32,6 +34,7 @@ struct ImageCardCtx {
   int width_compensation_percent = 100;
   bool active = false;
   bool callbacks_bound = false;
+  bool modal_callbacks_bound = false;
   bool requested_once = false;
   bool image_ready = false;
   bool timer_only = false;
@@ -63,6 +66,11 @@ inline bool image_card_modal_active_for(ImageCardCtx *ctx) {
 }
 
 inline lv_obj_t *image_card_loading_widget(lv_obj_t *widget);
+inline bool image_card_apply_modal_geometry(
+  ImageCardCtx *ctx,
+  esphome::artwork_image::ArtworkImage *image,
+  lv_coord_t *target_width = nullptr,
+  lv_coord_t *target_height = nullptr);
 
 inline uint32_t image_card_scale_for_size(lv_coord_t target_width, lv_coord_t target_height,
                                           int source_width, int source_height, bool fit) {
@@ -198,13 +206,6 @@ inline void image_card_apply_downloaded(ImageCardCtx *ctx) {
   ctx->startup_download_errors = 0;
   ctx->next_download_retry_ms = 0;
   image_card_hide_loading(ctx);
-  if (image_card_modal_active_for(ctx)) {
-    ImageCardModalUi &ui = image_card_modal_ui();
-    image_card_set_widget_source(ui.image_widget, ctx->image);
-    lv_obj_move_foreground(ui.back_btn);
-    notify_dashboard_content_changed();
-    return;
-  }
   image_card_set_widget_source(ctx->widget, ctx->image);
   lv_obj_clear_flag(ctx->widget, LV_OBJ_FLAG_HIDDEN);
   lv_obj_move_background(ctx->widget);
@@ -240,6 +241,30 @@ inline void image_card_handle_download_error(ImageCardCtx *ctx) {
   }
 }
 
+inline bool image_card_has_separate_modal_image(ImageCardCtx *ctx) {
+  return ctx && ctx->modal_image && ctx->modal_image != ctx->image;
+}
+
+inline void image_card_apply_modal_downloaded(ImageCardCtx *ctx) {
+  if (!ctx || !ctx->active || !image_card_has_separate_modal_image(ctx)) return;
+  if (!image_card_modal_active_for(ctx)) return;
+  if (ctx->modal_image->get_url() != ctx->modal_url) return;
+  ImageCardModalUi &ui = image_card_modal_ui();
+  image_card_set_widget_source(ui.image_widget, ctx->modal_image);
+  image_card_apply_modal_geometry(ctx, ctx->modal_image);
+  lv_obj_move_foreground(ui.back_btn);
+  notify_dashboard_content_changed();
+}
+
+inline void image_card_handle_modal_download_error(ImageCardCtx *ctx) {
+  if (!ctx || !ctx->active || !image_card_has_separate_modal_image(ctx)) return;
+  ESP_LOGW("image_card", "Modal image download failed for %s", ctx->entity_id.c_str());
+  if (image_card_modal_active_for(ctx)) {
+    ImageCardModalUi &ui = image_card_modal_ui();
+    lv_obj_move_foreground(ui.back_btn);
+  }
+}
+
 inline void image_card_bind_callbacks(ImageCardCtx *ctx) {
   if (!ctx || !ctx->image || ctx->callbacks_bound) return;
   ctx->callbacks_bound = true;
@@ -248,6 +273,17 @@ inline void image_card_bind_callbacks(ImageCardCtx *ctx) {
   });
   ctx->image->add_on_error_callback([ctx]() {
     image_card_handle_download_error(ctx);
+  });
+}
+
+inline void image_card_bind_modal_callbacks(ImageCardCtx *ctx) {
+  if (!ctx || !image_card_has_separate_modal_image(ctx) || ctx->modal_callbacks_bound) return;
+  ctx->modal_callbacks_bound = true;
+  ctx->modal_image->add_on_finished_callback([ctx](bool) {
+    image_card_apply_modal_downloaded(ctx);
+  });
+  ctx->modal_image->add_on_error_callback([ctx]() {
+    image_card_handle_modal_download_error(ctx);
   });
 }
 
@@ -284,7 +320,10 @@ inline void reset_image_card_pool(const GridConfig &cfg) {
     contexts[i].modal_fit = false;
     contexts[i].startup_download_errors = 0;
     contexts[i].image = cfg.image_card_images ? cfg.image_card_images[i] : nullptr;
+    contexts[i].modal_image = cfg.image_card_modal_images ? cfg.image_card_modal_images[i] : nullptr;
+    contexts[i].modal_url.clear();
     if (contexts[i].image) contexts[i].image->release();
+    if (image_card_has_separate_modal_image(&contexts[i])) contexts[i].modal_image->release();
   }
 }
 
@@ -295,7 +334,9 @@ inline ImageCardCtx *acquire_image_card_context(const GridConfig &cfg) {
   for (int i = 0; i < count; i++) {
     if (!contexts[i].active && contexts[i].image) {
       contexts[i].active = true;
+      contexts[i].modal_image = cfg.image_card_modal_images ? cfg.image_card_modal_images[i] : nullptr;
       image_card_bind_callbacks(&contexts[i]);
+      image_card_bind_modal_callbacks(&contexts[i]);
       return &contexts[i];
     }
   }
@@ -334,10 +375,11 @@ inline void image_card_apply_widget_geometry(lv_obj_t *btn, lv_obj_t *widget,
 }
 
 inline bool image_card_apply_modal_geometry(ImageCardCtx *ctx,
-                                            lv_coord_t *target_width = nullptr,
-                                            lv_coord_t *target_height = nullptr) {
+                                            esphome::artwork_image::ArtworkImage *image,
+                                            lv_coord_t *target_width,
+                                            lv_coord_t *target_height) {
   ImageCardModalUi &ui = image_card_modal_ui();
-  if (!ctx || ui.active != ctx || !ui.panel || !ui.image_widget || !ctx->image) return false;
+  if (!ctx || ui.active != ctx || !ui.panel || !ui.image_widget || !image) return false;
   lv_obj_update_layout(ui.panel);
   lv_coord_t width = lv_obj_get_width(ui.panel);
   lv_coord_t height = lv_obj_get_height(ui.panel);
@@ -352,8 +394,8 @@ inline bool image_card_apply_modal_geometry(ImageCardCtx *ctx,
   lv_image_set_inner_align(
     ui.image_widget, ctx->modal_fit ? LV_IMAGE_ALIGN_CONTAIN : LV_IMAGE_ALIGN_COVER);
 #else
-  int source_width = ctx->image->get_fixed_width();
-  int source_height = ctx->image->get_fixed_height();
+  int source_width = image->get_fixed_width();
+  int source_height = image->get_fixed_height();
   uint32_t zoom = image_card_scale_for_size(width, height, source_width, source_height, ctx->modal_fit);
   lv_coord_t scaled_width = static_cast<lv_coord_t>(static_cast<int64_t>(source_width) * zoom / 256);
   lv_coord_t scaled_height = static_cast<lv_coord_t>(static_cast<int64_t>(source_height) * zoom / 256);
@@ -382,7 +424,7 @@ inline void image_card_limit_target_size(lv_coord_t source_width, lv_coord_t sou
 
 inline void image_card_apply_active_geometry(ImageCardCtx *ctx) {
   if (!ctx || !ctx->image) return;
-  if (image_card_modal_active_for(ctx) && image_card_apply_modal_geometry(ctx)) return;
+  if (image_card_modal_active_for(ctx) && image_card_apply_modal_geometry(ctx, ctx->image)) return;
   image_card_apply_widget_geometry(ctx->btn, ctx->widget, ctx->image);
 }
 
@@ -620,6 +662,32 @@ inline void image_card_request_source_url(ImageCardCtx *ctx) {
   }
 }
 
+inline bool image_card_request_modal_source_url(ImageCardCtx *ctx) {
+  if (!ctx || !ctx->active || !image_card_has_separate_modal_image(ctx) ||
+      ctx->source_url.empty() || !image_card_modal_active_for(ctx)) {
+    return false;
+  }
+  ImageCardModalUi &ui = image_card_modal_ui();
+  lv_obj_update_layout(ui.panel);
+  lv_coord_t panel_width = lv_obj_get_width(ui.panel);
+  lv_coord_t panel_height = lv_obj_get_height(ui.panel);
+  int width = 0;
+  int height = 0;
+  image_card_limit_target_size(panel_width, panel_height, &width, &height);
+  if (width <= 0 || height <= 0) return false;
+  ctx->modal_url = image_card_cache_bust_url(image_card_sized_url(ctx->source_url, width, height));
+  ctx->modal_image->set_target_size(width, height);
+  ctx->modal_image->set_resize_mode(
+    ctx->modal_fit ? esphome::artwork_image::ImageResizeMode::FIT
+                   : esphome::artwork_image::ImageResizeMode::COVER);
+  ESP_LOGI("image_card", "Downloading modal camera image for %s", ctx->entity_id.c_str());
+  std::string effective_url = ctx->modal_image->request_update_url(ctx->modal_url);
+  if (!effective_url.empty()) {
+    ctx->modal_url = effective_url;
+  }
+  return true;
+}
+
 inline void image_card_schedule_source_refresh(ImageCardCtx *ctx, uint32_t delay_ms,
                                                const char *reason) {
   if (!ctx || !ctx->active || ctx->source_url.empty()) return;
@@ -636,6 +704,11 @@ inline void image_card_hide_modal() {
   control_modal_delete_overlay(ControlModalKind::IMAGE_CARD, ui.overlay);
   ui = ImageCardModalUi();
   if (ctx && ctx->active && ctx->image) {
+    if (image_card_has_separate_modal_image(ctx)) {
+      ctx->modal_image->cancel_update();
+      ctx->modal_image->release();
+      ctx->modal_url.clear();
+    }
     image_card_apply_widget_geometry(ctx->btn, ctx->widget, ctx->image);
     if (!ctx->source_url.empty()) image_card_schedule_source_refresh(ctx, IMAGE_CARD_MODAL_REFRESH_DELAY_MS, "tile");
   }
@@ -676,7 +749,8 @@ inline void image_card_open_modal(ImageCardCtx *ctx) {
   lv_obj_set_style_border_width(ui.image_widget, 0, LV_PART_MAIN);
   lv_obj_set_style_bg_opa(ui.image_widget, LV_OPA_TRANSP, LV_PART_MAIN);
   image_card_set_widget_source(ui.image_widget, ctx->image);
-  image_card_apply_modal_geometry(ctx);
+  image_card_apply_modal_geometry(ctx, ctx->image);
+  image_card_request_modal_source_url(ctx);
   lv_obj_move_background(ui.image_widget);
   lv_obj_move_foreground(ui.back_btn);
   lv_obj_move_foreground(ui.overlay);
@@ -701,7 +775,8 @@ inline void image_card_handle_picture(ImageCardCtx *ctx, esphome::StringRef pict
   ctx->next_picture_retry_ms = 0;
   ctx->source_url = url;
   if (image_card_modal_active_for(ctx)) {
-    image_card_schedule_source_refresh(ctx, IMAGE_CARD_MODAL_REFRESH_DELAY_MS, "deferred");
+    image_card_request_modal_source_url(ctx);
+    image_card_schedule_source_refresh(ctx, IMAGE_CARD_MODAL_REFRESH_DELAY_MS, "tile");
     return;
   }
   if (!ctx->requested_once || !ctx->timer_only || ctx->refresh_interval_ms == 0) {
@@ -758,6 +833,10 @@ inline void image_card_refresh_due() {
       continue;
     }
     if ((int32_t)(now - ctx->next_refresh_ms) >= 0) {
+      if (image_card_modal_active_for(ctx) && image_card_request_modal_source_url(ctx)) {
+        image_card_schedule_next_refresh(ctx, now);
+        continue;
+      }
       image_card_request_source_url(ctx);
     }
   }

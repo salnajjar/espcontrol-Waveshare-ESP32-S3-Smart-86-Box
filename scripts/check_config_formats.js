@@ -1584,6 +1584,56 @@ assert.strictEqual(hooks.normalizeImageOptions("image_modal_mode=fill,image_refr
 assert.strictEqual(hooks.normalizeImageOptions("image_modal_mode=bad,image_refresh=30"), "image_refresh=30", "invalid image modal mode falls back to fill");
 assert.strictEqual(hooks.normalizeImageOptions("image_refresh=5,image_refresh_mode=bad"), "", "image refresh options drop invalid values");
 assert.strictEqual(hooks.normalizeImageOptions("image_label,image_refresh=5,image_refresh_mode=bad"), "image_label", "image label option survives invalid refresh values");
+const imageCardForLimit = {
+  entity: "camera.front_door",
+  label: "",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "image",
+  precision: "",
+  options: "",
+};
+const switchCardForImageLimit = {
+  entity: "switch.kitchen",
+  label: "Kitchen",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "",
+  precision: "",
+  options: "",
+};
+const imageLimitSnapshot = {
+  grid: [1, 2, 3, 0],
+  buttons: [imageCardForLimit, imageCardForLimit, switchCardForImageLimit, imageCardForLimit],
+  subpages: {
+    4: {
+      grid: [1, 2, 0],
+      buttons: [imageCardForLimit, imageCardForLimit, imageCardForLimit],
+    },
+  },
+};
+assert.strictEqual(hooks.imageCardLimit(), 4, "image card editor limit matches firmware downloader slots");
+assert.strictEqual(hooks.imageCardCountForTest(imageLimitSnapshot), 4, "image card count spans main page and subpages");
+assert.strictEqual(hooks.imageCardCandidateAllowedForTest(imageLimitSnapshot, {
+  isSub: false,
+  slot: 3,
+  button: imageCardForLimit,
+}), false, "saving a fifth image card on the main page is blocked");
+assert.strictEqual(hooks.imageCardCandidateAllowedForTest(imageLimitSnapshot, {
+  isSub: true,
+  homeSlot: 4,
+  slot: 3,
+  button: imageCardForLimit,
+}), false, "saving a fifth image card on a subpage is blocked");
+assert.strictEqual(hooks.imageCardCandidateAllowedForTest(imageLimitSnapshot, {
+  isSub: false,
+  slot: 2,
+  button: switchCardForImageLimit,
+}), true, "replacing an existing image card frees a firmware slot");
 assertButtonRoundTrip(hooks, "image card default options", {
   entity: "camera.front_door",
   label: "",
