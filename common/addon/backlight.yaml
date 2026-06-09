@@ -704,15 +704,10 @@ script:
           apply_clock_screensaver_text_color(id(clock_label), id(schedule_clock_text_color).state);
           auto time = panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now());
           if (time.is_valid()) {
-            char buf[12];
-            int hr = time.hour, mn = time.minute;
+            char buf[8];
             bool use_12h = id(clock_format_select).current_option() == "12h";
-            if (use_12h) {
-              int h12 = hr % 12; if (h12 == 0) h12 = 12;
-              snprintf(buf, sizeof(buf), "%d:%02d", h12, mn);
-            } else {
-              snprintf(buf, sizeof(buf), "%02d:%02d", hr, mn);
-            }
+            format_clock_time_without_suffix(buf, sizeof(buf),
+                                             time.hour, time.minute, use_12h);
             lv_label_set_text(id(clock_label), buf);
             position_clock_screensaver_label(id(clock_screensaver), id(clock_label), time.minute);
           }
@@ -776,14 +771,9 @@ interval:
           apply_clock_screensaver_text_color(id(clock_label), id(schedule_clock_text_color).state);
           auto time = panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now());
           if (!time.is_valid()) return;
-          char buf[12];
-          int hr = time.hour, mn = time.minute;
+          char buf[8];
           bool use_12h = id(clock_format_select).current_option() == "12h";
-          if (use_12h) {
-            int h12 = hr % 12; if (h12 == 0) h12 = 12;
-            snprintf(buf, sizeof(buf), "%d:%02d", h12, mn);
-          } else {
-            snprintf(buf, sizeof(buf), "%02d:%02d", hr, mn);
-          }
+          format_clock_time_without_suffix(buf, sizeof(buf),
+                                           time.hour, time.minute, use_12h);
           lv_label_set_text(id(clock_label), buf);
           position_clock_screensaver_label(id(clock_screensaver), id(clock_label), time.minute);

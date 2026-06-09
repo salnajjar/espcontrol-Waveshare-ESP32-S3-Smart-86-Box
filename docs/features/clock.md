@@ -13,7 +13,7 @@ The panel can display a clock in the top bar, updated every minute from network 
 Configured in the **Time Settings** section of the **Settings** tab in [Setup](/features/setup).
 
 - **Timezone** — select your timezone from the dropdown. This also determines sunrise and sunset times used by the [backlight schedule](/features/backlight).
-- **Clock Format** — choose **12h** for 12-hour time with AM/PM, or **24h** for 24-hour time. Defaults to 24h.
+- **Clock Format** — choose **12h** for 12-hour time without an AM/PM suffix, or **24h** for 24-hour time. Defaults to 24h.
 - **Custom NTP Servers** — turn this on to show and edit the NTP server fields. When it is off, the panel uses the defaults: `0.pool.ntp.org`, `1.pool.ntp.org`, and `2.pool.ntp.org`.
 - **NTP Server 1 / 2 / 3** — choose the network time servers used to keep the panel clock accurate when custom NTP servers are enabled.
 - **Custom Month Names** — advanced Date card labels. Turn this on to edit the twelve month names used by Date cards. Turning it off resets them to the default English month names.

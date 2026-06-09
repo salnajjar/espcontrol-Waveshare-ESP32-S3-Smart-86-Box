@@ -414,21 +414,14 @@ script:
       - lvgl.label.update:
           id: display_time
           text: !lambda |-
-            static char time_buf[17];
+            static char time_buf[8];
             auto now = panel_time_or_fallback(id(panel_time).now(),
                                               id(homeassistant_time).now());
             if (!now.is_valid()) return "--:--";
-            int h = now.hour;
-            int m = now.minute;
             bool use_12h =
                 id(clock_format_select).current_option() == "12h";
-            if (use_12h) {
-              int h12 = h % 12;
-              if (h12 == 0) h12 = 12;
-              snprintf(time_buf, sizeof(time_buf), "%d:%02d", h12, m);
-            } else {
-              snprintf(time_buf, sizeof(time_buf), "%02d:%02d", h, m);
-            }
+            format_clock_time_without_suffix(time_buf, sizeof(time_buf),
+                                             now.hour, now.minute, use_12h);
             return time_buf;
       - lambda: |-
           auto now = panel_time_or_fallback(id(panel_time).now(),

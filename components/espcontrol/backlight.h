@@ -26,6 +26,19 @@
 
 static const size_t CLOCK_BAR_TEMPERATURE_SLOT_COUNT = 6;
 
+inline void format_clock_time_without_suffix(char *buf, size_t size,
+                                             int hour, int minute,
+                                             bool use_12h) {
+  if (buf == nullptr || size == 0) return;
+  if (use_12h) {
+    int hour12 = hour % 12;
+    if (hour12 == 0) hour12 = 12;
+    snprintf(buf, size, "%d:%02d", hour12, minute);
+  } else {
+    snprintf(buf, size, "%02d:%02d", hour, minute);
+  }
+}
+
 // ── Clock-bar page visibility ────────────────────────────────────────
 
 inline std::vector<lv_obj_t *> &clock_bar_button_grid_pages() {

@@ -114,13 +114,8 @@ inline void apply_calendar_card_text(const CalendarCardRef &ref,
         state.month >= 1 && state.month <= 12 &&
         state.hour >= 0 && state.hour <= 23 &&
         state.minute >= 0 && state.minute <= 59) {
-      if (state.use_12h) {
-        int hour12 = state.hour % 12;
-        if (hour12 == 0) hour12 = 12;
-        snprintf(value_buf, sizeof(value_buf), "%d:%02d", hour12, state.minute);
-      } else {
-        snprintf(value_buf, sizeof(value_buf), "%02d:%02d", state.hour, state.minute);
-      }
+      format_clock_time_without_suffix(value_buf, sizeof(value_buf),
+                                       state.hour, state.minute, state.use_12h);
       value_text = value_buf;
       snprintf(label_buf, sizeof(label_buf), "%d %s", state.day, calendar_month_name(state.month));
       label_text = label_buf;
@@ -321,13 +316,8 @@ inline void apply_timezone_card_text(const TimezoneCardRef &ref,
     if (timezone_localtime(tz_option, epoch, local_tm)) {
       int hour = local_tm.tm_hour;
       int minute = local_tm.tm_min;
-      if (use_12h) {
-        int hour12 = hour % 12;
-        if (hour12 == 0) hour12 = 12;
-        snprintf(value_buf, sizeof(value_buf), "%d:%02d", hour12, minute);
-      } else {
-        snprintf(value_buf, sizeof(value_buf), "%02d:%02d", hour, minute);
-      }
+      format_clock_time_without_suffix(value_buf, sizeof(value_buf),
+                                       hour, minute, use_12h);
       value_text = value_buf;
     }
   }
