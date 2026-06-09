@@ -363,7 +363,6 @@ display:
     transform:
       mirror_x: false
       mirror_y: false
-    pclk_inverted: true
 
 # ---------------------------------------------------------------------------
 # LVGL base (display binding, must be before any page definitions)
