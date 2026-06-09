@@ -52,13 +52,14 @@ function renderImageLabelSettings(panel, b, helpers) {
     value: function () { return b.icon && b.icon !== "Auto" ? b.icon : "Camera"; },
     onChange: function () { renderPreview(); },
   });
+  iconField.classList.add("sp-cond-field");
 
   function syncLabelField() {
     labelField.field.hidden = !imageLabelEnabled(b);
   }
 
   function syncIconField() {
-    iconField.hidden = !imageIconEnabled(b);
+    iconField.classList.toggle("sp-visible", imageIconEnabled(b));
   }
 
   labelToggle.input.addEventListener("change", function () {
