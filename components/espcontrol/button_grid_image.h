@@ -145,10 +145,7 @@ inline void image_card_apply_corner_clip(lv_obj_t *obj, lv_coord_t radius) {
 }
 
 inline void image_card_apply_tile_image_align(lv_obj_t *widget) {
-  if (!widget) return;
-#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 4, 0)
-  lv_image_set_inner_align(widget, LV_IMAGE_ALIGN_COVER);
-#endif
+  (void) widget;
 }
 
 inline void image_card_sync_tile_corners(lv_obj_t *btn, lv_obj_t *widget) {
@@ -931,35 +928,6 @@ inline bool image_card_context_current(ImageCardCtx *ctx,
          ctx->entity_id == entity_id;
 }
 
-inline void subscribe_image_card_picture_attribute(ImageCardCtx *ctx,
-                                                   const std::string &entity_id) {
-  if (!ctx || entity_id.empty()) return;
-  const uint32_t generation = ha_subscription_generation();
-  ha_subscribe_attribute(
-    entity_id,
-    std::string("entity_picture"),
-    std::function<void(esphome::StringRef)>(
-      [ctx, entity_id, generation](esphome::StringRef picture) {
-        if (!image_card_context_current(ctx, entity_id, generation)) return;
-        image_card_handle_picture(ctx, picture);
-      })
-  );
-}
-
-inline void subscribe_image_card_entity_state(ImageCardCtx *ctx,
-                                              const std::string &entity_id) {
-  if (!ctx || entity_id.empty()) return;
-  const uint32_t generation = ha_subscription_generation();
-  ha_subscribe_state(
-    entity_id,
-    std::function<void(esphome::StringRef)>(
-      [ctx, entity_id, generation](esphome::StringRef) {
-        if (!image_card_context_current(ctx, entity_id, generation)) return;
-        image_card_request_picture(ctx);
-      })
-  );
-}
-
 inline void image_card_schedule_next_refresh(ImageCardCtx *ctx, uint32_t now = esphome::millis()) {
   if (!ctx || ctx->refresh_interval_ms == 0) {
     if (ctx) ctx->next_refresh_ms = 0;
@@ -1346,8 +1314,14 @@ inline bool bind_image_card(BtnSlot &s, const ParsedCfg &p, const GridConfig &cf
     }, LV_EVENT_CLICKED, ctx);
   }
 
-  subscribe_image_card_picture_attribute(ctx, p.entity);
-  subscribe_image_card_entity_state(ctx, p.entity);
+  ha_subscribe_attribute(
+    p.entity,
+    std::string("entity_picture"),
+    std::function<void(esphome::StringRef)>(
+      [ctx](esphome::StringRef picture) {
+        image_card_handle_picture(ctx, picture);
+      })
+  );
   image_card_request_picture(ctx);
   return true;
 }
