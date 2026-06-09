@@ -151,6 +151,8 @@ def firmware_ha_boundary_errors(firmware_dir: Path, root: Path) -> list[str]:
         errors.append(f"{rel}: send Home Assistant actions only after state subscription is ready")
     elif "HA_ACTION_INTERNAL_FREE_MIN_BYTES" not in action_send_match.group("body"):
         errors.append(f"{rel}: defer Home Assistant actions when S3 internal heap is critically low")
+    if "Home Assistant attribute request" not in text:
+        errors.append(f"{rel}: defer one-off Home Assistant attribute reads when S3 internal heap is critically low")
 
     return errors
 
