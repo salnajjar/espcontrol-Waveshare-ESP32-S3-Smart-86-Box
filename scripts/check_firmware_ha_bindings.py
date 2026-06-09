@@ -727,8 +727,8 @@ def firmware_image_card_startup_errors(
         errors.append(f"{rel}: retry image-card startup quickly after Home Assistant API connects")
     if "if (!ha_api_connected()) return;" not in text:
         errors.append(f"{rel}: arm image-card refresh from the Home Assistant API connection")
-    if "if (!ha_api_state_connected())" not in text:
-        errors.append(f"{rel}: wait for Home Assistant state subscription before requesting image attributes")
+    if "if (!ha_api_connected())" not in text or "ha_get_attribute(" not in text:
+        errors.append(f"{rel}: request image-card attributes once the Home Assistant API is connected")
     if "subscribe_image_card_entity_state" not in text or "ha_subscribe_state(" not in text:
         errors.append(f"{rel}: refresh image cards when the camera/image entity state changes")
     if "image_card_context_current" not in text or "generation == ha_subscription_generation()" not in text:
@@ -2307,7 +2307,7 @@ def run_self_test() -> int:
             "refresh image cards when Home Assistant reconnects",
             "retry image-card startup quickly after Home Assistant API connects",
             "arm image-card refresh from the Home Assistant API connection",
-            "wait for Home Assistant state subscription before requesting image attributes",
+            "request image-card attributes once the Home Assistant API is connected",
             "refresh image cards when the camera/image entity state changes",
             "ignore stale image-card callbacks after grid rebuild",
             "request high-quality Home Assistant image card source downloads",
@@ -2325,7 +2325,8 @@ def run_self_test() -> int:
         "         url.find(\"/api/image_proxy/\") != std::string::npos;\n"
         "}\n"
         "inline void image_card_request_picture(ImageCardCtx *ctx) {\n"
-        "  if (!ha_api_state_connected()) return;\n"
+        "  if (!ha_api_connected()) return;\n"
+        "  ha_get_attribute(ctx->entity_id, std::string(\"entity_picture\"), callback);\n"
         "}\n"
         "inline bool image_card_context_current(ImageCardCtx *ctx,\n"
         "                                       const std::string &entity_id,\n"

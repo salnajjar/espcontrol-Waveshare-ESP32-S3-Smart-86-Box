@@ -918,11 +918,9 @@ inline void image_card_schedule_picture_retry(ImageCardCtx *ctx, uint32_t delay_
 
 inline void image_card_request_picture(ImageCardCtx *ctx) {
   if (!ctx || !ctx->active || ctx->entity_id.empty()) return;
-  if (!ha_api_state_connected()) {
-    if (ha_api_connected() || image_card_startup_retry_active(ctx)) {
-      image_card_schedule_picture_retry(
-        ctx,
-        ha_api_connected() ? IMAGE_CARD_API_RETRY_INTERVAL_MS : IMAGE_CARD_RETRY_INTERVAL_MS);
+  if (!ha_api_connected()) {
+    if (image_card_startup_retry_active(ctx)) {
+      image_card_schedule_picture_retry(ctx, IMAGE_CARD_RETRY_INTERVAL_MS);
       image_card_set_loading_state(ctx, "Loading", true);
     }
     return;
@@ -939,6 +937,8 @@ inline void image_card_request_picture(ImageCardCtx *ctx) {
       })
   );
   if (!requested && (ha_api_connected() || image_card_startup_retry_active(ctx))) {
+    ESP_LOGD("image_card", "Queued entity_picture retry for %s: connected=%d state_connected=%d",
+             entity_id.c_str(), ha_api_connected(), ha_api_state_connected());
     image_card_schedule_picture_retry(
       ctx,
       ha_api_connected() ? IMAGE_CARD_API_RETRY_INTERVAL_MS : IMAGE_CARD_RETRY_INTERVAL_MS);
