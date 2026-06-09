@@ -89,6 +89,7 @@ script:
           clock_bar_set_button_grid_pages_pad_top(
             id(main_page)->obj,
             visible ? ${main_page_pad_top} : ${main_page_compact_pad_top});
+          id(refresh_button_grid).execute();
 
           if (!visible) {
             id(clock_bar_hide).execute();
