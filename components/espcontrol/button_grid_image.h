@@ -214,12 +214,12 @@ inline void image_card_refresh_loading_layout(lv_obj_t *loading_widget) {
   lv_coord_t pad_bottom = btn ? lv_obj_get_style_pad_bottom(btn, LV_PART_MAIN) : 0;
   lv_coord_t width = btn ? lv_obj_get_width(btn) : lv_obj_get_width(loading_widget);
   lv_obj_t *icon = image_card_loading_icon(loading_widget);
+  lv_obj_t *label = image_card_loading_label(loading_widget);
   if (icon) {
     lv_obj_set_width(icon, LV_SIZE_CONTENT);
     lv_obj_align(icon, LV_ALIGN_TOP_LEFT, pad_left, pad_top);
     lv_obj_move_foreground(icon);
   }
-  lv_obj_t *label = image_card_loading_label(loading_widget);
   if (label) {
     lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
