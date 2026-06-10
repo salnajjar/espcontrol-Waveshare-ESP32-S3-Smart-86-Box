@@ -717,10 +717,7 @@ script:
       - script.execute: backlight_fade_current_ui_to_black
       - script.wait: backlight_fade_current_ui_to_black
       - lvgl.widget.show: clock_screensaver
-      - lvgl.widget.hide: display_time
-      - lvgl.widget.hide: temperatures
-      - lvgl.widget.hide: network_status_button
-      - lambda: 'network_status_hide_modal();'
+      - script.execute: clock_bar_hide
       - output.set_level:
           id: gpio_backlight_pwm
           level: 0%

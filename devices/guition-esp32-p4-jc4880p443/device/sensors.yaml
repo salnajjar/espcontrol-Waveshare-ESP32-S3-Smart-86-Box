@@ -373,6 +373,7 @@ esphome:
                 return id(clock_bar_enabled).state &&
                        clock_bar_active_on_button_grid_page(id(main_page)->obj) &&
                        !id(screensaver_display_off_active) &&
+                       !id(screensaver_dimmed_active) &&
                        !id(is_clock_showing) &&
                        !id(cover_art_screensaver_active);
               },
