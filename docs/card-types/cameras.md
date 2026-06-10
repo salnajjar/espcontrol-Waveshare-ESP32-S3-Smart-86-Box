@@ -37,8 +37,6 @@ Camera images use more memory than normal control cards, so EspControl limits ho
 
 ESP32-P4 screens support up to **6 Camera cards total**. This limit is shared across the main page and all subpages combined. For example, 4 Camera cards on the main page and 2 Camera cards inside subpages reaches the limit.
 
-The ESP32-S3 4-inch screen supports **0 Camera cards** because it does not have enough memory and processing power for reliable camera image handling.
-
 If you see a **Too many** message or a warning while saving, reduce the number of Camera cards across the main page and subpages.
 
 For best results, use a few important camera snapshots rather than filling a whole page with cameras. Wider or larger card sizes usually make camera images easier to recognise.
