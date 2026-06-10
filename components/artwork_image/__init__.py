@@ -89,24 +89,21 @@ class JPEGFormat(Format):
         dest_path = str(
             CORE.relative_build_path("components", "libjpeg-turbo-esp32")
         )
-        required_files = (
-            "CMakeLists.txt",
-            os.path.join("src", "jdapimin.c"),
-            os.path.join("src", "jmemnobs.c"),
-            os.path.join("src", "wrapper", "jdapistd-8.c"),
-        )
-        missing_required_file = any(
-            not os.path.exists(os.path.join(dest_path, file_name))
-            for file_name in required_files
-        )
-        source_newer = False
-        if not missing_required_file:
-            source_newer = any(
-                os.path.getmtime(os.path.join(src_path, file_name))
-                > os.path.getmtime(os.path.join(dest_path, file_name))
-                for file_name in required_files
-            )
-        needs_copy = missing_required_file or source_newer
+        needs_copy = not os.path.exists(dest_path)
+        if not needs_copy:
+            for root, _, files in os.walk(src_path):
+                for file_name in files:
+                    src_file = os.path.join(root, file_name)
+                    rel_path = os.path.relpath(src_file, src_path)
+                    dest_file = os.path.join(dest_path, rel_path)
+                    if (
+                        not os.path.exists(dest_file)
+                        or os.path.getmtime(src_file) > os.path.getmtime(dest_file)
+                    ):
+                        needs_copy = True
+                        break
+                if needs_copy:
+                    break
         if needs_copy:
             if os.path.exists(dest_path):
                 shutil.rmtree(dest_path)
