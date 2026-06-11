@@ -370,10 +370,10 @@ display:
     # Start WiFi before the RGB panel allocates its frame buffers; otherwise the
     # WiFi driver can fail to claim enough internal RX buffers on fresh boots.
     setup_priority: 240
-    # Keep the S3 RGB clock at the panel model's stable default. Faster clocks
+    # Keep the S3 RGB clock at the weekend release's stable value. Faster clocks
     # can starve the PSRAM-backed frame buffer when the web server adds WiFi,
     # flash, and memory traffic, causing visible screen shifts and pixel breakup.
-    pclk_frequency: 12MHz
+    pclk_frequency: 8MHz
     update_interval: never
     auto_clear_enabled: False
     # Keep the ST7701S panel init sequence on the non-mirrored path. The
