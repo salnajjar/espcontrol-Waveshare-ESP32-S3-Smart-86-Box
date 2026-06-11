@@ -317,6 +317,12 @@ function clockBarTemperatureUnitSymbol() {
 
 var MAX_CLOCK_BAR_TEMPERATURES = 6;
 
+function defaultClockBarTemperatureEntity(index) {
+  if (index === 0) return "sensor.outdoor_temperature";
+  if (index === 1) return "sensor.indoor_temperature";
+  return "";
+}
+
 function normalizeClockBarTemperatureEntries(value) {
   var input = Array.isArray(value) ? value : String(value || "").split(/[|,\n]/);
   return input.map(function (entry) {

@@ -431,7 +431,7 @@ function addClockBarItem(item) {
     if (tempIndex >= next.length) {
       while (next.length < tempIndex) next.push("");
       next[tempIndex] = restore[tempIndex] || "";
-      if (!next[tempIndex] && tempIndex === 0) next[tempIndex] = "sensor.outdoor_temperature";
+      if (!next[tempIndex]) next[tempIndex] = defaultClockBarTemperatureEntity(tempIndex);
     }
     applyClockBarTemperatureEntities(next, false);
     updateTempPreview();

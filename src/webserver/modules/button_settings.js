@@ -166,7 +166,7 @@ function renderClockBarAddSettings(forceOpen) {
       var index = clockBarTemperatureItemIndex(draft.item);
       var entries = clockBarTemperatureEntries();
       var restore = normalizeClockBarTemperatureEntities(state.clockBarTempRestoreEntities);
-      draft.temperatureEntity = entries[index] || restore[index] || (index === 0 ? "sensor.outdoor_temperature" : "");
+      draft.temperatureEntity = entries[index] || restore[index] || defaultClockBarTemperatureEntity(index);
     } else if (draft.item === "weather") {
       draft.weatherEntity = state.clockBarWeatherEntity || "";
     }
