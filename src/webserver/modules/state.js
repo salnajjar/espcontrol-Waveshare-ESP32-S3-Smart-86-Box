@@ -316,6 +316,12 @@ function clockBarTemperatureUnitSymbol() {
 }
 
 var MAX_CLOCK_BAR_TEMPERATURES = 1;
+var CLOCK_BAR_FIXED_LAYOUT_STRING = "left:temperature|middle:time|right:network";
+var CLOCK_BAR_FIXED_LAYOUT = {
+  left: ["temperature"],
+  middle: ["time"],
+  right: ["network"],
+};
 
 function defaultClockBarTemperatureEntity(index) {
   if (index === 0) return "sensor.outdoor_temperature";

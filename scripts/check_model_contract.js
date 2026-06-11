@@ -226,9 +226,10 @@ const panelSettings = model.normalizeBackupPanelSettings({
   screenRotationOptions: ["0", "90", "180", "270"],
 });
 assert.strictEqual(panelSettings.temperatureUnit, "\u00B0C", "panel temperature unit normalizes");
-assert.strictEqual(panelSettings.clockBarTime, false, "panel clock bar time imports");
-assert.strictEqual(panelSettings.clockBarWeatherIcon, true, "panel clock bar weather icon imports");
-assert.strictEqual(panelSettings.clockBarWeatherEntity, "weather.home", "panel clock bar weather entity imports");
+assert.strictEqual(panelSettings.clockBarTime, true, "panel clock bar time resets on");
+assert.strictEqual(panelSettings.clockBarWeatherIcon, false, "panel clock bar weather icon resets off");
+assert.strictEqual(panelSettings.clockBarWeatherEntity, "", "panel clock bar weather entity resets empty");
+assert.strictEqual(panelSettings.networkStatusIcon, true, "panel clock bar network status resets on");
 assert.strictEqual(panelSettings.language, "it", "panel language imports");
 assert.strictEqual(panelSettings.clockFormat, "24h", "panel clock format validates against options");
 assert.strictEqual(panelSettings.ntpServer1, "pool.ntp.org", "panel NTP server imports");

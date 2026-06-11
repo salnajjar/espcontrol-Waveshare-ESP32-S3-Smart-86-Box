@@ -92,11 +92,7 @@ function clockBarTemperatureActive() {
 }
 
 var CLOCK_BAR_SECTIONS = ["left", "middle", "right"];
-var CLOCK_BAR_DEFAULT_LAYOUT = {
-  left: ["temperature"],
-  middle: ["time"],
-  right: ["weather", "network"],
-};
+var CLOCK_BAR_DEFAULT_LAYOUT = CLOCK_BAR_FIXED_LAYOUT;
 var CLOCK_BAR_LAYOUT_STORAGE_PREFIX = "espcontrol.clockBarLayout.";
 var clockBarLayoutLoaded = false;
 
@@ -123,13 +119,12 @@ function clockBarTemperatureItemIds(includeNext) {
 }
 
 function clockBarItems(includeNextTemperature) {
-  return clockBarTemperatureItemIds(!!includeNextTemperature).concat(["time", "weather", "network"]);
+  return clockBarTemperatureItemIds(!!includeNextTemperature).concat(["time", "network"]);
 }
 
 function clockBarDefaultSection(item) {
   if (isClockBarTemperatureItem(item)) return "left";
   if (item === "time") return "middle";
-  if (item === "weather") return "right";
   if (item === "network") return "right";
   return "left";
 }
@@ -138,7 +133,6 @@ function clockBarItemActive(item) {
   var tempIndex = clockBarTemperatureItemIndex(item);
   if (tempIndex >= 0) return tempIndex < clockBarTemperatureEntries().length;
   if (item === "time") return !!state.clockBarTimeOn;
-  if (item === "weather") return !!state.clockBarWeatherOn;
   if (item === "network") return !!state.networkStatusOn;
   return false;
 }
@@ -150,19 +144,17 @@ function clockBarItemElement(item) {
 function clockBarItemLabel(item) {
   if (isClockBarTemperatureItem(item)) return "Temperature";
   if (item === "time") return "Time";
-  if (item === "weather") return "Weather";
   if (item === "network") return "Network Status";
   return "Clock Bar";
 }
 
 function clockBarItemHasSettings(item) {
-  return isClockBarTemperatureItem(item) || item === "weather";
+  return false;
 }
 
 function clockBarItemIcon(item) {
   if (isClockBarTemperatureItem(item)) return "thermometer";
   if (item === "time") return "clock-outline";
-  if (item === "weather") return "weather-partly-cloudy";
   if (item === "network") return "wifi-strength-4";
   return "plus";
 }
@@ -209,7 +201,7 @@ function parseClockBarLayout(value) {
 }
 
 function applyClockBarLayoutValue(value) {
-  state.clockBarLayout = cloneClockBarLayout(parseClockBarLayout(value));
+  state.clockBarLayout = cloneClockBarLayout(CLOCK_BAR_DEFAULT_LAYOUT);
   clockBarLayoutLoaded = true;
   saveClockBarLayout(false);
   updateClockBarItemUi();
@@ -217,13 +209,7 @@ function applyClockBarLayoutValue(value) {
 
 function loadClockBarLayout() {
   if (clockBarLayoutLoaded && state.clockBarLayout) return state.clockBarLayout;
-  var loaded = null;
-  try {
-    if (window.localStorage) loaded = JSON.parse(window.localStorage.getItem(clockBarLayoutStorageKey()) || "null");
-  } catch (_) {
-    loaded = null;
-  }
-  state.clockBarLayout = cloneClockBarLayout(loaded || state.clockBarLayout || CLOCK_BAR_DEFAULT_LAYOUT);
+  state.clockBarLayout = cloneClockBarLayout(CLOCK_BAR_DEFAULT_LAYOUT);
   clockBarLayoutLoaded = true;
   return state.clockBarLayout;
 }
@@ -234,7 +220,7 @@ function saveClockBarLayout(postDevice) {
   var serialized = serializeClockBarLayout(state.clockBarLayout);
   try {
     if (window.localStorage) {
-      window.localStorage.setItem(clockBarLayoutStorageKey(), JSON.stringify(cloneClockBarLayout(state.clockBarLayout)));
+      window.localStorage.setItem(clockBarLayoutStorageKey(), JSON.stringify(cloneClockBarLayout(CLOCK_BAR_DEFAULT_LAYOUT)));
     }
   } catch (_) {}
   // Layout customization has been removed; keep this as a local compatibility cache only.
@@ -351,7 +337,6 @@ function updateClockBarItemUi() {
   renderClockBarLayout();
   clockBarTemperatureItemIds(true).forEach(syncClockBarItemElement);
   syncClockBarItemElement("time");
-  syncClockBarItemElement("weather");
   syncClockBarItemElement("network");
 }
 

@@ -160,10 +160,8 @@ int main() {
   assert(fallback_clock_bar.section[CLOCK_BAR_ITEM_TEMPERATURE] == CLOCK_BAR_SECTION_LEFT);
   assert(fallback_clock_bar.order[CLOCK_BAR_ITEM_TEMPERATURE] == 0);
   assert(fallback_clock_bar.section[CLOCK_BAR_ITEM_TIME] == CLOCK_BAR_SECTION_MIDDLE);
-  assert(fallback_clock_bar.section[CLOCK_BAR_ITEM_WEATHER] == CLOCK_BAR_SECTION_RIGHT);
-  assert(fallback_clock_bar.order[CLOCK_BAR_ITEM_WEATHER] == 0);
   assert(fallback_clock_bar.section[CLOCK_BAR_ITEM_NETWORK] == CLOCK_BAR_SECTION_RIGHT);
-  assert(fallback_clock_bar.order[CLOCK_BAR_ITEM_NETWORK] == 1);
+  assert(fallback_clock_bar.order[CLOCK_BAR_ITEM_NETWORK] == 0);
 
   auto duplicate_clock_bar = parse_clock_bar_layout(
     " left : temperature , temperature | middle: time | right: network,network,weather ");
@@ -173,17 +171,15 @@ int main() {
   assert(duplicate_clock_bar.order[CLOCK_BAR_ITEM_TIME] == 0);
   assert(duplicate_clock_bar.section[CLOCK_BAR_ITEM_NETWORK] == CLOCK_BAR_SECTION_RIGHT);
   assert(duplicate_clock_bar.order[CLOCK_BAR_ITEM_NETWORK] == 0);
-  assert(duplicate_clock_bar.section[CLOCK_BAR_ITEM_WEATHER] == CLOCK_BAR_SECTION_RIGHT);
-  assert(duplicate_clock_bar.order[CLOCK_BAR_ITEM_WEATHER] == 1);
+  assert(duplicate_clock_bar.section[CLOCK_BAR_ITEM_WEATHER] == -1);
 
   auto compact_clock_bar = compact_clock_bar_layout(
     duplicate_clock_bar, 1, true, false, true);
   assert(compact_clock_bar.section[CLOCK_BAR_ITEM_TEMPERATURE] == CLOCK_BAR_SECTION_LEFT);
   assert(compact_clock_bar.section[CLOCK_BAR_ITEM_NETWORK] == -1);
-  assert(compact_clock_bar.section[CLOCK_BAR_ITEM_WEATHER] == CLOCK_BAR_SECTION_RIGHT);
-  assert(compact_clock_bar.order[CLOCK_BAR_ITEM_WEATHER] == 0);
+  assert(compact_clock_bar.section[CLOCK_BAR_ITEM_WEATHER] == -1);
   assert(compact_clock_bar.count[CLOCK_BAR_SECTION_LEFT] == 1);
-  assert(compact_clock_bar.count[CLOCK_BAR_SECTION_RIGHT] == 1);
+  assert(compact_clock_bar.count[CLOCK_BAR_SECTION_RIGHT] == 0);
 
   auto clock_bar_entities = parse_clock_bar_temperature_entities(
     " sensor.outdoor | sensor.indoor, sensor.outdoor\nsensor.loft,, ");
@@ -218,7 +214,7 @@ int main() {
 	    &weather_icon_container,
 	    true, true, true, true, true,
 	    1024, 12, 17, 20, 10, 80, 10);
-  assert(lv_obj_move_background_calls == 4);
+  assert(lv_obj_move_background_calls == 3);
   assert(lv_obj_has_flag(&temperature_2, LV_OBJ_FLAG_HIDDEN));
   assert(lv_obj_has_flag(&temperature_6, LV_OBJ_FLAG_HIDDEN));
   hide_clock_bar_top_layer_widgets(

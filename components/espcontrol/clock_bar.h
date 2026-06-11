@@ -554,7 +554,6 @@ inline int clock_bar_item_id(const std::string &value) {
   }
   if (token == "time") return CLOCK_BAR_ITEM_TIME;
   if (token == "network") return CLOCK_BAR_ITEM_NETWORK;
-  if (token == "weather") return CLOCK_BAR_ITEM_WEATHER;
   return -1;
 }
 
@@ -571,7 +570,6 @@ inline void clock_bar_add_item(ClockBarParsedLayout &layout, int section, int it
 inline void clock_bar_add_missing_default_items(ClockBarParsedLayout &layout) {
   clock_bar_add_item(layout, CLOCK_BAR_SECTION_LEFT, CLOCK_BAR_ITEM_TEMPERATURE);
   clock_bar_add_item(layout, CLOCK_BAR_SECTION_MIDDLE, CLOCK_BAR_ITEM_TIME);
-  clock_bar_add_item(layout, CLOCK_BAR_SECTION_RIGHT, CLOCK_BAR_ITEM_WEATHER);
   clock_bar_add_item(layout, CLOCK_BAR_SECTION_RIGHT, CLOCK_BAR_ITEM_NETWORK);
 }
 

@@ -17,6 +17,27 @@ esphome:
     priority: -150
     then:
       - lambda: |-
+          std::vector<std::string> clock_bar_temperature_entities =
+              parse_clock_bar_temperature_entities(id(clock_bar_temperature_entities).state);
+          std::string clock_bar_temperature_entity =
+              clock_bar_temperature_entities.empty() ? "" : clock_bar_temperature_entities[0];
+          if (clock_bar_temperature_entity.empty()) {
+            if (id(outdoor_temp_enable).state && !id(outdoor_temp_entity).state.empty()) {
+              clock_bar_temperature_entity = id(outdoor_temp_entity).state;
+            } else if (id(indoor_temp_enable).state && !id(indoor_temp_entity).state.empty()) {
+              clock_bar_temperature_entity = id(indoor_temp_entity).state;
+            }
+          }
+          id(clock_bar_temperature_entities).publish_state(clock_bar_temperature_entity);
+          id(outdoor_temp_enable).turn_off();
+          id(indoor_temp_enable).turn_off();
+          id(outdoor_temp_entity).publish_state(clock_bar_temperature_entity);
+          id(indoor_temp_entity).publish_state("");
+          id(clock_bar_layout).publish_state("left:temperature|middle:time|right:network");
+          id(clock_bar_weather_entity).publish_state("");
+          id(clock_bar_time_enabled).turn_on();
+          id(network_status_enabled).turn_on();
+          id(clock_bar_weather_icon_enabled).turn_off();
           set_display_temperature_unit(id(temperature_unit_select).current_option(),
                                        id(timezone_select).current_option());
           set_display_temperature_degree_symbol(id(temperature_degree_symbol_enabled).state);
@@ -57,9 +78,9 @@ script:
               id(screensaver_dimmed_active));
           bool reserve_clock_bar_space = visibility.reserve_space;
           bool visible = visibility.visible;
-          bool show_time = visible && id(clock_bar_time_enabled).state;
-          bool show_network = visible && id(network_status_enabled).state;
-          bool show_weather = visible && id(clock_bar_weather_icon_enabled).state;
+          bool show_time = visible;
+          bool show_network = visible;
+          bool show_weather = false;
           int clock_bar_label_y = ${main_page_pad_top} / 5;
           int clock_bar_icon_y =
               (${screen_width} == 1024 ||
@@ -122,9 +143,9 @@ script:
             lv_obj_add_flag(id(network_status_button), LV_OBJ_FLAG_HIDDEN);
             network_status_hide_modal();
           }
-          subscribe_clock_bar_weather_icon(id(clock_bar_weather_icon_label),
-                                           id(clock_bar_weather_entity).state);
           if (show_weather) {
+            subscribe_clock_bar_weather_icon(id(clock_bar_weather_icon_label),
+                                             id(clock_bar_weather_entity).state);
             lv_obj_clear_flag(id(clock_bar_weather_icon_container), LV_OBJ_FLAG_HIDDEN);
           } else {
             lv_obj_add_flag(id(clock_bar_weather_icon_container), LV_OBJ_FLAG_HIDDEN);

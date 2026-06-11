@@ -42,11 +42,11 @@ function exportConfig() {
       outdoor_temp_entity: state.outdoorEntity,
       temperature_unit: normalizeTemperatureUnit(state.temperatureUnit),
       clock_bar: state.clockBarOn,
-      clock_bar_layout: serializeClockBarLayout(state.clockBarLayout),
-      clock_bar_time: state.clockBarTimeOn,
-      clock_bar_weather_icon: state.clockBarWeatherOn,
-      clock_bar_weather_entity: state.clockBarWeatherEntity,
-      network_status_icon: state.networkStatusOn,
+      clock_bar_layout: CLOCK_BAR_FIXED_LAYOUT_STRING,
+      clock_bar_time: true,
+      clock_bar_weather_icon: false,
+      clock_bar_weather_entity: "",
+      network_status_icon: true,
       temperature_degree_symbol: state.temperatureDegreeSymbolOn,
       subpage_chevron: state.subpageChevronsOn,
       timezone: state.timezone,
@@ -181,7 +181,7 @@ function importConfig() {
         var importedSettings = EspControlModel.normalizeBackupPanelSettings(s, {
           timezone: state.timezone,
           language: state.language,
-          clockBarLayout: serializeClockBarLayout(state.clockBarLayout),
+          clockBarLayout: CLOCK_BAR_FIXED_LAYOUT_STRING,
           clockFormat: state.clockFormat,
           clockFormatOptions: state.clockFormatOptions,
           developerExperimentalFeatures: state.developerExperimentalFeatures,
@@ -194,11 +194,12 @@ function importConfig() {
 
         applyClockBarTemperatureEntities(importedSettings.clockBarTemperatureEntities, true);
         postClockBar(importedSettings.clockBar);
-        applyClockBarLayoutValue(importedSettings.clockBarLayout);
-        postClockBarTime(importedSettings.clockBarTime);
-        postClockBarWeatherIcon(importedSettings.clockBarWeatherIcon);
-        postText(entityName("clock_bar_weather_entity"), importedSettings.clockBarWeatherEntity);
-        postNetworkStatusIcon(importedSettings.networkStatusIcon);
+        applyClockBarLayoutValue(CLOCK_BAR_FIXED_LAYOUT_STRING);
+        postClockBarLayout(CLOCK_BAR_FIXED_LAYOUT_STRING);
+        postClockBarTime(true);
+        postClockBarWeatherIcon(false);
+        postText(entityName("clock_bar_weather_entity"), "");
+        postNetworkStatusIcon(true);
         postTemperatureDegreeSymbol(importedSettings.temperatureDegreeSymbol);
         postSubpageChevron(importedSettings.subpageChevron);
         var importedTimezone = importedSettings.timezone;
@@ -261,10 +262,10 @@ function importConfig() {
         state.outdoorEntity = importedSettings.outdoorTempEntity;
         state.temperatureUnit = importedTemperatureUnit;
         state.clockBarOn = importedSettings.clockBar;
-        state.clockBarTimeOn = importedSettings.clockBarTime;
-        state.clockBarWeatherOn = importedSettings.clockBarWeatherIcon;
-        state.clockBarWeatherEntity = importedSettings.clockBarWeatherEntity;
-        state.networkStatusOn = importedSettings.networkStatusIcon;
+        state.clockBarTimeOn = true;
+        state.clockBarWeatherOn = false;
+        state.clockBarWeatherEntity = "";
+        state.networkStatusOn = true;
         state.temperatureDegreeSymbolOn = importedSettings.temperatureDegreeSymbol;
         state.subpageChevronsOn = importedSettings.subpageChevron;
         state.timezone = importedTimezone;

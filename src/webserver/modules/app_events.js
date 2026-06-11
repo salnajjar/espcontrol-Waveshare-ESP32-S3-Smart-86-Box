@@ -133,26 +133,26 @@ function connectEvents() {
       if (applyClockBarStateValue(val, d, key)) syncClockBarUi();
     },
     "text-screen__clock_bar_layout": function (val) {
-      applyClockBarLayoutValue(val);
+      applyClockBarLayoutValue(CLOCK_BAR_FIXED_LAYOUT_STRING);
     },
     "text-clock_bar_temperature_entities": function (val) {
       applyClockBarTemperatureEntities(normalizeClockBarTemperatureEntities(val), false);
     },
     "switch-screen__clock_bar_time": function (val, d) {
-      state.clockBarTimeOn = d.value === true || val === "ON";
+      state.clockBarTimeOn = true;
       syncClockBarUi();
     },
     "switch-screen__clock_bar_weather_icon": function (val, d) {
-      state.clockBarWeatherOn = d.value === true || val === "ON";
+      state.clockBarWeatherOn = false;
       syncClockBarUi();
     },
     "text-clock_bar_weather_entity": function (val) {
-      state.clockBarWeatherEntity = String(val || "").trim();
+      state.clockBarWeatherEntity = "";
       syncClockBarWeatherUi();
       updateWeatherPreview();
     },
     "switch-screen__network_status_icon": function (val, d) {
-      state.networkStatusOn = d.value === true || val === "ON";
+      state.networkStatusOn = true;
       syncClockBarUi();
     },
     "switch-screen__temperature_degree_symbol": function (val, d) {

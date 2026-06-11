@@ -15,6 +15,8 @@ export function normalizeClockBarTemperatureEntities(value: unknown): string[] {
   return out.slice(0, 1);
 }
 
+export const CLOCK_BAR_FIXED_LAYOUT = "left:temperature|middle:time|right:network";
+
 export function normalizeLanguage(value: unknown): string {
   const language = String(value == null ? "" : value).trim().toLowerCase();
   return language || "en";
@@ -318,11 +320,11 @@ export function normalizeBackupPanelSettings(
     outdoorTempEntity: clockBarTemperatureEntities[0] || "",
     clockBarTemperatureEntities,
     clockBar: objectValue(settings, "clock_bar") != null ? !!settings.clock_bar : false,
-    clockBarLayout: String(settings.clock_bar_layout || current.clockBarLayout),
-    clockBarTime: objectValue(settings, "clock_bar_time") != null ? !!settings.clock_bar_time : true,
-    clockBarWeatherIcon: objectValue(settings, "clock_bar_weather_icon") != null ? !!settings.clock_bar_weather_icon : false,
-    clockBarWeatherEntity: String(settings.clock_bar_weather_entity || ""),
-    networkStatusIcon: objectValue(settings, "network_status_icon") != null ? !!settings.network_status_icon : true,
+    clockBarLayout: CLOCK_BAR_FIXED_LAYOUT,
+    clockBarTime: true,
+    clockBarWeatherIcon: false,
+    clockBarWeatherEntity: "",
+    networkStatusIcon: true,
     temperatureDegreeSymbol: objectValue(settings, "temperature_degree_symbol") != null
       ? !!settings.temperature_degree_symbol
       : true,
