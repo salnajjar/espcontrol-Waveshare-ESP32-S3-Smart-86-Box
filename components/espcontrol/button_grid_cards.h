@@ -449,6 +449,7 @@ inline void setup_weather_forecast_card(BtnSlot &s, const ParsedCfg &p,
 }
 
 inline void apply_push_button_transition(lv_obj_t *btn);
+inline void clear_push_button_transition(lv_obj_t *btn);
 
 inline void setup_garage_card(BtnSlot &s, const ParsedCfg &p) {
   if (garage_command_mode(p.sensor)) {
@@ -509,6 +510,7 @@ inline void setup_screen_lock_card(BtnSlot &s, const ParsedCfg &p) {
 }
 
 inline void apply_push_button_transition(lv_obj_t *btn) {
+  if (!btn) return;
   static const lv_style_prop_t push_props[] = {LV_STYLE_BG_COLOR, LV_STYLE_PROP_INV};
   static lv_style_transition_dsc_t push_trans;
   static bool push_trans_inited = false;
@@ -517,6 +519,12 @@ inline void apply_push_button_transition(lv_obj_t *btn) {
     push_trans_inited = true;
   }
   lv_obj_set_style_transition(btn, &push_trans,
+    static_cast<lv_style_selector_t>(LV_PART_MAIN) | LV_STATE_DEFAULT);
+}
+
+inline void clear_push_button_transition(lv_obj_t *btn) {
+  if (!btn) return;
+  lv_obj_set_style_transition(btn, nullptr,
     static_cast<lv_style_selector_t>(LV_PART_MAIN) | LV_STATE_DEFAULT);
 }
 

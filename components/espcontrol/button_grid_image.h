@@ -727,6 +727,7 @@ inline void image_card_apply_active_geometry(ImageCardCtx *ctx) {
 inline void setup_image_card(BtnSlot &s) {
   lv_obj_clear_flag(s.btn, LV_OBJ_FLAG_HIDDEN);
   lv_obj_clear_flag(s.btn, LV_OBJ_FLAG_CLICKABLE);
+  clear_push_button_transition(s.btn);
   if (s.icon_lbl) lv_obj_add_flag(s.icon_lbl, LV_OBJ_FLAG_HIDDEN);
   if (s.sensor_container) lv_obj_add_flag(s.sensor_container, LV_OBJ_FLAG_HIDDEN);
   if (s.text_lbl) lv_obj_add_flag(s.text_lbl, LV_OBJ_FLAG_HIDDEN);
@@ -1551,7 +1552,6 @@ inline bool bind_image_card(BtnSlot &s, const ParsedCfg &p, const GridConfig &cf
   image_card_set_loading_state(ctx, "Loading", true);
   lv_obj_set_user_data(s.btn, ctx);
   lv_obj_add_flag(s.btn, LV_OBJ_FLAG_CLICKABLE);
-  apply_push_button_transition(s.btn);
   if (bind_click_handler) {
     lv_obj_add_event_cb(s.btn, [](lv_event_t *e) {
       ImageCardCtx *ctx = static_cast<ImageCardCtx *>(lv_event_get_user_data(e));
