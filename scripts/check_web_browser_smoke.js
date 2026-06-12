@@ -892,6 +892,23 @@ async function assertClockBarEditorSmoke(page, posts, label) {
     { domain: "text", name: "clock_bar__temperature_entities", action: "set", value: "sensor.porch_temperature" },
   ], `${label}: saving temperature posts entity`, before);
   await waitForPost(posts, { domain: "switch", name: "screen__temperature_degree_symbol", action: "turn_off" }, `${label}: saving temperature posts degree symbol`, before);
+
+  await page.locator('[data-clockbar-item="temperature"]').click({ force: true });
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.waitForSelector(".sp-settings-overlay.sp-visible");
+  const modalHideButton = page.locator(".sp-settings-modal .sp-hide-btn");
+  assert.strictEqual(await modalHideButton.count(), 1, `${label}: temperature modal shows one hide button`);
+  assert.strictEqual((await modalHideButton.innerText()).trim(), "Hide", `${label}: temperature modal hide button is labelled`);
+  const hideIconClass = await modalHideButton.locator(".mdi").getAttribute("class");
+  assert(hideIconClass.includes("mdi-eye-off-outline"), `${label}: temperature modal hide button uses the eye-off icon`);
+  assert(!hideIconClass.includes("trash"), `${label}: temperature modal hide button does not use a trash icon`);
+  await modalHideButton.click();
+  await waitForPost(posts, { domain: "switch", name: "outdoor_temp_enable", action: "turn_off" }, `${label}: hiding temperature posts visibility switch`, before);
+  assert((await page.locator('[data-clockbar-item="temperature"]').getAttribute("class")).includes("sp-clockbar-hidden"), `${label}: hidden temperature is greyed in preview`);
+  await page.locator('[data-clockbar-item="temperature"]').click({ force: true });
+  await page.getByRole("button", { name: "Show", exact: true }).click();
+  await waitForPost(posts, { domain: "switch", name: "outdoor_temp_enable", action: "turn_on" }, `${label}: showing temperature posts visibility switch`, before);
+
   await openClockBarContextMenu("temperature", "Edit Temperature");
   assert(
     await page.locator(".sp-ctx-menu").getByText("Hide Temperature", { exact: true }).isVisible(),
