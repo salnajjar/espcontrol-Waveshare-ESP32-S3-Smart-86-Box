@@ -452,12 +452,85 @@ function postFirmwareUpdateCheck() {
   post(urls, null, "Could not check for firmware update.");
 }
 
-function ensurePublicFirmwareOtaUrl() {
+function ensurePublicFirmwareOtaUrl(info) {
+  info = info || selectedFirmwareInfo();
+  if (info && info.ota_url) return Promise.resolve(info.ota_url);
   if (state.firmwareOtaUrl) return Promise.resolve(state.firmwareOtaUrl);
-  return getJsonQuietly(publicFirmwareManifestUrl(), function (d) {
-    setPublicFirmwareInfo(firmwareInfoFromPublicManifest(d));
+  return getJsonQuietly(publicFirmwareVersionsUrl(), function (d) {
+    setPublicFirmwareVersions(firmwareInfosFromPublicVersions(d));
   }).then(function () {
-    return state.firmwareOtaUrl || "";
+    info = selectedFirmwareInfo();
+    if (info && info.ota_url) return info.ota_url;
+    return getJsonQuietly(publicFirmwareManifestUrl(), function (d) {
+      setPublicFirmwareInfo(firmwareInfoFromPublicManifest(d));
+    }).then(function () {
+      return state.firmwareOtaUrl || "";
+    });
+  });
+}
+
+function publicFirmwareOtaFilename(info) {
+  return info && info.ota_filename ? info.ota_filename :
+    (state.firmwareOtaFilename || (DEVICE_ID + ".ota.bin"));
+}
+
+function installPublicFirmwareViaWebOta(info) {
+  info = info || selectedFirmwareInfo();
+  return getJsonQuietly(publicFirmwareManifestUrl(), function (d) {
+    if (!info || selectedFirmwareIsLatest()) setPublicFirmwareInfo(firmwareInfoFromPublicManifest(d));
+  }).then(function () {
+    info = info || selectedFirmwareInfo();
+    var targetVersion = info && info.latest_version ? info.latest_version : state.firmwareLatestVersion;
+    if (isSpecificFirmwareVersion(targetVersion)) {
+      state.firmwareInstallTargetVersion = targetVersion;
+    }
+  }).then(function () {
+    clearFirmwareWebOtaFallback();
+    state.firmwareInstallPostPending = false;
+    state.firmwareChecking = false;
+    state.firmwareUpdateState = "INSTALLING";
+    state.firmwareInstallStatus = state.firmwareInstallTargetVersion ?
+      "Uploading firmware " + state.firmwareInstallTargetVersion + "\u2026" :
+      "Uploading firmware update\u2026";
+    renderFirmwareUpdateStatus();
+    startFirmwareInstallRefresh();
+
+    var uploadStarted = false;
+    var uploadResponseReceived = false;
+    return ensurePublicFirmwareOtaUrl(info).then(function (otaUrl) {
+      if (!otaUrl) throw new Error("Firmware file is not available yet.");
+      return fetch(otaUrl, { cache: "no-store" });
+    }).then(function (response) {
+      if (!response.ok) throw new Error("Could not download firmware file (" + response.status + ").");
+      return response.blob();
+    }).then(function (blob) {
+      var filename = publicFirmwareOtaFilename(info);
+      var form = new FormData();
+      form.append("file", blob, filename);
+      uploadStarted = true;
+      return fetch("/update", { method: "POST", body: form });
+    }).then(function (response) {
+      uploadResponseReceived = true;
+      return response.text().catch(function () {
+        return "";
+      }).then(function (text) {
+        if (!response.ok) {
+          throw new Error("Device rejected firmware upload (" + response.status + ").");
+        }
+        if (/update failed/i.test(text)) {
+          throw new Error("Device reported that the firmware upload failed.");
+        }
+        waitForFirmwareRestart();
+        return true;
+      });
+    }).catch(function (err) {
+      if (uploadStarted && !uploadResponseReceived) {
+        waitForFirmwareRestart();
+        return true;
+      }
+      failPublicFirmwareUpload(err && err.message);
+      return false;
+    });
   });
 }
 
@@ -474,53 +547,6 @@ function failPublicFirmwareUpload(message) {
   state.firmwareUpdateState = "";
   renderFirmwareUpdateStatus();
   showBanner(message || "Could not upload firmware update.", "error");
-}
-
-function installPublicFirmwareViaWebOta() {
-  clearFirmwareWebOtaFallback();
-  state.firmwareInstallPostPending = false;
-  state.firmwareChecking = false;
-  state.firmwareUpdateState = "INSTALLING";
-  state.firmwareInstallStatus = "Uploading firmware update\u2026";
-  renderFirmwareUpdateStatus();
-  startFirmwareInstallRefresh();
-
-  var uploadStarted = false;
-  var uploadResponseReceived = false;
-  return ensurePublicFirmwareOtaUrl().then(function (otaUrl) {
-    if (!otaUrl) throw new Error("Firmware file is not available yet.");
-    return fetch(otaUrl, { cache: "no-store" });
-  }).then(function (response) {
-    if (!response.ok) throw new Error("Could not download firmware file (" + response.status + ").");
-    return response.blob();
-  }).then(function (blob) {
-    var filename = state.firmwareOtaFilename || (DEVICE_ID + ".ota.bin");
-    var form = new FormData();
-    form.append("file", blob, filename);
-    uploadStarted = true;
-    return fetch("/update", { method: "POST", body: form });
-  }).then(function (response) {
-    uploadResponseReceived = true;
-    return response.text().catch(function () {
-      return "";
-    }).then(function (text) {
-      if (!response.ok) {
-        throw new Error("Device rejected firmware upload (" + response.status + ").");
-      }
-      if (/update failed/i.test(text)) {
-        throw new Error("Device reported that the firmware upload failed.");
-      }
-      waitForFirmwareRestart();
-      return true;
-    });
-  }).catch(function (err) {
-    if (uploadStarted && !uploadResponseReceived) {
-      waitForFirmwareRestart();
-      return true;
-    }
-    failPublicFirmwareUpload(err && err.message);
-    return false;
-  });
 }
 
 function postSwitch(name, on) {
@@ -946,7 +972,7 @@ function loadInitialState(handleState, onLoaded) {
 }
 
 function refreshFirmwareVersion() {
-  var pending = 6;
+  var pending = 7;
   if (!state.firmwareVersion) {
     state.firmwareVersionRefreshPending = true;
     renderFirmwareVersion();
@@ -963,6 +989,9 @@ function refreshFirmwareVersion() {
   }).then(finishFirmwareVersionRefresh, finishFirmwareVersionRefresh);
   getJsonQuietly(publicFirmwareManifestUrl(), function (d) {
     setPublicFirmwareInfo(firmwareInfoFromPublicManifest(d));
+  }).then(finishFirmwareVersionRefresh, finishFirmwareVersionRefresh);
+  getJsonQuietly(publicFirmwareVersionsUrl(), function (d) {
+    setPublicFirmwareVersions(firmwareInfosFromPublicVersions(d));
   }).then(finishFirmwareVersionRefresh, finishFirmwareVersionRefresh);
   getJsonFirst(entityDetailPaths("text_sensor", entityLookupNames("firmware_version")), function (d) {
     setFirmwareVersion(d.state || d.value);

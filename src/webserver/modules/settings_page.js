@@ -863,21 +863,31 @@ function buildSettingsPage(parent) {
   fwCheckBtn.addEventListener("click", function () {
     if (!firmwareUpdateControlsVisible()) return;
     if (firmwareInstallAvailable()) {
-      var updateReady = firmwareUpdateAvailable();
-      state.firmwareInstallTargetVersion = state.firmwareLatestVersion;
-      state.firmwareInstallPostPending = !updateReady;
-      state.firmwareUpdateState = "INSTALLING";
-      state.firmwareInstallStatus = updateReady ? "Installing update\u2026" : "Checking update before install\u2026";
+      var selectedInfo = selectedFirmwareInfo();
+      var installingLatest = selectedFirmwareIsLatest();
+      var updateReady = installingLatest && firmwareUpdateAvailable();
+      state.firmwareInstallTargetVersion = selectedInfo && selectedInfo.latest_version ?
+        selectedInfo.latest_version :
+        state.firmwareLatestVersion;
+      state.firmwareInstallPostPending = installingLatest && !updateReady;
       state.firmwareChecking = false;
-      renderFirmwareUpdateStatus();
       if (updateReady) {
+        state.firmwareUpdateState = "INSTALLING";
+        state.firmwareInstallStatus = "Installing update\u2026";
+        renderFirmwareUpdateStatus();
         clearFirmwareWebOtaFallback();
         postFirmwareUpdateInstall();
-      } else {
+        startFirmwareInstallRefresh();
+      } else if (installingLatest) {
+        state.firmwareUpdateState = "INSTALLING";
+        state.firmwareInstallStatus = "Checking update before install\u2026";
+        renderFirmwareUpdateStatus();
         postFirmwareUpdateCheck();
         scheduleFirmwareWebOtaFallback();
+        startFirmwareInstallRefresh();
+      } else {
+        installPublicFirmwareViaWebOta(selectedInfo);
       }
-      startFirmwareInstallRefresh();
       return;
     }
     state.firmwareChecking = true;
@@ -885,6 +895,9 @@ function buildSettingsPage(parent) {
     postFirmwareUpdateCheck();
     getJsonQuietly(publicFirmwareManifestUrl(), function (d) {
       setPublicFirmwareInfo(firmwareInfoFromPublicManifest(d));
+    });
+    getJsonQuietly(publicFirmwareVersionsUrl(), function (d) {
+      setPublicFirmwareVersions(firmwareInfosFromPublicVersions(d));
     });
     setTimeout(function () {
       state.firmwareChecking = false;
@@ -902,6 +915,23 @@ function buildSettingsPage(parent) {
   fwBody.appendChild(fwStatus);
   els.fwStatus = fwStatus;
   renderFirmwareUpdateStatus();
+
+  var fwVersionField = document.createElement("div");
+  fwVersionField.className = "sp-field sp-fw-version-field";
+  fwVersionField.style.display = "none";
+  fwVersionField.appendChild(fieldLabel("Install Version", "sp-set-firmware-version"));
+  var fwVersionSelect = document.createElement("select");
+  fwVersionSelect.className = "sp-select";
+  fwVersionSelect.id = "sp-set-firmware-version";
+  fwVersionSelect.addEventListener("change", function () {
+    state.firmwareSelectedVersion = this.value;
+    renderFirmwareUpdateStatus();
+  });
+  fwVersionField.appendChild(fwVersionSelect);
+  fwBody.appendChild(fwVersionField);
+  els.fwVersionField = fwVersionField;
+  els.fwVersionSelect = fwVersionSelect;
+  syncFirmwareVersionSelect();
 
   var autoUpdateToggle = toggleRow("Auto Update", "sp-set-auto-update", state.autoUpdate);
   fwBody.appendChild(autoUpdateToggle.row);

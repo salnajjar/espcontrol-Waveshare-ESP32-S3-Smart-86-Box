@@ -1094,6 +1094,51 @@ assert.strictEqual(
   }),
   null
 );
+const publicVersionIndex = {
+  device: "guition-esp32-p4-jc1060p470",
+  versions: [{
+    version: "v1.12.0",
+    release_url: "https://github.com/jtenniswood/espcontrol/releases/tag/v1.12.0",
+    ota: {
+      path: "guition-esp32-p4-jc1060p470.ota.bin",
+      md5: "0123456789abcdef0123456789abcdef",
+    },
+  }, {
+    version: "v1.11.0",
+    release_url: "https://github.com/jtenniswood/espcontrol/releases/tag/v1.11.0",
+    ota: {
+      path: "versions/v1.11.0/guition-esp32-p4-jc1060p470.ota.bin",
+      md5: "abcdef0123456789abcdef0123456789",
+    },
+  }],
+};
+assert.deepStrictEqual(plain(hooks.firmwareInfosFromPublicVersions(publicVersionIndex)), [{
+  latest_version: "v1.12.0",
+  release_url: "https://github.com/jtenniswood/espcontrol/releases/tag/v1.12.0",
+  ota_url: "https://jtenniswood.github.io/espcontrol/firmware/guition-esp32-p4-jc1060p470/guition-esp32-p4-jc1060p470.ota.bin",
+  ota_filename: "guition-esp32-p4-jc1060p470.ota.bin",
+  ota_md5: "0123456789abcdef0123456789abcdef",
+}, {
+  latest_version: "v1.11.0",
+  release_url: "https://github.com/jtenniswood/espcontrol/releases/tag/v1.11.0",
+  ota_url: "https://jtenniswood.github.io/espcontrol/firmware/guition-esp32-p4-jc1060p470/versions/v1.11.0/guition-esp32-p4-jc1060p470.ota.bin",
+  ota_filename: "guition-esp32-p4-jc1060p470.ota.bin",
+  ota_md5: "abcdef0123456789abcdef0123456789",
+}]);
+assert.deepStrictEqual(plain(hooks.firmwareStateAfterVersionIndex("v1.12.0", publicVersionIndex)), {
+  latest: "v1.12.0",
+  selected: "v1.12.0",
+  installAvailable: false,
+  selectorVisible: true,
+  installedSelected: true,
+});
+assert.deepStrictEqual(plain(hooks.firmwareStateAfterVersionIndex("v1.12.0", publicVersionIndex, "v1.11.0")), {
+  latest: "v1.12.0",
+  selected: "v1.11.0",
+  installAvailable: true,
+  selectorVisible: true,
+  installedSelected: false,
+});
 assert.strictEqual(hooks.firmwareVersionLabelFor("", true), "Checking version...");
 assert.strictEqual(hooks.firmwareVersionLabelFor("", false), "Version unknown");
 assert.deepStrictEqual(plain(hooks.entityDetailPaths("text_sensor", hooks.entityLookupNames("firmware_version"))), [
