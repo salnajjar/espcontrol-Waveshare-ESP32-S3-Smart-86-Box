@@ -91,10 +91,10 @@ media_player:
     task_stack_in_psram: true
     files:
       - id: voice_wake_chime
-        file: device/voice_wake_chime.wav
+        file: ${voice_wake_chime_file}
     volume_min: 0.0
-    volume_max: 0.85
-    volume_increment: 0.05
+    volume_max: 1.0
+    volume_increment: 0.005
     volume_initial: 0.6
     announcement_pipeline:
       speaker: voice_announcement_resampling_speaker
@@ -113,9 +113,25 @@ media_player:
           duration: 0s
       - switch.turn_on: speaker_amplifier_enable
       - delay: 100ms
+      - audio_dac.set_volume:
+          id: voice_dac
+          volume: !lambda |-
+            const float volume = id(voice_media_player).volume;
+            if (volume < 0.001f) {
+              return 0.0f;
+            }
+            return 0.35f + (volume * 0.50f);
     on_play:
       - switch.turn_on: speaker_amplifier_enable
       - delay: 100ms
+      - audio_dac.set_volume:
+          id: voice_dac
+          volume: !lambda |-
+            const float volume = id(voice_media_player).volume;
+            if (volume < 0.001f) {
+              return 0.0f;
+            }
+            return 0.35f + (volume * 0.50f);
       - micro_wake_word.stop:
     on_pause:
       - switch.turn_off: speaker_amplifier_enable
@@ -152,6 +168,14 @@ media_player:
               voice_assistant.is_running:
           then:
             - script.execute: apply_restored_voice_wake_word
+    on_volume:
+      - audio_dac.set_volume:
+          id: voice_dac
+          volume: !lambda |-
+            if (x < 0.001f) {
+              return 0.0f;
+            }
+            return 0.35f + (x * 0.50f);
 
 sensor:
   - platform: sound_level
@@ -204,25 +228,6 @@ text_sensor:
     update_interval: never
     lambda: |-
       return {"Channel ${voice_microphone_channel}"};
-
-number:
-  - platform: template
-    id: voice_response_volume
-    name: Voice Response Volume
-    icon: mdi:volume-high
-    entity_category: config
-    unit_of_measurement: "%"
-    min_value: 0
-    max_value: 100
-    step: 5
-    initial_value: 60
-    restore_value: true
-    optimistic: true
-    mode: slider
-    set_action:
-      - media_player.volume_set:
-          id: voice_media_player
-          volume: !lambda return x / 100.0;
 
 micro_wake_word:
   id: onboard_wake_word
@@ -420,7 +425,7 @@ voice_assistant:
   use_wake_word: false
   noise_suppression_level: 2
   auto_gain: 31dBFS
-  volume_multiplier: 2.0
+  volume_multiplier: 1.0
   on_start:
     - script.stop: release_voice_after_response
     - script.execute: screensaver_wake
