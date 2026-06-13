@@ -181,24 +181,30 @@ script:
           then:
             - script.execute: screensaver_idle_check
           else:
-            - lambda: 'navigation_return_home(id(main_page)->obj);'
             - if:
                 condition:
-                  lambda: 'return screensaver_action_clock_mode(id(screensaver_action).current_option());'
+                  lambda: 'return !id(display_takeover_suspended);'
                 then:
-                  - globals.set:
-                      id: display_asleep
-                      value: 'true'
-                  - script.execute: show_clock_view
-                else:
-                  - script.execute: hide_cover_art_view
+                  - lambda: 'navigation_return_home(id(main_page)->obj);'
                   - if:
                       condition:
-                        lambda: 'return screensaver_action_dimmed_mode(id(screensaver_action).current_option());'
+                        lambda: 'return screensaver_action_clock_mode(id(screensaver_action).current_option());'
                       then:
-                        - script.execute: show_dimmed_view
+                        - globals.set:
+                            id: display_asleep
+                            value: 'true'
+                        - script.execute: show_clock_view
                       else:
-                        - script.execute: screensaver_sleep_display_off
+                        - script.execute: hide_cover_art_view
+                        - if:
+                            condition:
+                              lambda: 'return screensaver_action_dimmed_mode(id(screensaver_action).current_option());'
+                            then:
+                              - script.execute: show_dimmed_view
+                            else:
+                              - script.execute: screensaver_sleep_display_off
+                else:
+                  - lambda: 'ESP_LOGD("screensaver", "Skipping automatic sleep while image modal is active");'
 
   # Sensor mode honours the same clock/display-off setting as timer mode.
   - id: screensaver_sleep_sensor

@@ -158,6 +158,16 @@ def firmware_modal_sleep_takeover_errors(root: Path) -> list[str]:
             )
         if "display_takeover_suspended" not in text:
             errors.append("common/addon/backlight.yaml: track display-takeover suspension explicitly")
+        sleep_timer_body = yaml_script_body(text, "screensaver_sleep_timer")
+        if sleep_timer_body is None:
+            errors.append("common/addon/backlight.yaml: keep the screensaver sleep timer script")
+        elif (
+            "display_takeover_suspended" not in sleep_timer_body
+            or "Skipping automatic sleep while image modal is active" not in sleep_timer_body
+        ):
+            errors.append(
+                "common/addon/backlight.yaml: block automatic screensaver sleep while image modals are active"
+            )
         if home_idle_body is None:
             errors.append("common/addon/backlight.yaml: keep the home-screen idle return script")
         else:
@@ -286,6 +296,13 @@ def valid_sleep_takeover_files() -> dict[str, str]:
             "globals:\n"
             "  - id: display_takeover_suspended\n"
             "script:\n"
+            "  - id: screensaver_sleep_timer\n"
+            "    then:\n"
+            "      - if:\n"
+            "          condition:\n"
+            "            lambda: 'return !id(display_takeover_suspended);'\n"
+            "          else:\n"
+            "            - lambda: 'Skipping automatic sleep while image modal is active'\n"
             "  - id: home_screen_idle_check\n"
             "    then:\n"
             "      - lambda: |-\n"
@@ -365,6 +382,13 @@ def run_self_test() -> int:
         "globals:\n"
         "  - id: display_takeover_suspended\n"
         "script:\n"
+        "  - id: screensaver_sleep_timer\n"
+        "    then:\n"
+        "      - if:\n"
+        "          condition:\n"
+        "            lambda: 'return !id(display_takeover_suspended);'\n"
+        "          else:\n"
+        "            - lambda: 'Skipping automatic sleep while image modal is active'\n"
         "  - id: home_screen_idle_check\n"
         "    then:\n"
         "      - if:\n"
