@@ -377,6 +377,7 @@ export default defineConfig({
           { text: 'Install', link: '/getting-started/install' },
           { text: 'Manual ESPHome Setup', link: '/getting-started/manual-esphome-setup' },
           { text: 'Enable Actions', link: '/getting-started/home-assistant-actions' },
+          { text: '3D Printable Stands', link: '/reference/3d-printable-stands' },
           { text: 'Troubleshooting', link: '/getting-started/troubleshooting' },
         ],
       },
@@ -452,7 +453,6 @@ export default defineConfig({
       {
         text: 'Reference',
         items: [
-          { text: '3D Printable Stands', link: '/reference/3d-printable-stands' },
           { text: 'Contributing', link: '/reference/contributing' },
           { text: 'Icon Reference', link: '/reference/icons' },
           { text: 'Language Support', link: '/reference/language-support' },
