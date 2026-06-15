@@ -111,6 +111,8 @@ media_player:
     files:
       - id: voice_wake_chime
         file: ${voice_wake_chime_file}
+      - id: voice_timer_alert
+        file: ${voice_timer_alert_file}
     volume_min: 0.0
     volume_max: 1.0
     volume_increment: 0.005
@@ -230,6 +232,11 @@ globals:
     restore_value: false
     initial_value: "0"
 
+  - id: voice_timer_ringing
+    type: bool
+    restore_value: false
+    initial_value: "false"
+
   - id: voice_resume_media_after_voice
     type: bool
     restore_value: false
@@ -331,10 +338,28 @@ script:
                 media_file: voice_wake_chime
                 announcement: true
 
+  - id: play_voice_timer_alert
+    mode: restart
+    then:
+      - lambda: id(voice_timer_ringing) = true;
+      - while:
+          condition:
+            lambda: return id(voice_timer_ringing);
+          then:
+            - switch.turn_on: speaker_amplifier_enable
+            - media_player.speaker.play_on_device_media_file:
+                id: voice_media_player
+                media_file: voice_timer_alert
+                announcement: true
+            - delay: 1500ms
+
   - id: cancel_voice_response
     mode: restart
     then:
-      - lambda: id(voice_cancel_in_progress) = true;
+      - lambda: |-
+          id(voice_cancel_in_progress) = true;
+          id(voice_timer_ringing) = false;
+      - script.stop: play_voice_timer_alert
       - logger.log:
           level: INFO
           tag: voice
@@ -701,6 +726,34 @@ voice_assistant:
         tag: voice
         format: "TTS audio ready"
     - script.execute: release_voice_after_response
+  on_timer_started:
+    - logger.log:
+        level: INFO
+        tag: voice
+        format: "Voice timer started"
+  on_timer_updated:
+    - logger.log:
+        level: INFO
+        tag: voice
+        format: "Voice timer updated"
+  on_timer_cancelled:
+    - lambda: id(voice_timer_ringing) = false;
+    - script.stop: play_voice_timer_alert
+    - media_player.stop:
+        id: voice_media_player
+    - logger.log:
+        level: INFO
+        tag: voice
+        format: "Voice timer cancelled"
+  on_timer_finished:
+    - text_sensor.template.publish:
+        id: voice_assistant_stage
+        state: Timer finished
+    - logger.log:
+        level: INFO
+        tag: voice
+        format: "Voice timer finished"
+    - script.execute: play_voice_timer_alert
   on_error:
     - script.stop: release_voice_after_response
     - text_sensor.template.publish:
