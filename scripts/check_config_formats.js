@@ -2067,27 +2067,48 @@ assertButtonRoundTrip(hooks, "button action card", {
   precision: "",
 }, false);
 
-assertButtonRoundTrip(hooks, "vacuum start action card", {
+assertButtonMigration(hooks, "legacy vacuum start action card", "vacuum.k11_vacuum_784c;Vacuum Bath;Robot Vacuum;Auto;vacuum.start;;action", {
   entity: "vacuum.k11_vacuum_784c",
   label: "Vacuum Bath",
   icon: "Robot Vacuum",
   icon_on: "Auto",
-  sensor: "vacuum.start",
+  sensor: "start_stop",
   unit: "",
-  type: "action",
+  type: "vacuum",
   precision: "",
-}, false);
+});
 
-assertButtonRoundTrip(hooks, "vacuum return to base action card", {
+assertButtonMigration(hooks, "legacy vacuum return to base action card", "vacuum.k11_vacuum_784c;Dock Vacuum;Robot Vacuum;Auto;vacuum.return_to_base;;action", {
   entity: "vacuum.k11_vacuum_784c",
   label: "Dock Vacuum",
   icon: "Robot Vacuum",
   icon_on: "Auto",
-  sensor: "vacuum.return_to_base",
+  sensor: "dock",
   unit: "",
-  type: "action",
+  type: "vacuum",
   precision: "",
-}, false);
+});
+
+[
+  ["status", ""],
+  ["start_stop", ""],
+  ["dock", ""],
+  ["pause_resume", ""],
+  ["clean_spot", ""],
+  ["locate", ""],
+  ["clean_area", "kitchen"],
+].forEach(([mode, unit]) => {
+  assertButtonRoundTrip(hooks, `vacuum ${mode} card`, {
+    entity: "vacuum.k11_vacuum_784c",
+    label: "Vacuum",
+    icon: "Robot Vacuum",
+    icon_on: "Auto",
+    sensor: mode,
+    unit,
+    type: "vacuum",
+    precision: "",
+  }, false);
+});
 
 assertButtonRoundTrip(hooks, "input button action card", {
   entity: "input_button.doorbell",

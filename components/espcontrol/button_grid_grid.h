@@ -391,6 +391,10 @@ inline void setup_card_visual(BtnSlot &s, const ParsedCfg &p,
     setup_action_card(s, p);
     return;
   }
+  if (p.type == "vacuum") {
+    setup_vacuum_card(s, p);
+    return;
+  }
   if (p.type == "option_select") {
     setup_option_select_card(
       s, p, palette.has_sensor_color, palette.sensor_val,
@@ -1067,6 +1071,17 @@ inline void grid_phase2(
       }
       continue;
     }
+    if (p.type == "vacuum") {
+      lv_obj_set_user_data(s.btn, nullptr);
+      if (!p.entity.empty() && vacuum_card_mode_needs_state(p.sensor)) {
+        VacuumCardCtx *ctx = create_vacuum_card_context(s, p);
+        subscribe_vacuum_card_state(ctx);
+        lv_obj_set_user_data(s.btn, ctx);
+      } else if (!p.entity.empty()) {
+        subscribe_control_availability(s.btn, s.btn, p.entity);
+      }
+      continue;
+    }
     if (p.type == "option_select") {
       if (!p.entity.empty()) {
         OptionSelectCtx *ctx = create_option_select_context(
@@ -1668,6 +1683,24 @@ inline void grid_phase2(
             ParsedCfg *c = (ParsedCfg *)lv_event_get_user_data(e);
             if (c) send_action_card_action(*c);
           }, LV_EVENT_CLICKED, ctx);
+        }
+        continue;
+      }
+      if (sb_cfg.type == "vacuum") {
+        if (!sb_cfg.entity.empty()) {
+          VacuumCardCtx *ctx = create_vacuum_card_context(sub_slot, sb_cfg);
+          if (vacuum_card_mode_needs_state(sb_cfg.sensor)) {
+            subscribe_vacuum_card_state(ctx);
+          } else {
+            subscribe_control_availability(sub_slot.btn, sub_slot.btn, sb_cfg.entity);
+          }
+          add_parent_indicator(sb_cfg.entity);
+          if (!vacuum_card_read_only(sb_cfg)) {
+            lv_obj_add_event_cb(sb_btn, [](lv_event_t *e) {
+              VacuumCardCtx *ctx = (VacuumCardCtx *)lv_event_get_user_data(e);
+              send_vacuum_card_action(ctx);
+            }, LV_EVENT_CLICKED, ctx);
+          }
         }
         continue;
       }

@@ -1076,6 +1076,31 @@
       "mdi": "robot-vacuum"
     },
     {
+      "name": "Robot Vacuum Alert",
+      "codepoint": "F1B5D",
+      "mdi": "robot-vacuum-alert"
+    },
+    {
+      "name": "Robot Vacuum Off",
+      "codepoint": "F1C01",
+      "mdi": "robot-vacuum-off"
+    },
+    {
+      "name": "Robot Vacuum Variant",
+      "codepoint": "F0908",
+      "mdi": "robot-vacuum-variant"
+    },
+    {
+      "name": "Robot Vacuum Variant Alert",
+      "codepoint": "F1B5E",
+      "mdi": "robot-vacuum-variant-alert"
+    },
+    {
+      "name": "Robot Vacuum Variant Off",
+      "codepoint": "F1C02",
+      "mdi": "robot-vacuum-variant-off"
+    },
+    {
       "name": "Roller Shade",
       "codepoint": "F1A6B",
       "mdi": "roller-shade"
@@ -1349,6 +1374,16 @@
       "name": "Trash Can Outline",
       "codepoint": "F0A7A",
       "mdi": "trash-can-outline"
+    },
+    {
+      "name": "Vacuum",
+      "codepoint": "F19A1",
+      "mdi": "vacuum"
+    },
+    {
+      "name": "Vacuum Outline",
+      "codepoint": "F19A2",
+      "mdi": "vacuum-outline"
     },
     {
       "name": "View Headline",

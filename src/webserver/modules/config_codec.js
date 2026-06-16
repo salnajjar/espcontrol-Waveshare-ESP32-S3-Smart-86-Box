@@ -11,6 +11,24 @@ var CARD_ON_PATTERN_OPTION = "on_pattern";
 
 function normalizeButtonConfig(b) {
   if (b) b.options = b.options || "";
+  if (b && b.type === "action" && b.sensor === "vacuum.start") {
+    b.type = "vacuum";
+    b.sensor = "start_stop";
+    b.unit = "";
+    b.precision = "";
+    b.options = "";
+    b.icon_on = "Auto";
+    if (!b.icon || b.icon === "Auto") b.icon = "Robot Vacuum";
+  }
+  if (b && b.type === "action" && b.sensor === "vacuum.return_to_base") {
+    b.type = "vacuum";
+    b.sensor = "dock";
+    b.unit = "";
+    b.precision = "";
+    b.options = "";
+    b.icon_on = "Auto";
+    if (!b.icon || b.icon === "Auto") b.icon = "Robot Vacuum Variant";
+  }
   if (b && isBrightnessSliderType(b.type) && b.sensor) {
     b.sensor = "";
   }
@@ -101,6 +119,9 @@ function normalizeButtonConfig(b) {
   if (b && b.type === "webhook") {
     if (typeof normalizeWebhookConfig === "function") normalizeWebhookConfig(b);
   }
+  if (b && b.type === "vacuum") {
+    normalizeVacuumConfig(b);
+  }
   if (b && b.type === "screen_lock") {
     b.entity = "";
     b.label = "";
@@ -165,7 +186,7 @@ function normalizeButtonConfig(b) {
     if (!b.icon || b.icon === "Auto") b.icon = "Motion Sensor Off";
     if (!b.icon_on || b.icon_on === "Auto") b.icon_on = "Motion Sensor";
     b.options = normalizePresenceOptions(b.options);
-  } else if (b && b.type !== "action" && b.type !== "alarm" && b.type !== "alarm_action" && b.type !== "climate" && b.type !== "garage" && b.type !== "webhook" && b.type !== "screen_lock" && b.type !== "media" && b.type !== "presence" && b.type !== "subpage" && b.type !== "image" && !cardLargeNumbersSupported(b)) {
+  } else if (b && b.type !== "action" && b.type !== "alarm" && b.type !== "alarm_action" && b.type !== "climate" && b.type !== "garage" && b.type !== "webhook" && b.type !== "screen_lock" && b.type !== "media" && b.type !== "presence" && b.type !== "subpage" && b.type !== "image" && b.type !== "vacuum" && !cardLargeNumbersSupported(b)) {
     b.options = "";
   }
   return b;
@@ -1263,6 +1284,13 @@ function buttonConfigFields(b) {
       ? mediaNowPlayingControls({ sensor: sensor, precision: precision })
       : (mediaStateDisplayModeSupported(sensor) && precision === "state" ? "state" : "");
   }
+  if (type === "vacuum") {
+    sensor = normalizeVacuumMode(sensor);
+    unit = vacuumModeNeedsArea(sensor) ? unit : "";
+    precision = "";
+    iconOn = "Auto";
+    if (!icon || icon === "Auto") icon = vacuumModeDefaultIcon(sensor);
+  }
   if (type === "climate") precision = normalizeClimatePrecisionConfig(precision);
   if (type === "image") {
     iconOn = "Auto";
@@ -1294,6 +1322,8 @@ function buttonConfigFields(b) {
     precision = webhookButton.precision || "";
     options = webhookButton.options || "";
   } else if (type === "screen_lock") {
+    options = "";
+  } else if (type === "vacuum") {
     options = "";
   } else if (type === "sensor") {
     options = normalizeSensorOptions(options, precision);

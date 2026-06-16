@@ -10,7 +10,8 @@ This generated reference lists stable setup facts from the shared card contract.
 | Card | Type | Entity domains | Subpages | Picker grouping | Main modes and options | Status |
 |---|---|---|---|---|---|---|
 | Switch | switch | light, switch, input_boolean, fan | Yes | Own picker item | Large Active Display Numbers; Confirmation Required: default, off, on, both; On State Pattern: default, stripes; Message; Confirm Button; Cancel Button | Visible |
-| Action | action | scene, script, automation, button, vacuum, input_button, input_boolean, input_number, input_select, select | Yes | Own picker item | Large State Numbers | Visible |
+| Action | action | scene, script, automation, button, input_button, input_boolean, input_number, input_select, select | Yes | Own picker item | Large State Numbers | Visible |
+| Vacuum | vacuum | vacuum | Yes | Own picker item | Type: status, start_stop, dock, pause_resume, clean_spot, locate, clean_area | Visible |
 | Alarm | alarm | alarm_control_panel | Yes | Own picker item | Type: control_panel, away, home, disarm; PIN required for arming; PIN required for disarming; Visible Actions: away, home, disarm; Icon Display: static, status; Label Display: name, status | Visible |
 | Alarm | alarm_action | alarm_control_panel | Yes | Alarm (alarm) | None | Visible |
 | Date & Time | calendar | sensor | Yes | Own picker item | Type: clock, datetime, default, timezone; Large Clock | Visible |

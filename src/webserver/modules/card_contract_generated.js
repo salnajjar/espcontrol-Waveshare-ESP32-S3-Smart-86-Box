@@ -89,7 +89,6 @@ var CARD_CONTRACT_CARDS = {
       "script",
       "automation",
       "button",
-      "vacuum",
       "input_button",
       "input_boolean",
       "input_number",
@@ -111,6 +110,41 @@ var CARD_CONTRACT_CARDS = {
       "sensor": "scene.turn_on",
       "unit": "",
       "type": "action",
+      "precision": "",
+      "options": ""
+    }
+  },
+  "vacuum": {
+    "label": "Vacuum",
+    "allowInSubpage": true,
+    "domains": [
+      "vacuum"
+    ],
+    "options": [
+      {
+        "name": "vacuum_mode",
+        "label": "Type",
+        "kind": "choice",
+        "values": [
+          "status",
+          "start_stop",
+          "dock",
+          "pause_resume",
+          "clean_spot",
+          "locate",
+          "clean_area"
+        ],
+        "defaultValue": "start_stop"
+      }
+    ],
+    "default": {
+      "entity": "",
+      "label": "",
+      "icon": "Robot Vacuum",
+      "icon_on": "Auto",
+      "sensor": "start_stop",
+      "unit": "",
+      "type": "vacuum",
       "precision": "",
       "options": ""
     }
@@ -1282,6 +1316,7 @@ var CARD_CONTRACT_SUBPAGE_TYPE_CODES = {
   "alarm_action": "AA",
   "slider": "L",
   "cover": "C",
+  "vacuum": "VC",
   "light_temperature": "N",
   "garage": "R",
   "lock": "K",
@@ -1316,6 +1351,7 @@ var CARD_CONTRACT_SUBPAGE_TYPES_BY_CODE = {
   "AA": "alarm_action",
   "L": "slider",
   "C": "cover",
+  "VC": "vacuum",
   "N": "light_temperature",
   "R": "garage",
   "K": "lock",
