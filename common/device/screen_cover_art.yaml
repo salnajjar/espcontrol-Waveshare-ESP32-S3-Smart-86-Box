@@ -756,6 +756,19 @@ script:
                            id(cover_art_loaded_url).empty();
                 then:
                   - script.execute: cover_art_show_black_screen
+            - if:
+                condition:
+                  lambda: |-
+                    return id(cover_art_screensaver_active) &&
+                           id(cover_art_image_available) &&
+                           id(cover_art_refresh_needed) &&
+                           !${cover_art_live_image_updates};
+                then:
+                  - script.execute: cover_art_show_black_screen
+                  - artwork_image.release: cover_art_downloaded_image
+                  - lambda: |-
+                      ESP_LOGI("cover_art", "Released current artwork before replacement download");
+                      id(cover_art_loaded_url).clear();
             - lambda: |-
                 if (id(cover_art_url) != id(cover_art_retry_url)) {
                   id(cover_art_retry_url) = id(cover_art_url);
