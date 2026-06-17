@@ -164,6 +164,8 @@ var CARD_CONTRACT_CARDS = {
           "control_panel",
           "away",
           "home",
+          "night",
+          "vacation",
           "disarm"
         ],
         "defaultValue": "control_panel"
@@ -187,6 +189,8 @@ var CARD_CONTRACT_CARDS = {
         "values": [
           "away",
           "home",
+          "night",
+          "vacation",
           "disarm"
         ],
         "defaultValue": "away|home|disarm"
@@ -234,6 +238,20 @@ var CARD_CONTRACT_CARDS = {
             "service": "alarm_control_panel.alarm_arm_home",
             "icon": "Shield Home",
             "legacyIcon": "Home"
+          },
+          {
+            "value": "night",
+            "label": "Arm Night",
+            "service": "alarm_control_panel.alarm_arm_night",
+            "icon": "Weather Night",
+            "legacyIcon": "Weather Night"
+          },
+          {
+            "value": "vacation",
+            "label": "Arm Vacation",
+            "service": "alarm_control_panel.alarm_arm_vacation",
+            "icon": "Airplane",
+            "legacyIcon": "Airplane"
           },
           {
             "value": "disarm",

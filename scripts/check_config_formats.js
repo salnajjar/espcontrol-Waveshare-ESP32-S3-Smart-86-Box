@@ -989,6 +989,21 @@ assert.strictEqual(hooks.alarmPinRequired(parsedCustomAlarm, "arm"), false, "ala
 assert.strictEqual(hooks.alarmPinRequired(parsedCustomAlarm, "disarm"), true, "alarm disarm PIN remains default");
 assert.deepStrictEqual(Array.from(hooks.alarmVisibleActions(parsedCustomAlarm)), ["away", "disarm"], "alarm visible action subset");
 
+const nightVacationAlarmCard = {
+  entity: "alarm_control_panel.house",
+  label: "House Alarm",
+  icon: "Alarm",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "alarm",
+  precision: "",
+  options: "actions=night%7Cvacation",
+};
+assertButtonRoundTrip(hooks, "alarm card night vacation options", nightVacationAlarmCard, false);
+const parsedNightVacationAlarm = hooks.parseButtonConfig(hooks.serializeButtonConfig(nightVacationAlarmCard));
+assert.deepStrictEqual(Array.from(hooks.alarmVisibleActions(parsedNightVacationAlarm)), ["night", "vacation"], "alarm visible night and vacation actions");
+
 const statusAlarmCard = {
   entity: "alarm_control_panel.house",
   label: "House Alarm",
@@ -1030,7 +1045,7 @@ assertButtonMigration(hooks, "alarm clears ignored fields", "alarm_control_panel
   unit: "",
   type: "alarm",
   precision: "",
-  options: "pin_disarm=0,actions=home",
+  options: "pin_disarm=0,actions=home%7Cnight",
 });
 
 assertButtonRoundTrip(hooks, "alarm action button", {
@@ -1039,6 +1054,30 @@ assertButtonRoundTrip(hooks, "alarm action button", {
   icon: "Shield Home",
   icon_on: "Auto",
   sensor: "home",
+  unit: "",
+  type: "alarm_action",
+  precision: "",
+  options: "pin_arm=0",
+}, false);
+
+assertButtonRoundTrip(hooks, "alarm night action button", {
+  entity: "alarm_control_panel.house",
+  label: "Arm Night",
+  icon: "Weather Night",
+  icon_on: "Auto",
+  sensor: "night",
+  unit: "",
+  type: "alarm_action",
+  precision: "",
+  options: "pin_arm=0",
+}, false);
+
+assertButtonRoundTrip(hooks, "alarm vacation action button", {
+  entity: "alarm_control_panel.house",
+  label: "Arm Vacation",
+  icon: "Airplane",
+  icon_on: "Auto",
+  sensor: "vacation",
   unit: "",
   type: "alarm_action",
   precision: "",
