@@ -534,10 +534,7 @@ script:
                   micro_wake_word.is_running:
                 then:
                   - micro_wake_word.disable_model: wake_word_stop
-                  - micro_wake_word.enable_model: wake_word_alexa
-                  - micro_wake_word.enable_model: wake_word_okay_nabu
-                  - micro_wake_word.enable_model: wake_word_hey_jarvis
-                  - micro_wake_word.enable_model: wake_word_hey_mycroft
+                  - script.execute: enable_selected_voice_wake_word
                 else:
                   - micro_wake_word.stop:
                   - delay: 250ms
@@ -546,16 +543,44 @@ script:
                   - micro_wake_word.disable_model: wake_word_hey_jarvis
                   - micro_wake_word.disable_model: wake_word_hey_mycroft
                   - micro_wake_word.disable_model: wake_word_stop
-                  - micro_wake_word.enable_model: wake_word_alexa
-                  - micro_wake_word.enable_model: wake_word_okay_nabu
-                  - micro_wake_word.enable_model: wake_word_hey_jarvis
-                  - micro_wake_word.enable_model: wake_word_hey_mycroft
+                  - script.execute: enable_selected_voice_wake_word
                   - delay: 250ms
                   - micro_wake_word.start:
             - logger.log:
                 level: INFO
                 tag: voice
-                format: "Applied Voice PE-style wake words"
+                format: "Applied selected wake word"
+
+  - id: enable_selected_voice_wake_word
+    mode: queued
+    then:
+      - micro_wake_word.disable_model: wake_word_alexa
+      - micro_wake_word.disable_model: wake_word_okay_nabu
+      - micro_wake_word.disable_model: wake_word_hey_jarvis
+      - micro_wake_word.disable_model: wake_word_hey_mycroft
+      - lambda: |-
+          const std::string selected = id(voice_wake_word_select).current_option();
+          ESP_LOGI("voice", "Selected wake word: %s", selected.c_str());
+      - if:
+          condition:
+            lambda: return id(voice_wake_word_select).current_option() == "Alexa";
+          then:
+            - micro_wake_word.enable_model: wake_word_alexa
+      - if:
+          condition:
+            lambda: return id(voice_wake_word_select).current_option() == "Okay Nabu";
+          then:
+            - micro_wake_word.enable_model: wake_word_okay_nabu
+      - if:
+          condition:
+            lambda: return id(voice_wake_word_select).current_option() == "Hey Jarvis";
+          then:
+            - micro_wake_word.enable_model: wake_word_hey_jarvis
+      - if:
+          condition:
+            lambda: return id(voice_wake_word_select).current_option() == "Hey Mycroft";
+          then:
+            - micro_wake_word.enable_model: wake_word_hey_mycroft
 
   - id: activate_stop_word_once
     mode: restart
@@ -583,6 +608,22 @@ script:
                   - micro_wake_word.disable_model: wake_word_stop
 
 select:
+  - platform: template
+    id: voice_wake_word_select
+    name: Voice Wake Word
+    icon: mdi:account-voice
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_option: Alexa
+    options:
+      - Alexa
+      - Okay Nabu
+      - Hey Jarvis
+      - Hey Mycroft
+    set_action:
+      - script.execute: apply_restored_voice_wake_word
+
   - platform: template
     id: wake_word_sensitivity
     name: Wake word sensitivity
