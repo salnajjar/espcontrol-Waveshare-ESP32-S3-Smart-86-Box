@@ -149,6 +149,10 @@ def firmware_ha_boundary_errors(firmware_dir: Path, root: Path) -> list[str]:
         errors.append(f"{rel}: queue one-off Home Assistant reads until state subscription is ready")
     if "request.callback = std::move(callback)" not in text or "request.entity_id == entity_id" not in text:
         errors.append(f"{rel}: coalesce duplicate deferred Home Assistant reads")
+    if text.count("ha_track_subscription_callback(callback_ref)") < 2:
+        errors.append(f"{rel}: track Home Assistant subscription callbacks for generation cleanup")
+    if "ha_release_subscription_callbacks_now" not in text or "*ref.callback = nullptr" not in text:
+        errors.append(f"{rel}: release retired Home Assistant subscription callback bodies")
 
     return errors
 
@@ -170,6 +174,8 @@ def firmware_unavailable_retry_errors(
         )
         if bump_match and "ha_reset_unavailable_state_retries" in bump_match.group("body"):
             errors.append(f"{config_rel}: do not reset removed unavailable HA state retries")
+        if bump_match and "ha_reset_subscription_callbacks()" not in bump_match.group("body"):
+            errors.append(f"{config_rel}: release retired Home Assistant subscription callbacks on generation bumps")
         if "ha_reset_unavailable_state_retries" in config_text:
             errors.append(f"{config_rel}: do not keep removed unavailable HA state retry helpers")
 
@@ -1826,6 +1832,37 @@ def run_self_test() -> int:
             )
         },
         ("coalesce duplicate deferred Home Assistant reads",),
+    )
+    expect_ha_boundary_errors(
+        "subscription callback bodies retained",
+        {
+            "button_grid_ha.h": (
+                "inline bool ha_subscribe_state() {\n"
+                "  ha_track_subscription_callback(callback_ref);\n"
+                "  return true;\n"
+                "}\n"
+                "inline bool ha_subscribe_attribute() {\n"
+                "  ha_track_subscription_callback(callback_ref);\n"
+                "  return true;\n"
+                "}\n"
+                "inline bool ha_cancel_action_response_callback() {\n  handle_action_response(); return true;\n}\n"
+                "inline bool ha_action_send() {\n"
+                "  return ha_api_state_connected() && HA_ACTION_INTERNAL_FREE_MIN_BYTES;\n"
+                "}\n"
+                "inline bool ha_get_state() {\n"
+                "  ha_internal_heap_available(\"Home Assistant attribute request\");\n"
+                "  if (ha_state_callback_depth() != 0 || !ha_api_state_connected()) return true;\n"
+                "  request.callback = std::move(callback);\n"
+                "  request.entity_id == entity_id;\n"
+                "  return true;\n"
+                "}\n"
+                "inline bool ha_get_attribute() {\n"
+                "  if (ha_state_callback_depth() != 0 || !ha_api_state_connected()) return true;\n"
+                "  return true;\n"
+                "}\n"
+            )
+        },
+        ("release retired Home Assistant subscription callback bodies",),
     )
     expect_ha_boundary_errors(
         "unavailable retry helper symbols",

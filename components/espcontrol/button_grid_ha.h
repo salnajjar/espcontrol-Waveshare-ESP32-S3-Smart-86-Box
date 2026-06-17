@@ -80,6 +80,47 @@ inline uint8_t &ha_state_callback_depth() {
   return depth;
 }
 
+struct HaSubscriptionCallbackRef {
+  std::shared_ptr<HomeAssistantStateCallback> callback;
+};
+
+inline std::vector<HaSubscriptionCallbackRef> &ha_subscription_callback_refs() {
+  static std::vector<HaSubscriptionCallbackRef> refs;
+  return refs;
+}
+
+inline bool &ha_subscription_callback_reset_pending() {
+  static bool pending = false;
+  return pending;
+}
+
+inline void ha_release_subscription_callbacks_now() {
+  std::vector<HaSubscriptionCallbackRef> &refs = ha_subscription_callback_refs();
+  for (auto &ref : refs) {
+    if (ref.callback && *ref.callback) {
+      *ref.callback = nullptr;
+    }
+  }
+  std::vector<HaSubscriptionCallbackRef>().swap(refs);
+}
+
+inline void ha_reset_subscription_callbacks() {
+  if (ha_state_callback_depth() != 0) {
+    ha_subscription_callback_reset_pending() = true;
+    return;
+  }
+  ha_release_subscription_callbacks_now();
+}
+#define ESPCONTROL_HA_SUBSCRIPTION_HELPERS_DEFINED 1
+
+inline void ha_track_subscription_callback(
+    const std::shared_ptr<HomeAssistantStateCallback> &callback) {
+  if (!callback || !*callback) return;
+  ha_subscription_callback_refs().push_back({
+    callback,
+  });
+}
+
 inline void ha_reset_deferred_state_requests() {
   std::vector<HaDeferredStateRequest>().swap(ha_deferred_state_requests());
 }
@@ -92,6 +133,10 @@ inline void ha_invoke_state_callback(const std::shared_ptr<HomeAssistantStateCal
   depth++;
   (*callback)(state);
   depth--;
+  if (depth == 0 && ha_subscription_callback_reset_pending()) {
+    ha_subscription_callback_reset_pending() = false;
+    ha_release_subscription_callbacks_now();
+  }
 }
 
 inline bool ha_queue_deferred_state_request(const std::string &entity_id,
@@ -253,6 +298,7 @@ inline bool ha_subscribe_state(const std::string &entity_id,
                                HomeAssistantStateCallback callback) {
   if (!ha_api_available() || entity_id.empty() || !callback) return false;
   auto callback_ref = std::make_shared<HomeAssistantStateCallback>(std::move(callback));
+  ha_track_subscription_callback(callback_ref);
   esphome::api::global_api_server->subscribe_home_assistant_state(
     entity_id, {},
     [callback_ref](esphome::StringRef state) {
@@ -284,6 +330,7 @@ inline bool ha_subscribe_attribute(const std::string &entity_id,
                                    HomeAssistantStateCallback callback) {
   if (!ha_api_available() || entity_id.empty() || !callback) return false;
   auto callback_ref = std::make_shared<HomeAssistantStateCallback>(std::move(callback));
+  ha_track_subscription_callback(callback_ref);
   esphome::api::global_api_server->subscribe_home_assistant_state(
     entity_id, attribute,
     [callback_ref](esphome::StringRef state) {
