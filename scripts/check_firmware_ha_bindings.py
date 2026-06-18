@@ -147,8 +147,12 @@ def firmware_ha_boundary_errors(firmware_dir: Path, root: Path) -> list[str]:
         errors.append(f"{rel}: defer one-off Home Assistant attribute reads when S3 internal heap is critically low")
     if text.count("ha_state_callback_depth() != 0 || !ha_api_state_connected()") < 2:
         errors.append(f"{rel}: queue one-off Home Assistant reads until state subscription is ready")
-    if "request.callback = std::move(callback)" not in text or "request.entity_id == entity_id" not in text:
-        errors.append(f"{rel}: coalesce duplicate deferred Home Assistant reads")
+    if (
+        "request.callbacks.push_back(std::move(callback))" not in text
+        or "request.entity_id == entity_id" not in text
+        or "for (const auto &callback : *callbacks)" not in text
+    ):
+        errors.append(f"{rel}: fan out duplicate deferred Home Assistant reads")
     if text.count("ha_track_subscription_callback(callback_ref") < 2:
         errors.append(f"{rel}: track Home Assistant subscription callbacks for generation cleanup")
     if "ha_release_subscription_callbacks_now" not in text or "*ref.callback = nullptr" not in text:
@@ -174,8 +178,8 @@ def firmware_unavailable_retry_errors(
         )
         if bump_match and "ha_reset_unavailable_state_retries" in bump_match.group("body"):
             errors.append(f"{config_rel}: do not reset removed unavailable HA state retries")
-        if bump_match and "ha_reset_subscription_callbacks()" not in bump_match.group("body"):
-            errors.append(f"{config_rel}: release retired Home Assistant subscription callbacks on generation bumps")
+        if bump_match and "ha_reset_subscription_callbacks(HA_SUBSCRIPTION_SCOPE_DEFAULT)" not in bump_match.group("body"):
+            errors.append(f"{config_rel}: release retired default Home Assistant subscription callbacks on generation bumps")
         if "ha_reset_unavailable_state_retries" in config_text:
             errors.append(f"{config_rel}: do not keep removed unavailable HA state retry helpers")
 
@@ -1835,7 +1839,7 @@ def run_self_test() -> int:
                 "}\n"
             )
         },
-        ("coalesce duplicate deferred Home Assistant reads",),
+        ("fan out duplicate deferred Home Assistant reads",),
     )
     expect_ha_boundary_errors(
         "subscription callback bodies retained",
