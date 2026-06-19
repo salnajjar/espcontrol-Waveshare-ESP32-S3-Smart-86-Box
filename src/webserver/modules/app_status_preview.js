@@ -57,7 +57,7 @@ function appendTimezoneOption(select, opt) {
   select.appendChild(o);
 }
 
-function updateClock() {
+function updateClockText() {
   if (!els.clock) return;
   var now = new Date();
   var tzId = getTzId(state.timezone);
@@ -78,8 +78,221 @@ function updateClock() {
     var mn = String(now.getUTCMinutes()).padStart(2, "0");
     els.clock.textContent = String(hr).padStart(2, "0") + ":" + mn;
   }
+}
+
+function updateClock() {
+  updateClockText();
+  var now = new Date();
   var msToNext = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
   setTimeout(updateClock, msToNext + 50);
+}
+
+function clockBarTemperatureActive() {
+  return clockBarTemperatureVisible();
+}
+
+var CLOCK_BAR_SECTIONS = ["left", "middle", "right"];
+var CLOCK_BAR_DEFAULT_LAYOUT = CLOCK_BAR_FIXED_LAYOUT;
+var CLOCK_BAR_LAYOUT_STORAGE_PREFIX = "espcontrol.clockBarLayout.";
+var clockBarLayoutLoaded = false;
+
+function clockBarTemperatureItemId(index) {
+  return index === 0 ? "temperature" : "temperature_" + (index + 1);
+}
+
+function clockBarTemperatureItemIndex(item) {
+  if (item === "temperature") return 0;
+  return -1;
+}
+
+function isClockBarTemperatureItem(item) {
+  return clockBarTemperatureItemIndex(item) >= 0;
+}
+
+function clockBarTemperatureItemIds() {
+  return ["temperature"];
+}
+
+function clockBarItems() {
+  return ["temperature", "time", "network"];
+}
+
+function clockBarDefaultSection(item) {
+  if (isClockBarTemperatureItem(item)) return "left";
+  if (item === "time") return "middle";
+  if (item === "network") return "right";
+  return "left";
+}
+
+function clockBarItemActive(item) {
+  var tempIndex = clockBarTemperatureItemIndex(item);
+  if (tempIndex >= 0) return clockBarTemperatureVisible();
+  if (item === "time") return !!state.clockBarTimeOn;
+  if (item === "network") return !!state.networkStatusOn;
+  return false;
+}
+
+function clockBarItemElement(item) {
+  return els.clockBarItems && els.clockBarItems[item] || null;
+}
+
+function clockBarItemLabel(item) {
+  if (isClockBarTemperatureItem(item)) return "Temperature";
+  if (item === "time") return "Clock";
+  if (item === "network") return "Connectivity";
+  return "Clock Bar";
+}
+
+function clockBarLayoutStorageKey() {
+  return CLOCK_BAR_LAYOUT_STORAGE_PREFIX + (typeof DEVICE_ID === "string" ? DEVICE_ID : "default");
+}
+
+function cloneClockBarLayout(layout) {
+  var out = { left: [], middle: [], right: [] };
+  var allowed = clockBarItems();
+  CLOCK_BAR_SECTIONS.forEach(function (section) {
+    (layout && layout[section] || []).forEach(function (item) {
+      if (allowed.indexOf(item) !== -1 && out[section].indexOf(item) === -1) out[section].push(item);
+    });
+  });
+  return out;
+}
+
+function serializeClockBarLayout(layout) {
+  layout = cloneClockBarLayout(layout || CLOCK_BAR_DEFAULT_LAYOUT);
+  return CLOCK_BAR_SECTIONS.map(function (section) {
+    return section + ":" + layout[section].join(",");
+  }).join("|");
+}
+
+function parseClockBarLayout(value) {
+  var out = { left: [], middle: [], right: [] };
+  var seen = {};
+  var allowed = clockBarItems();
+  String(value || "").split("|").forEach(function (segment) {
+    var parts = segment.split(":");
+    if (parts.length < 2) return;
+    var section = parts[0];
+    if (CLOCK_BAR_SECTIONS.indexOf(section) === -1) return;
+    parts.slice(1).join(":").split(",").forEach(function (item) {
+      item = item.trim();
+      if (allowed.indexOf(item) === -1 || seen[item]) return;
+      seen[item] = true;
+      out[section].push(item);
+    });
+  });
+  return cloneClockBarLayout(out);
+}
+
+function applyClockBarLayoutValue(value) {
+  state.clockBarLayout = cloneClockBarLayout(CLOCK_BAR_DEFAULT_LAYOUT);
+  clockBarLayoutLoaded = true;
+  saveClockBarLayout(false);
+  updateClockBarItemUi();
+}
+
+function loadClockBarLayout() {
+  if (clockBarLayoutLoaded && state.clockBarLayout) return state.clockBarLayout;
+  state.clockBarLayout = cloneClockBarLayout(CLOCK_BAR_DEFAULT_LAYOUT);
+  clockBarLayoutLoaded = true;
+  return state.clockBarLayout;
+}
+
+function saveClockBarLayout(postDevice) {
+  if (!state.clockBarLayout) return;
+  clockBarLayoutLoaded = true;
+  var serialized = serializeClockBarLayout(state.clockBarLayout);
+  try {
+    if (window.localStorage) {
+      window.localStorage.setItem(clockBarLayoutStorageKey(), JSON.stringify(cloneClockBarLayout(CLOCK_BAR_DEFAULT_LAYOUT)));
+    }
+  } catch (_) {}
+  // Layout customization has been removed; keep this as a local compatibility cache only.
+}
+
+function normalizeClockBarLayout() {
+  var next = { left: [], middle: [], right: [] };
+  CLOCK_BAR_SECTIONS.forEach(function (section) {
+    (CLOCK_BAR_DEFAULT_LAYOUT[section] || []).forEach(function (item) {
+      if (next[section].indexOf(item) === -1) next[section].push(item);
+    });
+  });
+  state.clockBarLayout = next;
+  return next;
+}
+
+function createClockBarItemElement(item, section) {
+  var button = document.createElement("div");
+  button.className = "sp-clockbar-item sp-clockbar-" + (isClockBarTemperatureItem(item) ? "temperature" : item);
+  button.setAttribute("data-clockbar-item", item);
+  button.setAttribute("data-clockbar-section", section);
+  button.setAttribute("aria-label", clockBarItemLabel(item));
+  button.setAttribute("role", "button");
+  button.setAttribute("tabindex", "0");
+
+  if (isClockBarTemperatureItem(item)) {
+    var temp = document.createElement("span");
+    temp.className = "sp-temp";
+    temp.textContent = "--";
+    button.appendChild(temp);
+    if (!els.temps) els.temps = {};
+    els.temps[item] = temp;
+  } else if (item === "time") {
+    var clock = document.createElement("span");
+    clock.className = "sp-clock";
+    clock.textContent = "--:--";
+    button.appendChild(clock);
+    els.clock = clock;
+  } else if (item === "network") {
+    var network = document.createElement("span");
+    network.className = "sp-network-preview mdi mdi-wifi-strength-4";
+    button.appendChild(network);
+    els.networkPreview = network;
+  }
+  return button;
+}
+
+function renderClockBarLayout() {
+  if (!els.clockBarSections) return;
+  var layout = normalizeClockBarLayout();
+  els.clockBarItems = {};
+  els.temps = {};
+  els.clock = null;
+  els.networkPreview = null;
+  CLOCK_BAR_SECTIONS.forEach(function (section) {
+    var container = els.clockBarSections[section];
+    if (!container) return;
+    container.innerHTML = "";
+    var rendered = 0;
+    layout[section].forEach(function (item) {
+      var itemEl = createClockBarItemElement(item, section);
+      container.appendChild(itemEl);
+      els.clockBarItems[item] = itemEl;
+      rendered++;
+    });
+    container.className = "sp-clockbar-section sp-clockbar-" + section + (rendered ? "" : " sp-clockbar-section-empty");
+  });
+  updateTempPreview();
+  updateClockText();
+  updateNetworkPreview();
+}
+
+function syncClockBarItemElement(item) {
+  var el = clockBarItemElement(item);
+  if (!el) return;
+  var active = clockBarItemActive(item);
+  el.className = el.className
+    .replace(/\s?sp-clockbar-hidden/g, "")
+    .replace(/\s?sp-selected/g, "");
+  if (!active) el.className += " sp-clockbar-hidden";
+  if (state.clockBarSelectedItem === item) el.className += " sp-selected";
+  el.setAttribute("title", clockBarItemLabel(item));
+  el.setAttribute("aria-pressed", state.clockBarSelectedItem === item ? "true" : "false");
+}
+
+function updateClockBarItemUi() {
+  renderClockBarLayout();
+  clockBarItems().forEach(syncClockBarItemElement);
 }
 
 function syncInput(el, val) {
@@ -127,19 +340,19 @@ function updateSunInfo() {
 }
 
 function updateTempPreview() {
-  if (!els.temp) return;
-  var show = state.clockBarOn && (state._indoorOn || state._outdoorOn);
-  els.temp.className = "sp-temp" + (show ? " sp-visible" : "");
+  if (!els.temps) return;
+  var show = clockBarVisibleInPreview();
   var unit = clockBarTemperatureUnitSymbol();
-  var indoor = state._indoorVal != null ? state._indoorVal : "24";
-  var outdoor = state._outdoorVal != null ? state._outdoorVal : "17";
-  if (state._indoorOn && state._outdoorOn) {
-    els.temp.textContent = outdoor + unit + " / " + indoor + unit;
-  } else if (state._outdoorOn) {
-    els.temp.textContent = outdoor + unit;
-  } else if (state._indoorOn) {
-    els.temp.textContent = indoor + unit;
-  }
+  var sampleValues = ["17", "24", "21", "19", "22", "18"];
+  clockBarTemperatureItemIds().forEach(function (item, index) {
+    var el = els.temps[item];
+    if (!el) return;
+    var configured = primaryClockBarTemperatureEntity();
+    var value = configured ? (sampleValues[index] || "--") : "--";
+    if (index === 0 && state._outdoorVal != null) value = state._outdoorVal;
+    el.className = "sp-temp" + (show ? " sp-visible" : "");
+    el.textContent = value + unit;
+  });
 }
 
 function normalizeNetworkTransport(value) {
@@ -166,7 +379,7 @@ function networkPreviewIconSlug(transport, strengthPercent) {
 
 function updateNetworkPreview() {
   if (!els.networkPreview) return;
-  var show = state.clockBarOn && state.networkStatusOn;
+  var show = clockBarVisibleInPreview();
   els.networkPreview.className = "sp-network-preview mdi mdi-" +
     networkPreviewIconSlug(state.networkTransport, state.wifiStrengthPercent) +
     (show ? " sp-visible" : "");

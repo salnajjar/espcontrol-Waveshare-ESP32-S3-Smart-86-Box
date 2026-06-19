@@ -41,7 +41,7 @@ var WEBHOOK_CARD_METADATA = {
   url: {
     label: "URL",
     idSuffix: "webhook-url",
-    placeholder: "e.g. http://192.168.1.50/core/api/jeeApi.php?...",
+    placeholder: "e.g. http://jeedom.local/core/api/jeeApi.php?...",
   },
   method: {
     label: "Method",
@@ -63,7 +63,6 @@ registerButtonType("webhook", {
   label: function () { return cardContractCardLabel("webhook"); },
   allowInSubpage: function () { return cardContractAllowInSubpage("webhook"); },
   pickerKey: function () { return cardContractPickerKey("webhook"); },
-  experimental: function () { return cardContractExperimental("webhook"); },
   hidden: function () { return cardContractHidden("webhook"); },
   labelPlaceholder: "e.g. Gate Open",
   defaultConfig: function () { return cardContractDefaultConfig("webhook"); },
@@ -142,7 +141,10 @@ registerButtonType("webhook", {
       }
     });
 
-    helpers.renderCardIconPicker(panel, b, helpers, WEBHOOK_CARD_METADATA.icon);
+    helpers.renderBasicCardFields(panel, b, helpers, WEBHOOK_CARD_METADATA, {
+      entity: false,
+      label: false,
+    });
 
     function saveHeaders() {
       helpers.saveField("options", setWebhookHeaders(b, headersField.input.value));
@@ -150,10 +152,10 @@ registerButtonType("webhook", {
   },
   renderPreview: function (b, helpers) {
     var label = b.label || b.entity || "Webhook";
-    var iconName = b.icon && b.icon !== "Auto" ? iconSlug(b.icon) : "flash";
-    return {
-      iconHtml: '<span class="sp-btn-icon mdi mdi-' + iconName + '"></span>',
-      labelHtml: cardBadgeLabelHtml(helpers, label, WEBHOOK_CARD_METADATA.preview.badge),
-    };
+    return cardBadgePreview(b, helpers, {
+      label: label,
+      iconFallback: "Flash",
+      badge: WEBHOOK_CARD_METADATA.preview.badge,
+    });
   },
 });

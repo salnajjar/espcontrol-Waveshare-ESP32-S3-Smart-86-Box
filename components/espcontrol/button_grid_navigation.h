@@ -4,9 +4,12 @@
 
 // ── Home Assistant-driven page navigation ────────────────────────────
 
+inline void image_card_hide_modal();
+
 struct NavigationSubpageEntry {
   int slot = 0;
   int display_order = 0;
+  std::string kind;
   std::string label;
   lv_obj_t *screen = nullptr;
 };
@@ -39,6 +42,9 @@ inline std::string navigation_lower(const std::string &value) {
 }
 
 inline void navigation_hide_modals() {
+  control_modal_close_nested_menu();
+  control_modal_close_active();
+  image_card_hide_modal();
   media_volume_hide_modal();
   climate_control_hide_modal();
   option_select_hide_modal();
@@ -48,20 +54,49 @@ inline void navigation_hide_modals() {
   network_status_hide_modal();
 }
 
+inline void navigation_close_modals_for_display_takeover() {
+  control_modal_close_nested_menu();
+  control_modal_force_close_active();
+  image_card_hide_modal();
+  media_volume_hide_modal();
+  climate_control_hide_modal();
+  option_select_hide_modal();
+  switch_confirmation_hide_modal();
+  alarm_pin_hide_modal();
+  alarm_control_hide_modal();
+  network_status_hide_modal();
+}
+
+inline bool navigation_return_home(lv_obj_t *main_page_obj) {
+  navigation_hide_modals();
+  if (main_page_obj == nullptr) {
+    ESP_LOGW("navigation", "Main page is not ready");
+    return false;
+  }
+  if (lv_scr_act() != main_page_obj) {
+    lv_scr_load_anim(main_page_obj, LV_SCR_LOAD_ANIM_NONE, 0, 0, false);
+  }
+  return true;
+}
+
 inline void navigation_clear_subpages() {
   navigation_subpages().clear();
+  clock_bar_clear_button_grid_pages();
 }
 
 inline void navigation_register_subpage(int slot, int display_order,
+                                        const std::string &kind,
                                         const std::string &label,
                                         lv_obj_t *screen) {
   if (slot <= 0 || screen == nullptr) return;
   NavigationSubpageEntry entry;
   entry.slot = slot;
   entry.display_order = display_order;
+  entry.kind = navigation_lower(navigation_trim(kind));
   entry.label = navigation_trim(label);
   entry.screen = screen;
   navigation_subpages().push_back(entry);
+  clock_bar_register_button_grid_page(screen);
 }
 
 inline int navigation_slot_from_target(const std::string &target) {
@@ -107,6 +142,31 @@ inline NavigationSubpageEntry *navigation_find_slot_target(int slot) {
   return nullptr;
 }
 
+inline NavigationSubpageEntry *navigation_find_first_kind(const std::string &kind) {
+  std::string wanted = navigation_lower(navigation_trim(kind));
+  if (wanted.empty()) return nullptr;
+  NavigationSubpageEntry *best = nullptr;
+  for (auto &entry : navigation_subpages()) {
+    if (entry.screen == nullptr || entry.kind != wanted) continue;
+    if (best == nullptr || entry.display_order < best->display_order) {
+      best = &entry;
+    }
+  }
+  return best;
+}
+
+inline bool navigation_open_first_kind(const std::string &kind,
+                                       lv_obj_t *main_page_obj) {
+  navigation_hide_modals();
+  NavigationSubpageEntry *target = navigation_find_first_kind(kind);
+  if (target == nullptr) {
+    ESP_LOGW("navigation", "No subpage of kind '%s'", navigation_trim(kind).c_str());
+    return false;
+  }
+  lv_scr_load_anim(target->screen, LV_SCR_LOAD_ANIM_NONE, 0, 0, false);
+  return true;
+}
+
 inline bool espcontrol_navigate(const std::string &target,
                                 lv_obj_t *main_page_obj) {
   std::string normalized = navigation_lower(navigation_trim(target));
@@ -115,16 +175,11 @@ inline bool espcontrol_navigate(const std::string &target,
     return false;
   }
 
-  navigation_hide_modals();
-
   if (normalized == "home" || normalized == "main") {
-    if (main_page_obj == nullptr) {
-      ESP_LOGW("navigation", "Main page is not ready");
-      return false;
-    }
-    lv_scr_load_anim(main_page_obj, LV_SCR_LOAD_ANIM_NONE, 0, 0, false);
-    return true;
+    return navigation_return_home(main_page_obj);
   }
+
+  navigation_hide_modals();
 
   bool duplicate_found = false;
   NavigationSubpageEntry *label_target =

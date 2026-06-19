@@ -24,7 +24,16 @@ export {
 } from "./card";
 
 export {
+  CARD_SIZE_DEFINITIONS,
+  CARD_SIZE_EXTRA_TALL,
+  CARD_SIZE_EXTRA_WIDE,
+  CARD_SIZE_LARGE,
+  CARD_SIZE_SINGLE,
+  CARD_SIZE_TALL,
+  CARD_SIZE_WIDE,
   applySpans,
+  cardSizeClass,
+  cardSizeDefinition,
   clearSpans,
   coveredCells,
   markSpannedCells,
@@ -48,33 +57,37 @@ export {
   parseCompactSubpageConfig,
   parseLegacySubpageConfig,
   parseRawSubpageConfig,
+  parseStructuredSubpageConfig,
   parseSubpageOrder,
   serializeCompactSubpageConfig,
   serializeLegacySubpageConfig,
   serializeSubpageGrid,
   splitSubpageConfigChunks,
+  structuredSubpageFromParsed,
   subpageOrderForSerialize,
 } from "./subpage";
 
 export {
-  MONTH_NAME_DEFAULTS,
   normalizeBackupPanelSettings,
   normalizeBackupScreenSettings,
   normalizeClockBrightness,
+  normalizeHexColor,
   normalizeHour,
-  normalizeMonthNames,
+  normalizeHomeAssistantArtworkPort,
+  normalizeLanguage,
   normalizeNtpServer,
   normalizeScheduleClockBrightness,
   normalizeScheduleDimmedBrightness,
   normalizeScheduleMode,
+  normalizeScheduleTrigger,
   normalizeScheduleWakeBrightness,
   normalizeScheduleWakeTimeout,
   normalizeScreensaverAction,
   normalizeScreensaverDimmedBrightness,
   normalizeTemperatureUnit,
+  normalizeTimeOfDay,
   scheduleModeOption,
   screensaverActionOption,
-  serializeMonthNames,
 } from "./settings";
 
 export type {
@@ -106,5 +119,6 @@ export type {
   BackOrderToken,
   ParsedSubpageConfig,
   ParsedSubpageOrder,
+  StructuredSubpageConfig,
   SubpageGridSource,
 } from "./subpage";

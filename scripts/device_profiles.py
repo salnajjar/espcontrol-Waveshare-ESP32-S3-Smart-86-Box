@@ -18,6 +18,7 @@ DEVICES_DIR = ROOT / "devices"
 VALID_CHIP_FAMILIES = {"ESP32-P4", "ESP32-S3"}
 VALID_DRAG_MODES = {"swap", "displace"}
 VALID_ROTATIONS = {"0", "90", "180", "270"}
+VALID_DISPLAY_MODES = {"color", "monochrome"}
 REQUIRED_FONT_ROLES = (
     "icon",
     "sensor",
@@ -185,10 +186,22 @@ def validate_display(slug: str, device: dict[str, Any], errors: list[str]) -> No
 
     if not isinstance(display.get("wrapTallLabels"), bool):
         errors.append(device_error(slug, "firmware.display.wrapTallLabels must be true or false"))
+    if "infoOnly" in display and not isinstance(display["infoOnly"], bool):
+        errors.append(device_error(slug, "firmware.display.infoOnly must be true or false when set"))
+
+    if "mode" in display and display["mode"] not in VALID_DISPLAY_MODES:
+        valid = ", ".join(sorted(VALID_DISPLAY_MODES))
+        errors.append(device_error(slug, f"firmware.display.mode must be one of {valid} when set"))
 
     for key in ("widthCompensationPercent", "volumeWidthCompensationPercent"):
         if key in display and not is_number(display[key]):
             errors.append(device_error(slug, f"firmware.display.{key} must be a number when set"))
+    if "imageCardDownloaders" in display:
+        value = display["imageCardDownloaders"]
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0 or value > 6:
+            errors.append(device_error(slug, "firmware.display.imageCardDownloaders must be an integer from 0 to 6 when set"))
+    if "imageCardDiagnostics" in display and not isinstance(display["imageCardDiagnostics"], bool):
+        errors.append(device_error(slug, "firmware.display.imageCardDiagnostics must be true or false when set"))
 
     correction = display.get("colorCorrection")
     if correction is not None:
@@ -287,6 +300,7 @@ def validate_package(slug: str, device: dict[str, Any], errors: list[str]) -> No
         "improvSerial",
         "touchscreenPackage",
         "apiNavigateAction",
+        "esp32C6FirmwareUpdate",
     ):
         if key in package and not isinstance(package[key], bool):
             errors.append(device_error(slug, f"firmware.package.{key} must be true or false when set"))
@@ -305,6 +319,14 @@ def validate_package(slug: str, device: dict[str, Any], errors: list[str]) -> No
                 errors.append(device_error(slug, "firmware.package.substitutions keys must be non-empty strings"))
             if not isinstance(value, str) or not value:
                 errors.append(device_error(slug, f"firmware.package.substitutions.{key} must be a non-empty string"))
+        card_gap = substitutions.get("main_page_card_gap")
+        if not isinstance(card_gap, str) or not re.fullmatch(r'"[1-9][0-9]*"', card_gap):
+            errors.append(
+                device_error(
+                    slug,
+                    'firmware.package.substitutions.main_page_card_gap must be a quoted positive pixel value, for example "\\"10\\""',
+                )
+            )
 
     if package.get("ethernetSelectable") or "backlightPwmFrequency" in package:
         frequencies = require_object(
@@ -354,11 +376,19 @@ def validate_web(slug: str, device: dict[str, Any], errors: list[str]) -> None:
         errors.append(device_error(slug, "web.dragMode must be swap or displace"))
     if not isinstance(web.get("dragAnimation"), bool):
         errors.append(device_error(slug, "web.dragAnimation must be true or false"))
+    if "infoOnly" in web and not isinstance(web["infoOnly"], bool):
+        errors.append(device_error(slug, "web.infoOnly must be true or false when set"))
+    if "coverArtSquareOverlay" in web and not isinstance(web["coverArtSquareOverlay"], bool):
+        errors.append(device_error(slug, "web.coverArtSquareOverlay must be true or false when set"))
+    preview_theme = web.get("previewTheme", "default")
+    if preview_theme not in ("default", "epaper"):
+        errors.append(device_error(slug, "web.previewTheme must be default or epaper"))
     disabled_card_types = web.get("disabledCardTypes", [])
     if not isinstance(disabled_card_types, list) or not all(
         isinstance(value, str) and value for value in disabled_card_types
     ):
         errors.append(device_error(slug, "web.disabledCardTypes must be a list of non-empty strings"))
+
 
     validate_screen_box(slug, errors, web.get("screen"), "web.screen")
 
@@ -392,6 +422,10 @@ def validate_web(slug: str, device: dict[str, Any], errors: list[str]) -> None:
         for key in ("radius", "padding", "iconSize", "labelSize"):
             if not is_number(btn.get(key)):
                 errors.append(device_error(slug, f"web.btn.{key} must be a number"))
+        if "borderWidth" in btn and not is_number(btn.get("borderWidth")):
+            errors.append(device_error(slug, "web.btn.borderWidth must be a number when set"))
+        if "labelWeight" in btn and not is_positive_int(btn.get("labelWeight")):
+            errors.append(device_error(slug, "web.btn.labelWeight must be a positive integer when set"))
         for key in ("labelLines", "labelLinesDouble"):
             if not is_positive_int(btn.get(key)):
                 errors.append(device_error(slug, f"web.btn.{key} must be a positive integer"))
@@ -486,16 +520,25 @@ def web_features(profile: dict[str, Any]) -> dict[str, Any]:
 def web_config(profile: dict[str, Any]) -> dict[str, Any]:
     layout = profile["layout"]
     features = web_features(profile)
+    display = profile["firmware"].get("display") or {}
+    image_card_limit = display.get("imageCardDownloaders", 4)
     cfg: dict[str, Any] = {
         "slots": profile["slots"],
         "cols": layout["cols"],
         "rows": layout["rows"],
+        "screenSize": profile["public"]["screenSize"],
         "largeSensorUnitOffsetPercent": profile["settings"]["largeSensorUnitOffsetPercent"],
+        "imageCardLimit": image_card_limit,
     }
     for key, value in profile["web"].items():
         cfg[key] = copy.deepcopy(value)
         if key == "dragAnimation" and features:
             cfg["features"] = copy.deepcopy(features)
+    if image_card_limit == 0:
+        disabled = list(cfg.get("disabledCardTypes") or [])
+        if "image" not in disabled:
+            disabled.append("image")
+        cfg["disabledCardTypes"] = disabled
     if features and "features" not in cfg:
         cfg["features"] = copy.deepcopy(features)
     return cfg
@@ -520,9 +563,12 @@ def slot_device(profile: dict[str, Any]) -> dict[str, Any]:
         "volume_number_font": fonts["volumeNumber"],
         "volume_label_font": fonts["volumeLabel"],
         "climate_card_icon_font": fonts.get("climateCardIcon"),
+        "subpage_chevron_font": fonts.get("subpageChevron"),
         "climate_option_title_font": fonts.get("climateOptionTitle"),
         "climate_option_value_font": fonts.get("climateOptionValue"),
         "wrap_tall_labels": display["wrapTallLabels"],
+        "info_only": bool(display.get("infoOnly")),
+        "display_mode": display.get("mode", "color"),
         "package": firmware.get("package"),
     }
     if "portraitCols" in layout:
@@ -531,6 +577,12 @@ def slot_device(profile: dict[str, Any]) -> dict[str, Any]:
         slot["width_compensation_percent"] = display["widthCompensationPercent"]
     if display.get("volumeWidthCompensationPercent", 100) != 100:
         slot["volume_width_compensation_percent"] = display["volumeWidthCompensationPercent"]
+    if display.get("subpageChevronX", 0) != 0:
+        slot["subpage_chevron_x"] = display["subpageChevronX"]
+    if display.get("subpageChevronY", 2) != 2:
+        slot["subpage_chevron_y"] = display["subpageChevronY"]
+    if display.get("subpageChevronTextWidthPercent", 94) != 94:
+        slot["subpage_chevron_text_width_percent"] = display["subpageChevronTextWidthPercent"]
     if display.get("colorCorrection"):
         correction = display["colorCorrection"]
         slot["color_correction"] = {
@@ -538,6 +590,10 @@ def slot_device(profile: dict[str, Any]) -> dict[str, Any]:
             "green": correction.get("greenPercent", 100),
             "blue": correction.get("bluePercent", 100),
         }
+    if display.get("imageCardDownloaders", 4) != 4:
+        slot["image_card_downloaders"] = display["imageCardDownloaders"]
+    if display.get("imageCardDiagnostics"):
+        slot["image_card_diagnostics"] = True
     if rotation.get("rotateWidthCompensation"):
         slot["rotate_width_compensation"] = True
     return slot
@@ -549,7 +605,7 @@ def slot_devices(path: Path = DEVICE_MANIFEST) -> list[dict[str, Any]]:
 
 def public_device_capability(profile: dict[str, Any]) -> dict[str, Any]:
     package = profile["firmware"]["package"]
-    return {
+    capability = {
         "slug": profile["slug"],
         "installSlug": profile["slug"],
         "name": profile["public"]["name"],
@@ -566,7 +622,12 @@ def public_device_capability(profile: dict[str, Any]) -> dict[str, Any]:
         "relays": len(profile["internalRelays"]),
         "rotation": bool((profile.get("rotation") or {}).get("enabled")),
         "ethernetManualInstall": bool(package.get("ethernetSelectable")),
+        "subpages": "subpage" not in profile["web"].get("disabledCardTypes", []),
     }
+    display = profile["firmware"].get("display") or {}
+    if display.get("mode") == "monochrome":
+        capability["monochrome"] = True
+    return capability
 
 
 def public_device_capabilities(path: Path = DEVICE_MANIFEST) -> dict[str, Any]:

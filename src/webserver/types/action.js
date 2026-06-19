@@ -4,8 +4,6 @@ var ACTION_CARD_ACTIONS = [
   { value: "script.turn_on", label: "Run Script", placeholder: "e.g. script.goodnight", icon: "script-text-play", domains: ["script"] },
   { value: "automation.trigger", label: "Trigger Automation", placeholder: "e.g. automation.goodnight", icon: "home-automation", domains: ["automation"] },
   { value: "button.press", label: "Press Button", placeholder: "e.g. button.restart_router", icon: "gesture-tap-button", domains: ["button"] },
-  { value: "vacuum.start", label: "Start Vacuum", placeholder: "e.g. vacuum.k11_vacuum_784c", icon: "robot-vacuum", domains: ["vacuum"] },
-  { value: "vacuum.return_to_base", label: "Vacuum Return to Base", placeholder: "e.g. vacuum.k11_vacuum_784c", icon: "robot-vacuum", domains: ["vacuum"] },
   { value: "input_button.press", label: "Press Input Button", placeholder: "e.g. input_button.doorbell", icon: "gesture-tap-button", domains: ["input_button"] },
   { value: "input_boolean.toggle", label: "Toggle Helper", placeholder: "e.g. input_boolean.guest_mode", icon: "toggle-switch-variant", domains: ["input_boolean"] },
   { value: "input_number.set_value", label: "Set Number Helper", placeholder: "e.g. input_number.target_level", icon: "counter", domains: ["input_number"] },
@@ -29,12 +27,14 @@ function normalizeActionCardConfig(b) {
   if (b && b.sensor === "select.select_option") b.sensor = ACTION_CARD_OPTION_SELECT_ACTION;
   if (!b.sensor) b.sensor = "scene.turn_on";
   if (!actionCardInfo(b.sensor)) b.sensor = "scene.turn_on";
-  b.icon_on = "Auto";
   b.precision = "";
+  if (actionCardStateDisplayMode(b) !== "icon") b.icon_on = "Auto";
   if (actionCardIsOptionSelect(b)) {
     b.unit = "";
     b.options = "";
     if (!b.icon || b.icon === "Auto" || b.icon === "Chevron Down") b.icon = "Flash";
+  } else {
+    b.options = normalizeActionOptions(b.options, b.sensor);
   }
 }
 
@@ -52,12 +52,14 @@ function actionCardStateUnit(b) {
 
 function actionCardStatePrecision(b) {
   var value = configOptionValue(b && b.options, ACTION_CARD_STATE_PRECISION_OPTION);
+  if (value === "icon") return "icon";
   if (value === "text") return "text";
   return value === "1" || value === "2" ? value : "0";
 }
 
 function actionCardStateDisplayMode(b) {
   var rawPrecision = configOptionValue(b && b.options, ACTION_CARD_STATE_PRECISION_OPTION);
+  if (rawPrecision === "icon") return "icon";
   if (rawPrecision === "text") return "text";
   if (rawPrecision === "0" || rawPrecision === "1" || rawPrecision === "2" || actionCardStateUnit(b)) {
     return "numeric";
@@ -77,7 +79,10 @@ function setActionCardStateOptions(b, entity, mode, unit, precision) {
     return b.options;
   }
   options = setConfigOptionValue(options, ACTION_CARD_STATE_ENTITY_OPTION, entity);
-  if (mode === "text") {
+  if (mode === "icon") {
+    options = setConfigOptionValue(options, ACTION_CARD_STATE_UNIT_OPTION, "");
+    options = setConfigOptionValue(options, ACTION_CARD_STATE_PRECISION_OPTION, "icon");
+  } else if (mode === "text") {
     options = setConfigOptionValue(options, ACTION_CARD_STATE_UNIT_OPTION, "");
     options = setConfigOptionValue(options, ACTION_CARD_STATE_PRECISION_OPTION, "text");
   } else {
@@ -110,6 +115,7 @@ var ACTION_CARD_METADATA = {
   stateMode: {
     label: "Type",
     options: [
+      ["icon", "Icon"],
       ["numeric", "Numeric"],
       ["text", "Text"],
     ],
@@ -126,6 +132,32 @@ var ACTION_CARD_METADATA = {
     idSuffix: "action-state-unit",
     placeholder: "e.g. %",
     bindName: null,
+  },
+  confirmationToggle: {
+    label: "Confirmation Required",
+    idSuffix: "script-confirm-toggle",
+    checked: function (b) { return actionScriptConfirmationEnabled(b); },
+  },
+  confirmationMessage: {
+    label: "Message",
+    idSuffix: "script-confirm-message",
+    placeholder: "Run this script?",
+    bindName: null,
+    value: function (b) { return actionScriptConfirmationMessage(b); },
+  },
+  confirmationYes: {
+    label: "Confirm Button",
+    idSuffix: "script-confirm-yes",
+    placeholder: "Yes",
+    bindName: null,
+    value: function (b) { return actionScriptConfirmationYesText(b); },
+  },
+  confirmationNo: {
+    label: "Cancel Button",
+    idSuffix: "script-confirm-no",
+    placeholder: "No",
+    bindName: null,
+    value: function (b) { return actionScriptConfirmationNoText(b); },
   },
   preview: {
     optionBadge: "chevron-down",
@@ -162,6 +194,9 @@ registerButtonType("action", {
           if (actionCardIsOptionSelect(b)) {
             b.options = "";
             helpers.saveField("options", "");
+          } else {
+            b.options = normalizeActionOptions(b.options, b.sensor);
+            helpers.saveField("options", b.options);
           }
           b.icon_on = "Auto";
           b.precision = "";
@@ -216,6 +251,61 @@ registerButtonType("action", {
     refreshEntityDatalist(entityInp);
     if (isOptionSelect) return;
 
+    if (actionCardIsScript(b)) {
+      var confirmOn = actionScriptConfirmationEnabled(b);
+      var confirmToggle = helpers.renderCardOptionToggle(panel, b, helpers, ACTION_CARD_METADATA.confirmationToggle);
+      var confirmSection = condField();
+      confirmSection.classList.add("sp-action-confirm-section");
+      if (confirmOn) confirmSection.classList.add("sp-visible");
+
+      var messageField = helpers.renderCardTextField(confirmSection, b, helpers, ACTION_CARD_METADATA.confirmationMessage);
+      var messageInput = messageField.input;
+      messageInput.maxLength = 72;
+
+      var yesField = helpers.renderCardTextField(confirmSection, b, helpers, ACTION_CARD_METADATA.confirmationYes);
+      var yesInput = yesField.input;
+      yesInput.maxLength = 20;
+
+      var noField = helpers.renderCardTextField(confirmSection, b, helpers, ACTION_CARD_METADATA.confirmationNo);
+      var noInput = noField.input;
+      noInput.maxLength = 20;
+
+      panel.appendChild(confirmSection);
+
+      function saveScriptConfirmationOptions() {
+        setActionScriptConfirmationOptions(
+          b,
+          confirmToggle.input.checked,
+          messageInput.value || actionScriptConfirmationDefaultMessage(),
+          yesInput.value || SWITCH_CONFIRM_DEFAULT_YES,
+          noInput.value || SWITCH_CONFIRM_DEFAULT_NO
+        );
+        helpers.saveField("options", b.options);
+      }
+
+      confirmToggle.input.addEventListener("change", function () {
+        confirmSection.classList.toggle("sp-visible", this.checked);
+        if (this.checked) {
+          if (!messageInput.value) messageInput.value = actionScriptConfirmationDefaultMessage();
+          if (!yesInput.value) yesInput.value = SWITCH_CONFIRM_DEFAULT_YES;
+          if (!noInput.value) noInput.value = SWITCH_CONFIRM_DEFAULT_NO;
+        }
+        saveScriptConfirmationOptions();
+      });
+
+      [messageInput, yesInput, noInput].forEach(function (input) {
+        input.addEventListener("input", saveScriptConfirmationOptions);
+        input.addEventListener("change", saveScriptConfirmationOptions);
+        input.addEventListener("blur", saveScriptConfirmationOptions);
+        input.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            saveScriptConfirmationOptions();
+            this.blur();
+          }
+        });
+      });
+    }
+
     var stateEntity = actionCardStateEntity(b);
     var stateMode = actionCardStateDisplayMode(b);
     var stateUnit = actionCardStateUnit(b);
@@ -229,6 +319,7 @@ registerButtonType("action", {
         },
       }),
     });
+    var iconBtn = mode.buttons.icon;
     var numericBtn = mode.buttons.numeric;
     var textBtn = mode.buttons.text;
 
@@ -244,6 +335,14 @@ registerButtonType("action", {
       },
     });
     var stateEntityInp = stateEntityField.input;
+
+    var iconOnSection = helpers.renderCardIconPicker(panel, b, helpers, {
+      pickerIdSuffix: "icon-on-picker",
+      idSuffix: "icon-on",
+      field: "icon_on",
+      fallback: "Auto",
+      label: "On Icon",
+    });
 
     var numericSection = condField();
     var stateUnitField = helpers.renderCardTextField(numericSection, b, helpers, Object.assign({}, ACTION_CARD_METADATA.stateUnitField, {
@@ -272,16 +371,22 @@ registerButtonType("action", {
     }
 
     function setStateMode(modeValue, persist) {
-      stateMode = modeValue === "text" ? "text" : "numeric";
+      stateMode = modeValue === "icon" || modeValue === "text" ? modeValue : "numeric";
+      iconBtn.classList.toggle("active", stateMode === "icon");
       numericBtn.classList.toggle("active", stateMode === "numeric");
       textBtn.classList.toggle("active", stateMode === "text");
+      iconOnSection.style.display = stateMode === "icon" ? "" : "none";
       numericSection.classList.toggle("sp-visible", stateMode === "numeric");
       if (!persist) return;
-      if (stateMode === "text") {
+      if (stateMode === "icon" || stateMode === "text") {
         stateUnit = "";
         stateUnitInp.value = "";
         statePrecision = "0";
         statePrecisionSelect.value = "0";
+      }
+      if (stateMode !== "icon") {
+        b.icon_on = "Auto";
+        helpers.saveField("icon_on", "Auto");
       }
       saveStateOptions();
     }
@@ -316,7 +421,8 @@ registerButtonType("action", {
       };
     }
     var iconName = b.icon && b.icon !== "Auto" ? iconSlug(b.icon) : "flash";
-    if (actionCardStateEntity(b) && actionCardStateDisplayMode(b) === "numeric" && cardLargeNumbersEnabled(b)) {
+    if (actionCardStateEntity(b) && actionCardStateDisplayMode(b) === "numeric" &&
+        cardLargeNumbersActiveForCardSize(b, helpers, ACTION_CARD_METADATA)) {
       return {
         iconHtml: cardSensorPreviewHtml(b, helpers, "42", actionCardStateUnit(b) || ""),
         labelHtml: cardBadgeLabelHtml(helpers, label, ACTION_CARD_METADATA.preview.actionBadge),
@@ -324,7 +430,8 @@ registerButtonType("action", {
     }
     var stateBadge = actionCardStateEntity(b)
       ? '<span class="sp-sensor-badge mdi mdi-' +
-        (actionCardStateDisplayMode(b) === "text" ? "format-text" : "gauge") +
+        (actionCardStateDisplayMode(b) === "icon" ? "toggle-switch" :
+          (actionCardStateDisplayMode(b) === "text" ? "format-text" : "gauge")) +
         '"></span>'
       : "";
     return {

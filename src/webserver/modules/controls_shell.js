@@ -15,6 +15,7 @@ function showBanner(msg, type) {
 function buildUI() {
   var root = document.createElement("div");
   root.id = "sp-app";
+  root.setAttribute("data-preview-theme", CFG.previewTheme || "default");
 
   var banner = document.createElement("div");
   banner.className = "sp-banner";
@@ -90,18 +91,21 @@ function buildScreenPage(parent) {
   wrap.innerHTML =
     '<div class="sp-screen">' +
     '<div class="sp-topbar">' +
-    '<span class="sp-temp"></span>' +
-    '<span class="sp-clock">--:--</span>' +
-    '<span class="sp-network-preview mdi mdi-wifi-strength-4"></span>' +
+    '<div class="sp-clockbar-section sp-clockbar-left" data-clockbar-section="left"></div>' +
+    '<div class="sp-clockbar-section sp-clockbar-middle" data-clockbar-section="middle"></div>' +
+    '<div class="sp-clockbar-section sp-clockbar-right" data-clockbar-section="right"></div>' +
     "</div>" +
     '<div class="sp-main"></div>' +
     "</div>";
   page.appendChild(wrap);
 
   els.topbar = wrap.querySelector(".sp-topbar");
-  els.temp = wrap.querySelector(".sp-temp");
-  els.clock = wrap.querySelector(".sp-clock");
-  els.networkPreview = wrap.querySelector(".sp-network-preview");
+  els.clockBarSections = {
+    left: wrap.querySelector('[data-clockbar-section="left"]'),
+    middle: wrap.querySelector('[data-clockbar-section="middle"]'),
+    right: wrap.querySelector('[data-clockbar-section="right"]'),
+  };
+  els.clockBarItems = {};
   els.previewMain = wrap.querySelector(".sp-main");
   els.previewMain.setAttribute("role", "grid");
   els.previewMain.setAttribute("aria-label", "Button grid");
@@ -172,12 +176,19 @@ function buildApplyBar() {
 
 function switchTab(tab) {
   state.activeTab = tab;
+  if (els.root) els.root.setAttribute("data-active-tab", tab);
   ["screen", "settings"].forEach(function (t) {
     els["tab_" + t].className = "sp-tab" + (tab === t ? " active" : "");
     els["tab_" + t].setAttribute("aria-selected", tab === t ? "true" : "false");
   });
   els.screenPage.className = "sp-page" + (tab === "screen" ? " active" : "");
   els.settingsPage.className = "sp-page" + (tab === "settings" ? " active" : "");
+  syncTabChrome();
+}
+
+function syncTabChrome() {
+  var support = document.querySelector(".sp-support-btn");
+  if (support) support.classList.toggle("sp-support-hidden", state.activeTab === "settings");
 }
 
 function isConfigLocked() {

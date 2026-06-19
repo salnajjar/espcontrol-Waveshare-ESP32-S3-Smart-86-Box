@@ -6,6 +6,11 @@ description:
 
 # Troubleshooting
 
+## The Screen Doesn't Respond to Commands
+
+- If the display shows your Home Assistant devices but nothing happens when you tap controls, such as turning lights on, Home Assistant actions probably need to be enabled for the display.
+- Follow the [Enable Actions](https://jtenniswood.github.io/espcontrol/getting-started/home-assistant-actions) guide and make sure **Allow the device to perform Home Assistant actions** is turned on.
+
 ## The Install Button Doesn't Detect My Device
 
 - Make sure you're using **Chrome or Edge** on a desktop computer. Mobile browsers and Safari/Firefox don't support the required browser feature (WebSerial).
@@ -17,6 +22,7 @@ description:
 
 - Give it up to 60 seconds after first boot. It needs time to connect to WiFi and download resources.
 - If it stays on the loading screen, power-cycle it and check whether the WiFi hotspot appears. If it does, the display couldn't connect to your network — go through the WiFi setup again.
+- If you need to report the problem, collect a startup log with the [USB log guide](/reference/collect-usb-logs) and include it in the GitHub issue.
 
 ## Home Assistant Doesn't Discover the Device
 
@@ -32,5 +38,10 @@ description:
 
 - To re-flash the firmware, connect via USB-C and use the [install button](/getting-started/install#flash-the-firmware) again.
 - To clear WiFi settings and start fresh, re-flash the device. It will create the setup hotspot again.
+
+## I Need Help With a Bug
+
+- Open a [GitHub issue](https://github.com/jtenniswood/espcontrol/issues/new) and describe the display model, firmware version, and what happened.
+- For startup, WiFi, loading screen, or Home Assistant connection problems, include a USB log from the [Collect USB Logs](/reference/collect-usb-logs) guide.
 
 Next: [Setup](/features/setup)

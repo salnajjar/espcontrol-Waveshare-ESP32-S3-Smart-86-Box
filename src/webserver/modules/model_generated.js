@@ -28,7 +28,13 @@ var EspControlModel = (() => {
     BACKUP_CONFIG_VERSION: () => BACKUP_CONFIG_VERSION,
     BACKUP_FORMAT: () => BACKUP_FORMAT,
     CARD_CONFIG_FIELDS: () => CARD_CONFIG_FIELDS,
-    MONTH_NAME_DEFAULTS: () => MONTH_NAME_DEFAULTS,
+    CARD_SIZE_DEFINITIONS: () => CARD_SIZE_DEFINITIONS,
+    CARD_SIZE_EXTRA_TALL: () => CARD_SIZE_EXTRA_TALL,
+    CARD_SIZE_EXTRA_WIDE: () => CARD_SIZE_EXTRA_WIDE,
+    CARD_SIZE_LARGE: () => CARD_SIZE_LARGE,
+    CARD_SIZE_SINGLE: () => CARD_SIZE_SINGLE,
+    CARD_SIZE_TALL: () => CARD_SIZE_TALL,
+    CARD_SIZE_WIDE: () => CARD_SIZE_WIDE,
     applySpans: () => applySpans,
     backLabelFromOrder: () => backLabelFromOrder,
     backOrderToken: () => backOrderToken,
@@ -37,6 +43,8 @@ var EspControlModel = (() => {
     backupSource: () => backupSource,
     buildSubpageGrid: () => buildSubpageGrid,
     cardConfigChanged: () => cardConfigChanged,
+    cardSizeClass: () => cardSizeClass,
+    cardSizeDefinition: () => cardSizeDefinition,
     chooseSerializedSubpageConfig: () => chooseSerializedSubpageConfig,
     clearSpans: () => clearSpans,
     cloneCardConfig: () => cloneCardConfig,
@@ -54,23 +62,28 @@ var EspControlModel = (() => {
     normalizeBackupPanelSettings: () => normalizeBackupPanelSettings,
     normalizeBackupScreenSettings: () => normalizeBackupScreenSettings,
     normalizeClockBrightness: () => normalizeClockBrightness,
+    normalizeHexColor: () => normalizeHexColor,
+    normalizeHomeAssistantArtworkPort: () => normalizeHomeAssistantArtworkPort,
     normalizeHour: () => normalizeHour,
-    normalizeMonthNames: () => normalizeMonthNames,
+    normalizeLanguage: () => normalizeLanguage,
     normalizeNtpServer: () => normalizeNtpServer,
     normalizeScheduleClockBrightness: () => normalizeScheduleClockBrightness,
     normalizeScheduleDimmedBrightness: () => normalizeScheduleDimmedBrightness,
     normalizeScheduleMode: () => normalizeScheduleMode,
+    normalizeScheduleTrigger: () => normalizeScheduleTrigger,
     normalizeScheduleWakeBrightness: () => normalizeScheduleWakeBrightness,
     normalizeScheduleWakeTimeout: () => normalizeScheduleWakeTimeout,
     normalizeScreensaverAction: () => normalizeScreensaverAction,
     normalizeScreensaverDimmedBrightness: () => normalizeScreensaverDimmedBrightness,
     normalizeTemperatureUnit: () => normalizeTemperatureUnit,
+    normalizeTimeOfDay: () => normalizeTimeOfDay,
     parseBackOrderToken: () => parseBackOrderToken,
     parseCompactSubpageConfig: () => parseCompactSubpageConfig,
     parseGridOrder: () => parseGridOrder,
     parseLegacySubpageConfig: () => parseLegacySubpageConfig,
     parseRawButtonConfig: () => parseRawButtonConfig,
     parseRawSubpageConfig: () => parseRawSubpageConfig,
+    parseStructuredSubpageConfig: () => parseStructuredSubpageConfig,
     parseSubpageOrder: () => parseSubpageOrder,
     planBackupButtonLayout: () => planBackupButtonLayout,
     scheduleModeOption: () => scheduleModeOption,
@@ -78,7 +91,6 @@ var EspControlModel = (() => {
     serializeCompactSubpageConfig: () => serializeCompactSubpageConfig,
     serializeGridOrder: () => serializeGridOrder,
     serializeLegacySubpageConfig: () => serializeLegacySubpageConfig,
-    serializeMonthNames: () => serializeMonthNames,
     serializeSubpageGrid: () => serializeSubpageGrid,
     sizeColSpan: () => sizeColSpan,
     sizeFitsAt: () => sizeFitsAt,
@@ -86,6 +98,7 @@ var EspControlModel = (() => {
     sizeRowSpan: () => sizeRowSpan,
     sizeToken: () => sizeToken,
     splitSubpageConfigChunks: () => splitSubpageConfigChunks,
+    structuredSubpageFromParsed: () => structuredSubpageFromParsed,
     subpageOrderForSerialize: () => subpageOrderForSerialize,
     trimConfigFields: () => trimConfigFields,
     validateBackupEnvelope: () => validateBackupEnvelope
@@ -162,8 +175,13 @@ var EspControlModel = (() => {
     });
   }
   function decodeConfigField(value) {
-    return String(value || "").replace(/%([0-9a-fA-F]{2})/g, (_match, hex) => {
-      return String.fromCharCode(parseInt(hex, 16));
+    const str = String(value || "");
+    return str.replace(/(%[0-9a-fA-F]{2})+/g, (run) => {
+      try {
+        return decodeURIComponent(run);
+      } catch {
+        return run;
+      }
     });
   }
   function legacyButtonConfigSafe(fields) {
@@ -189,20 +207,55 @@ var EspControlModel = (() => {
   }
 
   // src/webserver/model/grid.ts
+  var CARD_SIZE_SINGLE = 1;
+  var CARD_SIZE_TALL = 2;
+  var CARD_SIZE_WIDE = 3;
+  var CARD_SIZE_LARGE = 4;
+  var CARD_SIZE_EXTRA_TALL = 5;
+  var CARD_SIZE_EXTRA_WIDE = 6;
+  var CARD_SIZE_SINGLE_DEFINITION = {
+    size: CARD_SIZE_SINGLE,
+    token: "",
+    rowSpan: 1,
+    colSpan: 1,
+    className: ""
+  };
+  var CARD_SIZE_DEFINITIONS = [
+    CARD_SIZE_SINGLE_DEFINITION,
+    { size: CARD_SIZE_TALL, token: "d", rowSpan: 2, colSpan: 1, className: "sp-btn-double" },
+    { size: CARD_SIZE_WIDE, token: "w", rowSpan: 1, colSpan: 2, className: "sp-btn-wide" },
+    { size: CARD_SIZE_LARGE, token: "b", rowSpan: 2, colSpan: 2, className: "sp-btn-big" },
+    { size: CARD_SIZE_EXTRA_TALL, token: "t", rowSpan: 3, colSpan: 1, className: "sp-btn-extra-tall" },
+    { size: CARD_SIZE_EXTRA_WIDE, token: "x", rowSpan: 1, colSpan: 3, className: "sp-btn-extra-wide" }
+  ];
   function copySizes(sizes) {
     return { ...sizes || {} };
   }
+  function cardSizeDefinition(size) {
+    const normalized = size || CARD_SIZE_SINGLE;
+    for (const definition of CARD_SIZE_DEFINITIONS) {
+      if (definition.size === normalized) return definition;
+    }
+    return CARD_SIZE_SINGLE_DEFINITION;
+  }
   function sizeFromToken(token) {
-    return token === "d" ? 2 : token === "w" ? 3 : token === "b" ? 4 : token === "t" ? 5 : token === "x" ? 6 : 1;
+    const normalized = token || "";
+    for (const definition of CARD_SIZE_DEFINITIONS) {
+      if (definition.token === normalized) return definition.size;
+    }
+    return CARD_SIZE_SINGLE;
   }
   function sizeToken(size) {
-    return size === 4 ? "b" : size === 2 ? "d" : size === 3 ? "w" : size === 5 ? "t" : size === 6 ? "x" : "";
+    return cardSizeDefinition(size).token;
   }
   function sizeRowSpan(size) {
-    return size === 5 ? 3 : size === 2 || size === 4 ? 2 : 1;
+    return cardSizeDefinition(size).rowSpan;
   }
   function sizeColSpan(size) {
-    return size === 6 ? 3 : size === 3 || size === 4 ? 2 : 1;
+    return cardSizeDefinition(size).colSpan;
+  }
+  function cardSizeClass(size) {
+    return cardSizeDefinition(size).className;
   }
   function coveredCells(pos, size, _maxSlots, gridCols, includeOrigin) {
     const cells = [];
@@ -356,11 +409,12 @@ var EspControlModel = (() => {
       },
       exported_at: snapshot.exported_at || (/* @__PURE__ */ new Date()).toISOString(),
       button_order: outputs.button_order != null ? String(outputs.button_order) : "",
-      button_on_color: snapshot.button_on_color || "FF8C00",
-      button_off_color: snapshot.button_off_color || "313131",
-      sensor_card_color: snapshot.sensor_card_color || "212121",
+      button_on_color: snapshot.button_on_color || "0073FF",
+      button_off_color: snapshot.button_off_color || "CECECE",
+      sensor_card_color: snapshot.sensor_card_color || "DEDEDE",
       buttons: outputs.buttons,
       subpages: outputs.subpages,
+      subpage_objects: outputs.subpage_objects || {},
       settings: snapshot.settings || {},
       screen: snapshot.screen || {}
     };
@@ -373,11 +427,12 @@ var EspControlModel = (() => {
       source: backupSource(data, outputs.buttons.length),
       exported_at: String(data.exported_at || ""),
       button_order: String(data.button_order || ""),
-      button_on_color: String(data.button_on_color || "FF8C00"),
-      button_off_color: String(data.button_off_color || "313131"),
-      sensor_card_color: String(data.sensor_card_color || "212121"),
+      button_on_color: String(data.button_on_color || "0073FF"),
+      button_off_color: String(data.button_off_color || "CECECE"),
+      sensor_card_color: String(data.sensor_card_color || "DEDEDE"),
       buttons: outputs.buttons,
       subpages: outputs.subpages,
+      subpage_objects: outputs.subpage_objects || {},
       settings: isRecord(data.settings) ? data.settings : null,
       screen: isRecord(data.screen) ? data.screen : isRecord(data.settings) && isRecord(data.settings.screen) ? data.settings.screen : null
     };
@@ -466,6 +521,13 @@ var EspControlModel = (() => {
 
   // src/webserver/model/subpage.ts
   var BACK_TOKENS = /* @__PURE__ */ new Set(["B", "Bd", "Bw", "Bb", "Bt", "Bx"]);
+  function isRecord2(value) {
+    return !!value && typeof value === "object" && !Array.isArray(value);
+  }
+  function stringField(record, key, fallback = "") {
+    const value = record[key];
+    return value == null ? fallback : String(value || fallback);
+  }
   function isBackOrderToken(token) {
     return BACK_TOKENS.has(String(token || ""));
   }
@@ -574,6 +636,39 @@ var EspControlModel = (() => {
     if (value && value.charAt(0) === "~") return parseCompactSubpageConfig(value, typeFromCode);
     return parseLegacySubpageConfig(value);
   }
+  function structuredSubpageFromParsed(subpage) {
+    return {
+      order: (subpage?.order || []).map((item) => parseBackOrderToken(item).token),
+      back_label: subpage?.backLabel || backLabelFromOrder(subpage?.order) || "Back",
+      buttons: (subpage?.buttons || []).map((button) => cloneCardConfig(button))
+    };
+  }
+  function parseStructuredSubpageConfig(value) {
+    if (!isRecord2(value)) return { order: [], buttons: [], backLabel: "Back" };
+    const orderValues = Array.isArray(value.order) ? value.order.map((item) => String(item || "")) : [];
+    const parsedOrder = parseSubpageOrder(orderValues.join(","));
+    const backLabel = stringField(value, "back_label", stringField(value, "backLabel", parsedOrder.backLabel));
+    const rawButtons = Array.isArray(value.buttons) ? value.buttons : [];
+    const buttons = rawButtons.map((button) => {
+      const record = isRecord2(button) ? button : {};
+      return cloneCardConfig({
+        entity: stringField(record, "entity"),
+        label: stringField(record, "label"),
+        icon: stringField(record, "icon", "Auto"),
+        icon_on: stringField(record, "icon_on", "Auto"),
+        sensor: stringField(record, "sensor"),
+        unit: stringField(record, "unit"),
+        type: stringField(record, "type"),
+        precision: stringField(record, "precision"),
+        options: stringField(record, "options")
+      });
+    });
+    return {
+      order: parsedOrder.order,
+      buttons,
+      backLabel: backLabel || "Back"
+    };
+  }
   function legacySubpageFieldsSafe(buttonFields) {
     for (const fields of buttonFields) {
       for (const field of fields) {
@@ -605,12 +700,36 @@ var EspControlModel = (() => {
     if (!legacy) return compact;
     return compact.length < legacy.length ? compact : legacy;
   }
+  function utf8ByteLength(str) {
+    let bytes = 0;
+    for (let i = 0; i < str.length; i++) {
+      const code = str.charCodeAt(i);
+      if (code < 128) bytes += 1;
+      else if (code >= 55296 && code <= 56319) {
+        bytes += 4;
+        i += 1;
+      } else if (code < 2048) bytes += 2;
+      else bytes += 3;
+    }
+    return bytes;
+  }
   function splitSubpageConfigChunks(value, chunkCount, chunkSize = 255) {
     const full = String(value || "");
-    if (chunkCount < 1 || chunkSize < 1 || full.length > chunkCount * chunkSize) return null;
+    if (chunkCount < 1 || chunkSize < 1 || utf8ByteLength(full) > chunkCount * chunkSize) return null;
     const chunks = [];
+    let charPos = 0;
     for (let i = 0; i < chunkCount; i += 1) {
-      chunks.push(full.substring(i * chunkSize, (i + 1) * chunkSize));
+      let bytes = 0;
+      let end = charPos;
+      while (end < full.length) {
+        const code = full.charCodeAt(end);
+        const charBytes = code < 128 ? 1 : code >= 55296 && code <= 56319 ? 4 : code < 2048 ? 2 : 3;
+        if (bytes + charBytes > chunkSize) break;
+        bytes += charBytes;
+        end += code >= 55296 && code <= 56319 ? 2 : 1;
+      }
+      chunks.push(full.substring(charPos, end));
+      charPos = end;
     }
     return chunks;
   }
@@ -687,25 +806,25 @@ var EspControlModel = (() => {
   }
 
   // src/webserver/model/settings.ts
-  var MONTH_NAME_DEFAULTS = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December"
-  ];
   function normalizeTemperatureUnit(value) {
     const unit = String(value == null ? "" : value).trim().toLowerCase();
     if (unit === "f" || unit === "\xB0f" || unit === "fahrenheit") return "\xB0F";
     if (unit === "c" || unit === "\xB0c" || unit === "celsius" || unit === "centigrade") return "\xB0C";
     return "Auto";
+  }
+  function normalizeClockBarTemperatureEntities(value) {
+    const input = Array.isArray(value) ? value : String(value || "").split(/[|,\n]/);
+    const out = [];
+    for (const entry of input) {
+      const entity = String(entry || "").trim();
+      if (entity && out.indexOf(entity) === -1) out.push(entity);
+    }
+    return out.slice(0, 1);
+  }
+  var CLOCK_BAR_FIXED_LAYOUT = "left:temperature|middle:time|right:network";
+  function normalizeLanguage(value) {
+    const language = String(value == null ? "" : value).trim().toLowerCase();
+    return language || "en";
   }
   function normalizeHour(value, fallback) {
     const n = parseInt(String(value), 10);
@@ -713,6 +832,16 @@ var EspControlModel = (() => {
     if (n < 0) return 0;
     if (n > 23) return 23;
     return n;
+  }
+  function normalizeTimeOfDay(value, fallback) {
+    const text = String(value == null ? "" : value).trim();
+    const match = /^(\d{1,2}):(\d{2})$/.exec(text);
+    if (!match) return fallback;
+    const hour = parseInt(match[1] || "", 10);
+    const minute = parseInt(match[2] || "", 10);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return fallback;
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return fallback;
+    return String(hour).padStart(2, "0") + ":" + String(minute).padStart(2, "0");
   }
   function normalizeScheduleWakeTimeout(value) {
     const n = parseFloat(String(value));
@@ -735,6 +864,10 @@ var EspControlModel = (() => {
     if (n > 100) return 100;
     return Math.round(n);
   }
+  function normalizeHexColor(value, fallback) {
+    const color = String(value == null ? "" : value).replace(/^#/, "").trim().toUpperCase();
+    return /^[0-9A-F]{6}$/.test(color) ? color : fallback;
+  }
   function normalizeScheduleDimmedBrightness(value) {
     const n = parseFloat(String(value));
     if (!Number.isFinite(n) || n <= 0) return 10;
@@ -749,6 +882,13 @@ var EspControlModel = (() => {
     }
     if (mode === "clock") return "clock";
     return "screen_off";
+  }
+  function normalizeScheduleTrigger(value, scheduleEnabled = false) {
+    const trigger = String(value || "").toLowerCase().replace(/[\s-]+/g, "_");
+    if (trigger === "sensor") return "sensor";
+    if (trigger === "time" || trigger === "timer") return "time";
+    if (trigger === "disabled" || trigger === "off") return "disabled";
+    return scheduleEnabled ? "time" : "disabled";
   }
   function normalizeScreensaverAction(value) {
     const action = String(value || "").toLowerCase().replace(/[\s-]+/g, "_");
@@ -782,21 +922,16 @@ var EspControlModel = (() => {
     if (n > 100) return 100;
     return Math.round(n);
   }
+  function normalizeHomeAssistantArtworkPort(value) {
+    const port = parseInt(String(value), 10);
+    if (!Number.isFinite(port)) return 8123;
+    if (port < 1) return 1;
+    if (port > 65535) return 65535;
+    return port;
+  }
   function normalizeNtpServer(value, fallback) {
     const server = String(value == null ? "" : value).trim();
     return server || fallback;
-  }
-  function normalizeMonthNames(value) {
-    const parts = Array.isArray(value) ? value.slice() : String(value == null ? "" : value).split(",");
-    const out = [];
-    for (let i = 0; i < 12; i += 1) {
-      const text = String(parts[i] == null ? "" : parts[i]).trim();
-      out.push(text || MONTH_NAME_DEFAULTS[i] || "");
-    }
-    return out;
-  }
-  function serializeMonthNames(value) {
-    return normalizeMonthNames(value).join(",");
   }
   function numberOrFallback(value, fallback) {
     const n = parseFloat(String(value));
@@ -806,11 +941,16 @@ var EspControlModel = (() => {
     return Object.prototype.hasOwnProperty.call(source, key) ? source[key] : void 0;
   }
   function normalizeBackupScreenSettings(screenSettings, current) {
+    const legacyScheduleEnabled = !!screenSettings.schedule_enabled;
+    const scheduleTrigger = normalizeScheduleTrigger(screenSettings.schedule_trigger, legacyScheduleEnabled);
     return {
       brightnessDayVal: numberOrFallback(screenSettings.brightness_day, 100),
       brightnessNightVal: numberOrFallback(screenSettings.brightness_night, 75),
       automaticBrightnessEnabled: objectValue(screenSettings, "automatic_brightness") != null ? !!screenSettings.automatic_brightness : true,
-      scheduleEnabled: !!screenSettings.schedule_enabled,
+      brightnessDawnTime: normalizeTimeOfDay(screenSettings.brightness_dawn_time, "06:00"),
+      brightnessDuskTime: normalizeTimeOfDay(screenSettings.brightness_dusk_time, "18:00"),
+      scheduleTrigger,
+      scheduleEnabled: scheduleTrigger !== "disabled",
       scheduleOnHour: normalizeHour(screenSettings.schedule_on_hour, 6),
       scheduleOffHour: normalizeHour(screenSettings.schedule_off_hour, 23),
       scheduleMode: normalizeScheduleMode(screenSettings.schedule_mode),
@@ -823,6 +963,10 @@ var EspControlModel = (() => {
       ),
       scheduleClockBrightness: normalizeScheduleClockBrightness(
         objectValue(screenSettings, "schedule_clock_brightness") != null ? screenSettings.schedule_clock_brightness : current.scheduleClockBrightness
+      ),
+      scheduleClockTextColor: normalizeHexColor(
+        objectValue(screenSettings, "schedule_clock_text_color") != null ? screenSettings.schedule_clock_text_color : current.scheduleClockTextColor,
+        "FFFFFF"
       )
     };
   }
@@ -838,8 +982,7 @@ var EspControlModel = (() => {
     const hasNtpServer1 = objectValue(settings, "ntp_server_1") !== void 0;
     const hasNtpServer2 = objectValue(settings, "ntp_server_2") !== void 0;
     const hasNtpServer3 = objectValue(settings, "ntp_server_3") !== void 0;
-    const hasMonthNames = objectValue(settings, "month_names") !== void 0;
-    const hasDeveloperExperimentalFeatures = objectValue(settings, "developer_experimental_features") !== void 0;
+    const hasOutdoorTempEnable = objectValue(settings, "outdoor_temp_enable") !== void 0;
     const clockFormat = current.clockFormatOptions.indexOf(String(settings.clock_format || "")) !== -1 ? String(settings.clock_format) : current.clockFormat;
     const screensaverAction = normalizeScreensaverAction(
       objectValue(settings, "screensaver_action") != null ? settings.screensaver_action : settings.clock_screensaver ? "clock" : "off"
@@ -852,31 +995,49 @@ var EspControlModel = (() => {
       objectValue(settings, "clock_brightness_night") != null ? settings.clock_brightness_night : settings.clock_brightness,
       clockBrightnessDay
     );
+    const legacyTemperatureEntities = [];
+    if (settings.outdoor_temp_enable && settings.outdoor_temp_entity) {
+      legacyTemperatureEntities.push(String(settings.outdoor_temp_entity));
+    }
+    if (settings.indoor_temp_enable && settings.indoor_temp_entity) {
+      legacyTemperatureEntities.push(String(settings.indoor_temp_entity));
+    }
+    const clockBarTemperatureEntities = normalizeClockBarTemperatureEntities(
+      objectValue(settings, "clock_bar_temperature_entities") != null ? settings.clock_bar_temperature_entities : legacyTemperatureEntities
+    );
     return {
-      indoorTempEnable: !!settings.indoor_temp_enable,
-      outdoorTempEnable: !!settings.outdoor_temp_enable,
-      indoorTempEntity: String(settings.indoor_temp_entity || ""),
-      outdoorTempEntity: String(settings.outdoor_temp_entity || ""),
+      indoorTempEnable: false,
+      outdoorTempEnable: hasOutdoorTempEnable ? !!settings.outdoor_temp_enable : clockBarTemperatureEntities.length > 0,
+      indoorTempEntity: "",
+      outdoorTempEntity: clockBarTemperatureEntities[0] || "",
+      clockBarTemperatureEntities,
       clockBar: objectValue(settings, "clock_bar") != null ? !!settings.clock_bar : false,
+      clockBarLayout: CLOCK_BAR_FIXED_LAYOUT,
+      clockBarTime: objectValue(settings, "clock_bar_time") != null ? !!settings.clock_bar_time : true,
       networkStatusIcon: objectValue(settings, "network_status_icon") != null ? !!settings.network_status_icon : true,
       temperatureDegreeSymbol: objectValue(settings, "temperature_degree_symbol") != null ? !!settings.temperature_degree_symbol : true,
+      subpageChevron: objectValue(settings, "subpage_chevron") != null ? !!settings.subpage_chevron : true,
       timezone: String(settings.timezone || current.timezone),
       temperatureUnit: normalizeTemperatureUnit(settings.temperature_unit),
+      language: normalizeLanguage(settings.language || current.language),
       clockFormat,
       hasNtpServer1,
       hasNtpServer2,
       hasNtpServer3,
-      hasMonthNames,
-      hasDeveloperExperimentalFeatures,
-      developerExperimentalFeatures: hasDeveloperExperimentalFeatures ? !!settings.developer_experimental_features : current.developerExperimentalFeatures,
       ntpServer1: hasNtpServer1 ? normalizeNtpServer(settings.ntp_server_1, current.ntpDefaults[0] || "") : current.ntpServer1,
       ntpServer2: hasNtpServer2 ? normalizeNtpServer(settings.ntp_server_2, current.ntpDefaults[1] || "") : current.ntpServer2,
       ntpServer3: hasNtpServer3 ? normalizeNtpServer(settings.ntp_server_3, current.ntpDefaults[2] || "") : current.ntpServer3,
-      monthNames: hasMonthNames ? normalizeMonthNames(settings.month_names) : normalizeMonthNames(current.monthNames),
       screensaverMode: normalizeScreensaverMode(settings.screensaver_mode),
       presenceSensorEntity: String(settings.presence_sensor_entity || ""),
       mediaPlayerSleepPrevention: !!settings.media_player_sleep_prevention,
       mediaPlayerSleepPreventionEntity: String(settings.media_player_sleep_prevention_entity || ""),
+      coverArtScreensaver: !!settings.cover_art_screensaver,
+      coverArtMediaPlayerEntity: String(settings.cover_art_media_player_entity || settings.media_player_sleep_prevention_entity || ""),
+      coverArtAttributeConditions: String(settings.cover_art_attribute_conditions || settings.cover_art_conditions || ""),
+      coverArtDelay: objectValue(settings, "cover_art_delay") != null ? settings.cover_art_delay : 10,
+      coverArtTrackOverlayDuration: objectValue(settings, "cover_art_track_overlay_duration") != null ? settings.cover_art_track_overlay_duration : 5,
+      coverArtHideExternalInput: objectValue(settings, "cover_art_hide_external_input") != null ? !!settings.cover_art_hide_external_input : true,
+      coverArtHomeAssistantPort: objectValue(settings, "home_assistant_artwork_port") != null ? normalizeHomeAssistantArtworkPort(settings.home_assistant_artwork_port) : normalizeHomeAssistantArtworkPort(current.coverArtHomeAssistantPort),
       screensaverAction,
       clockScreensaver: screensaverAction === "clock",
       clockBrightnessDay,

@@ -1,10 +1,44 @@
 // ── State ──────────────────────────────────────────────────────────────
 
 var NTP_SERVER_DEFAULTS = ["0.pool.ntp.org", "1.pool.ntp.org", "2.pool.ntp.org"];
-var MONTH_NAME_DEFAULTS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
-];
+var LANGUAGE_LABELS = {
+  cs: "Čeština (Czech)",
+  da: "Dansk (Danish)",
+  de: "Deutsch (German)",
+  en: "English",
+  es: "Español (Spanish)",
+  fi: "Suomi (Finnish)",
+  fr: "Français (French)",
+  hu: "Magyar (Hungarian)",
+  it: "Italiano (Italian)",
+  nb: "Norsk bokmål (Norwegian Bokmål)",
+  nl: "Nederlands (Dutch)",
+  pl: "Polski (Polish)",
+  pt: "Português (Portuguese)",
+  "pt-br": "Português (Brasil) (Brazilian Portuguese)",
+  ro: "Română (Romanian)",
+  sk: "Slovenčina (Slovak)",
+  sl: "Slovenščina (Slovenian)",
+  sv: "Svenska (Swedish)",
+  tr: "Türkçe (Turkish)",
+  uk: "Українська (Ukrainian)"
+};
+var THEME_PRESETS = {
+  Light: { on: "0073FF", off: "CECECE", sensor: "DEDEDE" },
+  Dark: { on: "FF8C00", off: "313131", sensor: "212121" },
+};
+
+function defaultTheme() {
+  return "Dark";
+}
+
+function isEpaperPreview() {
+  return CFG && CFG.previewTheme === "epaper";
+}
+
+function epaperPreviewFillColor() {
+  return normalizeTheme(state.theme) === "Light" ? "FFFFFF" : "000000";
+}
 
 function defaultTimezoneOptions() {
   return (CFG && Array.isArray(CFG.timezoneOptions)) ? CFG.timezoneOptions.slice() : [];
@@ -20,11 +54,14 @@ var state = {
   grid: [],
   sizes: {},
   buttons: [],
-  onColor: "FF8C00",
-  offColor: "313131",
-  sensorColor: "212121",
+  theme: defaultTheme(),
+  themeOptions: ["Light", "Dark"],
+  onColor: THEME_PRESETS[defaultTheme()].on,
+  offColor: THEME_PRESETS[defaultTheme()].off,
+  sensorColor: THEME_PRESETS[defaultTheme()].sensor,
   selectedSlots: [],
   lastClickedSlot: -1,
+  clockBarSelectedItem: "",
   activeTab: "screen",
   _indoorOn: false,
   _outdoorOn: false,
@@ -32,15 +69,29 @@ var state = {
   _outdoorVal: null,
   indoorEntity: "",
   outdoorEntity: "",
+  clockBarTemperatureEntities: [],
+  _clockBarTemperatureEntitiesReceived: false,
+  _clockBarTemperatureVisibilityReceived: false,
   temperatureUnit: "Auto",
   clockBarOn: false,
+  _clockBarStateValues: {},
+  clockBarTimeOn: true,
   networkStatusOn: true,
   networkTransport: "wifi",
   wifiStrengthPercent: 100,
   temperatureDegreeSymbolOn: true,
+  subpageChevronsOn: true,
   presenceEntity: "",
   mediaPlayerSleepPreventionOn: false,
   mediaPlayerSleepPreventionEntity: "",
+  coverArtScreensaverOn: false,
+  coverArtMediaPlayerEntity: "",
+  coverArtAttributeConditions: "",
+  coverArtFilteringEnabled: false,
+  coverArtDelay: 10,
+  coverArtTrackOverlayDuration: 5,
+  coverArtHideExternalInputOn: true,
+  coverArtHomeAssistantPort: 8123,
   screensaverMode: "disabled",
   _screensaverModeReceived: false,
   screensaverAction: "off",
@@ -58,6 +109,10 @@ var state = {
   brightnessDayVal: 100,
   brightnessNightVal: 75,
   automaticBrightnessEnabled: true,
+  brightnessDawnTime: "06:00",
+  brightnessDuskTime: "18:00",
+  scheduleTrigger: "disabled",
+  _scheduleTriggerReceived: false,
   scheduleEnabled: false,
   scheduleOnHour: 6,
   scheduleOffHour: 23,
@@ -66,19 +121,22 @@ var state = {
   scheduleWakeBrightness: 10,
   scheduleDimmedBrightness: 10,
   scheduleClockBrightness: 10,
+  scheduleClockTextColor: "FFFFFF",
   timezone: "UTC (GMT+0)",
   timezoneOptions: defaultTimezoneOptions(),
+  language: "en",
+  languageOptions: ["en", "cs", "da", "de", "es", "fi", "fr", "hu", "it", "nb", "nl", "pl", "pt", "pt-br", "ro", "sk", "sl", "sv", "tr", "uk"],
   clockFormat: "24h",
   clockFormatOptions: ["12h", "24h"],
   customNtpServers: false,
   ntpServer1: NTP_SERVER_DEFAULTS[0],
   ntpServer2: NTP_SERVER_DEFAULTS[1],
   ntpServer3: NTP_SERVER_DEFAULTS[2],
-  customMonthNames: false,
-  monthNames: MONTH_NAME_DEFAULTS.slice(),
   screenRotation: (CFG.features && CFG.features.screenRotationDefault) || "0",
   screenRotationOptions: (CFG.features && CFG.features.screenRotationOptions) || ["0", "90", "180", "270"],
   screenRotationDeviceOptions: null,
+  screenRotationInitialReady: !(CFG.features && CFG.features.screenRotation),
+  pendingButtonOrderRaw: null,
   sunrise: "",
   sunset: "",
   firmwareVersion: "",
@@ -95,12 +153,19 @@ var state = {
   firmwareOtaUrl: "",
   firmwareOtaFilename: "",
   firmwareOtaMd5: "",
+  firmwareVersionOptions: [],
+  firmwareSelectedVersion: "",
+  firmwareVersionIndexLoaded: false,
   autoUpdate: true,
   updateFrequency: "Daily",
   updateFreqOptions: ["Hourly", "Daily", "Weekly", "Monthly"],
-  developerExperimentalFeatures: false,
   configLocked: false,
   configLockReason: "",
+  clockBarLayout: null,
+  clockBarDragItem: "",
+  clockBarTempRestoreIndoor: false,
+  clockBarTempRestoreOutdoor: true,
+  clockBarTempRestoreEntities: [],
   subpages: {},
   subpageRaw: {},
   subpageSavePending: {},
@@ -113,7 +178,7 @@ var state = {
   entityNames: {},
 };
 
-for (var i = 0; i < NUM_SLOTS; i++) {
+for (var i = 0; i < TOTAL_SLOTS; i++) {
   state.grid.push(0);
   state.buttons.push({ entity: "", label: "", icon: "Auto", icon_on: "Auto", sensor: "", unit: "", type: "", precision: "", options: "" });
 }
@@ -122,6 +187,10 @@ function getActiveScreensaverMode() {
   if (state.screensaverMode === "sensor") return "sensor";
   if (state.screensaverMode === "timer") return "timer";
   return "disabled";
+}
+
+function clockBarVisibleInPreview() {
+  return !!state.clockBarOn;
 }
 
 function normalizeScreenRotation(value) {
@@ -185,6 +254,40 @@ function normalizeTemperatureUnit(value) {
   return EspControlModel.normalizeTemperatureUnit(value);
 }
 
+function normalizeLanguage(value) {
+  var language = String(value == null ? "" : value).trim().toLowerCase();
+  return language || "en";
+}
+
+function languageLabel(value) {
+  value = normalizeLanguage(value);
+  return LANGUAGE_LABELS[value] || value;
+}
+
+function languageOptionsWithFallback(options, selected) {
+  var list = uniqueOptions((options && options.length ? options : ["en"]).map(normalizeLanguage));
+  selected = normalizeLanguage(selected);
+  if (list.indexOf(selected) === -1) list.unshift(selected);
+  return list;
+}
+
+function appendLanguageOption(select, opt) {
+  var o = document.createElement("option");
+  o.value = normalizeLanguage(opt);
+  o.textContent = languageLabel(opt);
+  select.appendChild(o);
+}
+
+function syncLanguageSelect() {
+  if (!els.setLanguage) return;
+  state.languageOptions = languageOptionsWithFallback(state.languageOptions, state.language);
+  els.setLanguage.innerHTML = "";
+  state.languageOptions.forEach(function (opt) {
+    appendLanguageOption(els.setLanguage, opt);
+  });
+  els.setLanguage.value = normalizeLanguage(state.language);
+}
+
 function timezonePrefersFahrenheit(timezone) {
   var tz = getTzId(timezone || state.timezone);
   var fahrenheitZones = {
@@ -217,6 +320,135 @@ function clockBarTemperatureUnitSymbol() {
   return state.temperatureDegreeSymbolOn ? "\u00B0" : "";
 }
 
+var MAX_CLOCK_BAR_TEMPERATURES = 1;
+var CLOCK_BAR_FIXED_LAYOUT_STRING = "left:temperature|middle:time|right:network";
+var CLOCK_BAR_FIXED_LAYOUT = {
+  left: ["temperature"],
+  middle: ["time"],
+  right: ["network"],
+};
+
+function defaultClockBarTemperatureEntity(index) {
+  if (index === 0) return "sensor.outdoor_temperature";
+  return "";
+}
+
+function normalizeClockBarTemperatureEntries(value) {
+  var input = Array.isArray(value) ? value : String(value || "").split(/[|,\n]/);
+  return input.map(function (entry) {
+    return String(entry || "").trim();
+  }).slice(0, MAX_CLOCK_BAR_TEMPERATURES);
+}
+
+function normalizeClockBarTemperatureEntities(value) {
+  var input = normalizeClockBarTemperatureEntries(value);
+  var out = [];
+  input.forEach(function (entry) {
+    if (entry && out.indexOf(entry) === -1) out.push(entry);
+  });
+  return out.slice(0, MAX_CLOCK_BAR_TEMPERATURES);
+}
+
+function serializeClockBarTemperatureEntities(list) {
+  return normalizeClockBarTemperatureEntities(list).join("|");
+}
+
+function legacyClockBarTemperatureEntities() {
+  var list = [];
+  if (state._outdoorOn && state.outdoorEntity) list.push(state.outdoorEntity);
+  if (state._indoorOn && state.indoorEntity) list.push(state.indoorEntity);
+  return normalizeClockBarTemperatureEntities(list);
+}
+
+function clockBarTemperatureEntries() {
+  var list = normalizeClockBarTemperatureEntries(state.clockBarTemperatureEntities);
+  if (!list.length && !state._clockBarTemperatureEntitiesReceived) return legacyClockBarTemperatureEntities();
+  return list;
+}
+
+function clockBarTemperatureEntities() {
+  return normalizeClockBarTemperatureEntities(clockBarTemperatureEntries());
+}
+
+function primaryClockBarTemperatureEntity() {
+  return clockBarTemperatureEntities()[0] || state.outdoorEntity || "";
+}
+
+function clockBarTemperatureVisible() {
+  return !!(state._outdoorOn && primaryClockBarTemperatureEntity());
+}
+
+function applyClockBarTemperatureEntities(list, postDevice) {
+  state.clockBarTemperatureEntities = normalizeClockBarTemperatureEntries(list);
+  state._clockBarTemperatureEntitiesReceived = true;
+  var configured = clockBarTemperatureEntities();
+  if (!state._clockBarTemperatureVisibilityReceived) {
+    state._outdoorOn = configured.length > 0;
+  }
+  state._indoorOn = false;
+  state.outdoorEntity = configured[0] || "";
+  state.indoorEntity = "";
+  if (postDevice) {
+    postClockBarTemperatureEntities(serializeClockBarTemperatureEntities(state.clockBarTemperatureEntities));
+    postSwitch(entityName("outdoor_temp_enable"), state._outdoorOn);
+    postSwitch(entityName("indoor_temp_enable"), state._indoorOn);
+    postText(entityName("outdoor_temp_entity"), state.outdoorEntity);
+    postText(entityName("indoor_temp_entity"), state.indoorEntity);
+  }
+  syncTemperatureUi();
+  updateTempPreview();
+  updateClockBarItemUi();
+}
+
+function saveClockBarTemperatureSettings(entity, degreeSymbolOn) {
+  entity = String(entity || "").trim();
+  state.clockBarTemperatureEntities = entity ? [entity] : [];
+  state._clockBarTemperatureEntitiesReceived = true;
+  state._clockBarTemperatureVisibilityReceived = true;
+  state._outdoorOn = !!entity;
+  state._indoorOn = false;
+  state.outdoorEntity = entity;
+  state.indoorEntity = "";
+  state.temperatureDegreeSymbolOn = !!degreeSymbolOn;
+  postClockBarTemperatureEntities(serializeClockBarTemperatureEntities(state.clockBarTemperatureEntities));
+  postSwitch(entityName("outdoor_temp_enable"), state._outdoorOn);
+  postSwitch(entityName("indoor_temp_enable"), false);
+  postText(entityName("outdoor_temp_entity"), state.outdoorEntity);
+  postText(entityName("indoor_temp_entity"), "");
+  postTemperatureDegreeSymbol(state.temperatureDegreeSymbolOn);
+  syncTemperatureUi();
+  syncClockBarUi();
+}
+
+function setClockBarItemVisible(item, visible) {
+  visible = !!visible;
+  if (isClockBarTemperatureItem(item)) {
+    var entity = primaryClockBarTemperatureEntity();
+    if (visible && !entity) {
+      entity = defaultClockBarTemperatureEntity(0);
+      state.clockBarTemperatureEntities = [entity];
+      state._clockBarTemperatureEntitiesReceived = true;
+      state.outdoorEntity = entity;
+      postClockBarTemperatureEntities(entity);
+      postText(entityName("outdoor_temp_entity"), entity);
+    }
+    state._clockBarTemperatureVisibilityReceived = true;
+    state._outdoorOn = visible && !!entity;
+    state._indoorOn = false;
+    postSwitch(entityName("outdoor_temp_enable"), state._outdoorOn);
+    postSwitch(entityName("indoor_temp_enable"), false);
+    postText(entityName("indoor_temp_entity"), "");
+  } else if (item === "time") {
+    state.clockBarTimeOn = visible;
+    postClockBarTime(state.clockBarTimeOn);
+  } else if (item === "network") {
+    state.networkStatusOn = visible;
+    postNetworkStatusIcon(state.networkStatusOn);
+  }
+  syncClockBarUi();
+  syncTemperatureUi();
+}
+
 function appendScreenRotationOption(select, opt) {
   var o = document.createElement("option");
   o.value = opt;
@@ -226,6 +458,10 @@ function appendScreenRotationOption(select, opt) {
 
 function normalizeHour(value, fallback) {
   return EspControlModel.normalizeHour(value, fallback);
+}
+
+function normalizeTimeOfDay(value, fallback) {
+  return EspControlModel.normalizeTimeOfDay(value, fallback);
 }
 
 function normalizeScheduleWakeTimeout(value) {
@@ -240,12 +476,20 @@ function normalizeScheduleClockBrightness(value) {
   return EspControlModel.normalizeScheduleClockBrightness(value);
 }
 
+function normalizeHexColor(value, fallback) {
+  return EspControlModel.normalizeHexColor(value, fallback);
+}
+
 function normalizeScheduleDimmedBrightness(value) {
   return EspControlModel.normalizeScheduleDimmedBrightness(value);
 }
 
 function normalizeScheduleMode(value) {
   return EspControlModel.normalizeScheduleMode(value);
+}
+
+function normalizeScheduleTrigger(value, scheduleEnabled) {
+  return EspControlModel.normalizeScheduleTrigger(value, scheduleEnabled);
 }
 
 function normalizeScreensaverAction(value) {
@@ -272,29 +516,16 @@ function normalizeNtpServer(value, fallback) {
   return EspControlModel.normalizeNtpServer(value, fallback);
 }
 
-function normalizeMonthNames(value) {
-  return EspControlModel.normalizeMonthNames(value);
-}
-
-function serializeMonthNames(value) {
-  return EspControlModel.serializeMonthNames(value);
-}
-
-function hasCustomMonthNames() {
-  var names = normalizeMonthNames(state.monthNames);
-  for (var i = 0; i < 12; i++) {
-    if (names[i] !== MONTH_NAME_DEFAULTS[i]) return true;
-  }
-  return false;
-}
-
-function resetMonthNamesToDefaults() {
-  state.monthNames = MONTH_NAME_DEFAULTS.slice();
-}
-
 function monthNameForIndex(index) {
-  var names = normalizeMonthNames(state.monthNames);
-  return names[index] || MONTH_NAME_DEFAULTS[index] || "";
+  var monthIndex = parseInt(index, 10);
+  if (!isFinite(monthIndex) || monthIndex < 0 || monthIndex > 11) return "Date";
+  try {
+    return new Intl.DateTimeFormat(normalizeLanguage(state.language), { month: "long" })
+      .format(new Date(Date.UTC(2000, monthIndex, 1)));
+  } catch (_) {
+    return new Intl.DateTimeFormat("en", { month: "long" })
+      .format(new Date(Date.UTC(2000, monthIndex, 1)));
+  }
 }
 
 function hasCustomNtpServers() {
@@ -383,6 +614,14 @@ function applyScreensaverTimeoutState(d) {
   syncScreensaverTimeoutUi();
 }
 
+function normalizeHomeAssistantArtworkPort(value) {
+  var port = parseInt(value, 10);
+  if (!isFinite(port)) return 8123;
+  if (port < 1) return 1;
+  if (port > 65535) return 65535;
+  return port;
+}
+
 function setSelectValue(select, value, label) {
   if (!select) return;
   value = String(value);
@@ -411,6 +650,8 @@ function formatHour(hour) {
 }
 
 function syncScreenScheduleUi() {
+  state.scheduleTrigger = normalizeScheduleTrigger(state.scheduleTrigger, state.scheduleEnabled);
+  state.scheduleEnabled = state.scheduleTrigger !== "disabled";
   state.scheduleOnHour = normalizeHour(state.scheduleOnHour, 6);
   state.scheduleOffHour = normalizeHour(state.scheduleOffHour, 23);
   state.scheduleMode = normalizeScheduleMode(state.scheduleMode);
@@ -418,10 +659,23 @@ function syncScreenScheduleUi() {
   state.scheduleWakeBrightness = normalizeScheduleWakeBrightness(state.scheduleWakeBrightness);
   state.scheduleDimmedBrightness = normalizeScheduleDimmedBrightness(state.scheduleDimmedBrightness);
   state.scheduleClockBrightness = normalizeScheduleClockBrightness(state.scheduleClockBrightness);
+  state.brightnessDawnTime = normalizeTimeOfDay(state.brightnessDawnTime, "06:00");
+  state.brightnessDuskTime = normalizeTimeOfDay(state.brightnessDuskTime, "18:00");
   if (els.setAutomaticBrightnessToggle) {
     els.setAutomaticBrightnessToggle.checked = !!state.automaticBrightnessEnabled;
   }
+  if (els.setBrightnessDawnTime) els.setBrightnessDawnTime.value = state.brightnessDawnTime;
+  if (els.setBrightnessDuskTime) els.setBrightnessDuskTime.value = state.brightnessDuskTime;
+  if (els.setBrightnessManualTimes) {
+    els.setBrightnessManualTimes.className =
+      "sp-cond-field" + (!state.automaticBrightnessEnabled ? " sp-visible" : "");
+  }
   if (els.setScheduleToggle) els.setScheduleToggle.checked = !!state.scheduleEnabled;
+  if (els.setScheduleModeButtons) {
+    els.setScheduleModeButtons.disabled.className = state.scheduleTrigger === "disabled" ? "active" : "";
+    els.setScheduleModeButtons.time.className = state.scheduleTrigger === "time" ? "active" : "";
+    els.setScheduleModeButtons.sensor.className = state.scheduleTrigger === "sensor" ? "active" : "";
+  }
   if (els.setScheduleOnHour) els.setScheduleOnHour.value = String(state.scheduleOnHour);
   if (els.setScheduleOffHour) els.setScheduleOffHour.value = String(state.scheduleOffHour);
   if (els.setScheduleMode) {
@@ -440,6 +694,9 @@ function syncScreenScheduleUi() {
     els.setScheduleClockBrightness.value = state.scheduleClockBrightness;
     els.setScheduleClockBrightnessVal.textContent = Math.round(state.scheduleClockBrightness) + "%";
   }
+  if (els.setScheduleClockTextColor && els.setScheduleClockTextColor._syncColor) {
+    els.setScheduleClockTextColor._syncColor(state.scheduleClockTextColor);
+  }
   if (els.setScheduleOffOptions) {
     els.setScheduleOffOptions.className =
       "sp-cond-field" + (state.scheduleMode === "screen_off" ? " sp-visible" : "");
@@ -453,7 +710,10 @@ function syncScreenScheduleUi() {
       "sp-cond-field" + (state.scheduleMode === "clock" ? " sp-visible" : "");
   }
   if (els.setScheduleTimes) {
-    els.setScheduleTimes.className = "sp-schedule-times" + (state.scheduleEnabled ? "" : " sp-hidden");
+    els.setScheduleTimes.className = "sp-schedule-times" + (state.scheduleTrigger === "time" ? "" : " sp-hidden");
+  }
+  if (els.setScheduleSensor) {
+    els.setScheduleSensor.className = "sp-schedule-times" + (state.scheduleTrigger === "sensor" ? "" : " sp-hidden");
   }
   if (els.setScheduleBadge) {
     els.setScheduleBadge.className = "sp-card-badge" + (state.scheduleEnabled ? "" : " sp-hidden");
@@ -484,27 +744,62 @@ function syncNtpServerUi() {
   syncInput(els.setNtpServer3, state.ntpServer3);
 }
 
-function syncMonthNameUi() {
-  state.monthNames = normalizeMonthNames(state.monthNames);
-  state.customMonthNames = !!state.customMonthNames || hasCustomMonthNames();
-  if (els.setCustomMonthNamesToggle) {
-    els.setCustomMonthNamesToggle.checked = !!state.customMonthNames;
-  }
-  if (els.setMonthNameFields) {
-    els.setMonthNameFields.className =
-      "sp-field-stack" + (state.customMonthNames ? "" : " sp-hidden");
-  }
-  if (els.setMonthNameInputs) {
-    for (var i = 0; i < els.setMonthNameInputs.length; i++) {
-      syncInput(els.setMonthNameInputs[i], state.monthNames[i]);
+function normalizeTheme(value) {
+  return THEME_PRESETS[value] ? value : defaultTheme();
+}
+
+function syncThemeUi() {
+  if (els.setTheme) els.setTheme.value = normalizeTheme(state.theme);
+  if (els.root) els.root.setAttribute("data-screen-theme", normalizeTheme(state.theme).toLowerCase());
+}
+
+function syncColorUi() {
+  if (els.setOnColor && els.setOnColor._syncColor) els.setOnColor._syncColor(state.onColor);
+  if (els.setOffColor && els.setOffColor._syncColor) els.setOffColor._syncColor(state.offColor);
+  if (els.setSensorColor && els.setSensorColor._syncColor) els.setSensorColor._syncColor(state.sensorColor);
+}
+
+function applyThemePreset(theme, postChanges) {
+  state.theme = normalizeTheme(theme);
+  var preset = THEME_PRESETS[state.theme];
+  state.onColor = preset.on;
+  state.offColor = preset.off;
+  state.sensorColor = preset.sensor;
+  syncThemeUi();
+  syncColorUi();
+  renderPreview();
+  if (postChanges) {
+    postSelect(entityName("screen_theme"), state.theme);
+    if (!isEpaperPreview()) {
+      postText(entityName("button_on_color"), state.onColor);
+      postText(entityName("button_off_color"), state.offColor);
+      postText(entityName("sensor_card_color"), state.sensorColor);
     }
   }
 }
 
+function syncThemeFromDevice(theme, options) {
+  state.theme = normalizeTheme(theme);
+  if (options && Array.isArray(options)) state.themeOptions = options;
+  var preset = THEME_PRESETS[state.theme];
+  state.onColor = preset.on;
+  state.offColor = preset.off;
+  state.sensorColor = preset.sensor;
+  syncThemeUi();
+  syncColorUi();
+  renderPreview();
+}
+
 function syncClockBarUi() {
+  var visible = clockBarVisibleInPreview();
+  if (!visible && state.clockBarSelectedItem) {
+    state.clockBarSelectedItem = "";
+    hideSettingsOverlay();
+  }
   syncPreviewGridTop();
-  if (els.topbar) els.topbar.className = "sp-topbar" + (state.clockBarOn ? "" : " sp-hidden");
+  if (els.topbar) els.topbar.className = "sp-topbar" + (visible ? "" : " sp-hidden");
   if (els.setClockBarToggle) els.setClockBarToggle.checked = !!state.clockBarOn;
+  if (els.setClockBarTimeToggle) els.setClockBarTimeToggle.checked = !!state.clockBarTimeOn;
   if (els.setNetworkStatusToggle) {
     els.setNetworkStatusToggle.checked = !!state.networkStatusOn;
   }
@@ -514,6 +809,11 @@ function syncClockBarUi() {
   if (els.setTemperatureDegreeSymbolToggle) {
     els.setTemperatureDegreeSymbolToggle.checked = !!state.temperatureDegreeSymbolOn;
   }
+  if (els.setSubpageChevronToggle) {
+    els.setSubpageChevronToggle.checked = !!state.subpageChevronsOn;
+  }
+  updateClockBarItemUi();
+  renderSelectionBar(ctx());
   updateNetworkPreview();
   updateTempPreview();
 }
@@ -547,6 +847,7 @@ var firmwareWebOtaFallbackTimer = null;
 var FIRMWARE_VERSION_METADATA_PATH = "/espcontrol/version";
 var FIRMWARE_PUBLIC_MANIFEST_BASE = "https://jtenniswood.github.io/espcontrol/firmware/";
 var FIRMWARE_WEB_OTA_FALLBACK_DELAY_MS = 12000;
+var SCREEN_ROTATION_STARTUP_FALLBACK_MS = 1200;
 var FIRMWARE_CHECKING_VERSION_LABEL = "Checking version...";
 var FIRMWARE_DEV_VERSION_LABEL = "Dev build";
 var FIRMWARE_UNKNOWN_VERSION_LABEL = "Version unknown";
@@ -556,6 +857,40 @@ var FIRMWARE_UNKNOWN_VERSION_LABEL = "Version unknown";
 function escHtml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
     .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function screenRotationStartupRequired() {
+  return !!(CFG.features && CFG.features.screenRotation);
+}
+
+function gridPreviewBlockedByRotationStartup() {
+  return screenRotationStartupRequired() && !state.screenRotationInitialReady;
+}
+
+function clearInitialScreenRotationTimer() {
+  if (!state.screenRotationInitialTimer) return;
+  clearTimeout(state.screenRotationInitialTimer);
+  state.screenRotationInitialTimer = null;
+}
+
+function startInitialScreenRotationCheck() {
+  clearInitialScreenRotationTimer();
+  state.pendingButtonOrderRaw = null;
+  state.screenRotationInitialReady = !screenRotationStartupRequired();
+  if (!state.screenRotationInitialReady) {
+    state.screenRotationInitialTimer = setTimeout(resolveInitialScreenRotationCheck, SCREEN_ROTATION_STARTUP_FALLBACK_MS);
+  }
+}
+
+function resolveInitialScreenRotationCheck() {
+  if (state.screenRotationInitialReady) return;
+  clearInitialScreenRotationTimer();
+  state.screenRotationInitialReady = true;
+  if (state.pendingButtonOrderRaw !== null) {
+    applyButtonOrderValue(state.pendingButtonOrderRaw, true);
+    state.pendingButtonOrderRaw = null;
+  }
+  if (els.previewMain) renderPreview();
 }
 
 function renderFirmwareVersion() {
@@ -575,6 +910,7 @@ function setFirmwareVersion(version) {
   if (isSpecificFirmwareVersion(state.firmwareVersion) && !isSpecificFirmwareVersion(version)) return;
   state.firmwareVersion = displayFirmwareVersion(version);
   renderFirmwareVersion();
+  syncFirmwareVersionSelect();
   renderFirmwareUpdateStatus();
   stopFirmwareInstallRefreshIfComplete();
 }
@@ -608,8 +944,11 @@ function publicFirmwareInstallAvailable() {
 }
 
 function firmwareInstallAvailable() {
+  var info = selectedFirmwareInfo();
   return state.firmwareInstallControlsSupported === true &&
-    (firmwareUpdateAvailable() || publicFirmwareInstallAvailable());
+    !!info &&
+    isSpecificFirmwareVersion(info.latest_version) &&
+    !selectedFirmwareMatchesInstalled();
 }
 
 function firmwareVersionsSame(a, b) {
@@ -621,18 +960,22 @@ function publicFirmwareManifestUrl() {
   return FIRMWARE_PUBLIC_MANIFEST_BASE + encodeURIComponent(DEVICE_ID) + "/manifest.json";
 }
 
-function publicFirmwareAssetUrl(assetPath) {
+function publicFirmwareVersionsUrl() {
+  return FIRMWARE_PUBLIC_MANIFEST_BASE + encodeURIComponent(DEVICE_ID) + "/versions.json";
+}
+
+function publicFirmwareAssetUrl(assetPath, baseUrl) {
   assetPath = String(assetPath || "").trim();
   if (!assetPath) return "";
   try {
-    return new URL(assetPath, publicFirmwareManifestUrl()).href;
+    return new URL(assetPath, baseUrl || publicFirmwareManifestUrl()).href;
   } catch (err) {
     if (/^https?:\/\//i.test(assetPath)) return assetPath;
     return FIRMWARE_PUBLIC_MANIFEST_BASE + encodeURIComponent(DEVICE_ID) + "/" + assetPath.replace(/^\/+/, "");
   }
 }
 
-function firmwareInfoFromPublicManifest(data) {
+function firmwareInfoFromPublicManifest(data, baseUrl) {
   if (!data || typeof data !== "object") return null;
   var version = String(data.version || "").trim();
   if (!isSpecificFirmwareVersion(version)) return null;
@@ -646,13 +989,126 @@ function firmwareInfoFromPublicManifest(data) {
       return {
         latest_version: version,
         release_url: String(ota.release_url || "").trim(),
-        ota_url: publicFirmwareAssetUrl(otaPath),
+        ota_url: publicFirmwareAssetUrl(otaPath, baseUrl || publicFirmwareManifestUrl()),
         ota_filename: expectedOta,
         ota_md5: String(ota.md5 || "").trim(),
       };
     }
   }
   return null;
+}
+
+function firmwareInfoFromPublicVersionEntry(entry, baseUrl) {
+  if (!entry || typeof entry !== "object") return null;
+  var version = String(entry.version || entry.latest_version || "").trim();
+  if (!isSpecificFirmwareVersion(version)) return null;
+  var ota = entry.ota && typeof entry.ota === "object" ? entry.ota : entry;
+  var otaPath = String(ota.path || entry.ota_path || "").trim();
+  var expectedOta = DEVICE_ID + ".ota.bin";
+  if (!otaPath) return null;
+  var filename = otaPath.split("/").pop();
+  if (filename !== expectedOta) return null;
+  return {
+    latest_version: version,
+    release_url: String(entry.release_url || ota.release_url || "").trim(),
+    ota_url: publicFirmwareAssetUrl(otaPath, baseUrl || publicFirmwareVersionsUrl()),
+    ota_filename: expectedOta,
+    ota_md5: String(ota.md5 || entry.ota_md5 || "").trim(),
+  };
+}
+
+function firmwareInfosFromPublicVersions(data, baseUrl) {
+  if (!data || typeof data !== "object") return [];
+  var entries = Array.isArray(data.versions) ? data.versions : [];
+  var seen = {};
+  var infos = [];
+  for (var i = 0; i < entries.length; i++) {
+    var info = firmwareInfoFromPublicVersionEntry(entries[i], baseUrl || publicFirmwareVersionsUrl());
+    if (!info || seen[info.latest_version.toLowerCase()]) continue;
+    seen[info.latest_version.toLowerCase()] = true;
+    infos.push(info);
+  }
+  return infos;
+}
+
+function latestFirmwareInfoFromState() {
+  if (!isSpecificFirmwareVersion(state.firmwareLatestVersion)) return null;
+  return {
+    latest_version: state.firmwareLatestVersion,
+    release_url: state.firmwareReleaseUrl,
+    ota_url: state.firmwareOtaUrl,
+    ota_filename: state.firmwareOtaFilename || (DEVICE_ID + ".ota.bin"),
+    ota_md5: state.firmwareOtaMd5,
+  };
+}
+
+function findFirmwareVersionInfo(version) {
+  version = String(version || "").trim();
+  if (!version) return null;
+  for (var i = 0; i < state.firmwareVersionOptions.length; i++) {
+    var info = state.firmwareVersionOptions[i];
+    if (firmwareVersionsSame(info.latest_version, version)) return info;
+  }
+  var latest = latestFirmwareInfoFromState();
+  if (latest && firmwareVersionsSame(latest.latest_version, version)) return latest;
+  return null;
+}
+
+function selectedFirmwareInfo() {
+  return findFirmwareVersionInfo(state.firmwareSelectedVersion) ||
+    (state.firmwareVersionOptions.length ? state.firmwareVersionOptions[0] : null) ||
+    latestFirmwareInfoFromState();
+}
+
+function selectedFirmwareVersion() {
+  var info = selectedFirmwareInfo();
+  return info ? info.latest_version : "";
+}
+
+function selectedFirmwareIsLatest() {
+  var version = selectedFirmwareVersion();
+  return !version || !publicFirmwareReleaseKnown() ||
+    firmwareVersionsSame(version, state.firmwareLatestVersion);
+}
+
+function selectedFirmwareMatchesInstalled() {
+  var version = selectedFirmwareVersion();
+  return isSpecificFirmwareVersion(version) &&
+    isSpecificFirmwareVersion(state.firmwareVersion) &&
+    firmwareVersionsSame(state.firmwareVersion, version);
+}
+
+function firmwareVersionSelectorVisible() {
+  return state.firmwareVersionIndexLoaded && state.firmwareVersionOptions.length > 1;
+}
+
+function syncFirmwareVersionSelect() {
+  if (!els.fwVersionSelect) return;
+  var options = state.firmwareVersionOptions;
+  els.fwVersionSelect.innerHTML = "";
+  if (!options.length) {
+    if (els.fwVersionField) els.fwVersionField.style.display = "none";
+    return;
+  }
+  if (!findFirmwareVersionInfo(state.firmwareSelectedVersion)) {
+    state.firmwareSelectedVersion = options[0].latest_version;
+  }
+  for (var i = 0; i < options.length; i++) {
+    var info = options[i];
+    var option = document.createElement("option");
+    option.value = info.latest_version;
+    option.textContent = info.latest_version +
+      (i === 0 || firmwareVersionsSame(info.latest_version, state.firmwareLatestVersion) ? " (Latest)" : "");
+    if (firmwareVersionsSame(info.latest_version, state.firmwareVersion)) {
+      option.textContent += " (Installed)";
+    }
+    els.fwVersionSelect.appendChild(option);
+  }
+  els.fwVersionSelect.value = state.firmwareSelectedVersion;
+  if (els.fwVersionField) {
+    els.fwVersionField.style.display =
+      firmwareUpdateControlsVisible() && firmwareVersionSelectorVisible() ? "" : "none";
+  }
 }
 
 function setPublicFirmwareInfo(info) {
@@ -668,6 +1124,20 @@ function setPublicFirmwareInfo(info) {
       !isSpecificFirmwareVersion(state.firmwareVersion)) {
     setFirmwareVersion(latest);
   }
+  syncFirmwareVersionSelect();
+  renderFirmwareUpdateStatus();
+  return true;
+}
+
+function setPublicFirmwareVersions(infos) {
+  if (!Array.isArray(infos) || !infos.length) return false;
+  state.firmwareVersionOptions = infos;
+  state.firmwareVersionIndexLoaded = true;
+  if (!state.firmwareSelectedVersion || !findFirmwareVersionInfo(state.firmwareSelectedVersion)) {
+    state.firmwareSelectedVersion = infos[0].latest_version;
+  }
+  setPublicFirmwareInfo(infos[0]);
+  syncFirmwareVersionSelect();
   renderFirmwareUpdateStatus();
   return true;
 }
@@ -683,9 +1153,13 @@ function installedFirmwareMatchesPublicRelease() {
 }
 
 function publicFirmwareStatusHtml() {
-  var status = "Latest public version: " + escHtml(state.firmwareLatestVersion);
-  if (state.firmwareReleaseUrl) {
-    status += ' <a href="' + escAttr(state.firmwareReleaseUrl) + '" target="_blank" rel="noopener">release notes</a>';
+  var info = selectedFirmwareInfo() || latestFirmwareInfoFromState();
+  var isLatest = selectedFirmwareIsLatest();
+  var version = info && info.latest_version ? info.latest_version : state.firmwareLatestVersion;
+  var releaseUrl = info && info.release_url ? info.release_url : state.firmwareReleaseUrl;
+  var status = (isLatest ? "Latest public version: " : "Selected firmware version: ") + escHtml(version);
+  if (releaseUrl) {
+    status += ' <a href="' + escAttr(releaseUrl) + '" target="_blank" rel="noopener">release notes</a>';
   }
   return status;
 }
@@ -698,6 +1172,9 @@ function syncFirmwareUpdateUi() {
   var show = firmwareUpdateControlsVisible();
   if (els.fwActions) els.fwActions.style.display = show ? "" : "none";
   if (els.fwStatus) els.fwStatus.style.display = show ? "" : "none";
+  if (els.fwVersionField) {
+    els.fwVersionField.style.display = show && firmwareVersionSelectorVisible() ? "" : "none";
+  }
   if (els.setAutoUpdateRow) els.setAutoUpdateRow.style.display = show ? "" : "none";
   if (els.updateFreqWrap) {
     els.updateFreqWrap.style.display = show && state.autoUpdate ? "" : "none";
@@ -712,11 +1189,13 @@ function renderFirmwareUpdateStatus() {
   if (state.firmwareUpdateState === "INSTALLING") {
     status = state.firmwareInstallStatus || "Installing update\u2026";
     cls += " sp-update-installing";
-  } else if (firmwareUpdateAvailable() || publicFirmwareInstallAvailable()) {
+  } else if (firmwareInstallAvailable()) {
     status = publicFirmwareStatusHtml();
     cls += " sp-update-available";
   } else if (state.firmwareUpdateState === "NO UPDATE") {
-    if (publicFirmwareReleaseKnown() &&
+    if (selectedFirmwareMatchesInstalled()) {
+      inlineStatus = selectedFirmwareIsLatest() ? "Up to date" : "Installed";
+    } else if (publicFirmwareReleaseKnown() &&
         isSpecificFirmwareVersion(state.firmwareVersion) &&
         !installedFirmwareMatchesPublicRelease()) {
       status = publicFirmwareStatusHtml();
@@ -724,8 +1203,8 @@ function renderFirmwareUpdateStatus() {
       inlineStatus = "Up to date";
     }
   } else if (publicFirmwareReleaseKnown()) {
-    if (installedFirmwareMatchesPublicRelease()) {
-      inlineStatus = "Up to date";
+    if (selectedFirmwareMatchesInstalled()) {
+      inlineStatus = selectedFirmwareIsLatest() ? "Up to date" : "Installed";
     } else {
       status = publicFirmwareStatusHtml();
     }
@@ -744,13 +1223,19 @@ function renderFirmwareUpdateStatus() {
     if (state.firmwareUpdateState === "INSTALLING") {
       els.fwCheckBtn.disabled = true;
       els.fwCheckBtn.textContent = "Installing\u2026";
+    } else if (selectedFirmwareMatchesInstalled() && !selectedFirmwareIsLatest()) {
+      els.fwCheckBtn.disabled = true;
+      els.fwCheckBtn.textContent = "Installed";
     } else if (firmwareInstallAvailable()) {
       els.fwCheckBtn.disabled = false;
-      els.fwCheckBtn.textContent = "Install Update";
+      els.fwCheckBtn.textContent = selectedFirmwareIsLatest() ? "Install Update" : "Install Version";
     } else {
       els.fwCheckBtn.disabled = state.firmwareChecking;
       els.fwCheckBtn.textContent = state.firmwareChecking ? "Checking\u2026" : "Check for Update";
     }
+  }
+  if (els.fwVersionSelect) {
+    els.fwVersionSelect.disabled = state.firmwareUpdateState === "INSTALLING" || state.firmwareChecking;
   }
   syncFirmwareUpdateUi();
 }

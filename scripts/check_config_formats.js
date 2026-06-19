@@ -80,6 +80,7 @@ function subpageTypeFromCode(code) {
     H: "climate",
     WH: "webhook",
     P: "push",
+    SL: "screen_lock",
     I: "internal",
     G: "subpage",
   }[code || ""] || (code || "");
@@ -221,6 +222,29 @@ current.generatedContract.requiredCards.forEach((type) => {
 });
 assert.strictEqual(hooks.cardContractCardLabel("media"), "Media", "generated contract exposes card labels");
 assert.strictEqual(hooks.cardContractAllowInSubpage("subpage"), false, "generated contract exposes subpage placement rules");
+const subpageKindOption = Array.from(hooks.cardContractOptions("subpage"))
+  .find((option) => option.name === "subpage_kind");
+assert.deepStrictEqual(Array.from(subpageKindOption.values), [
+  "",
+  "switch",
+  "lights",
+  "climate",
+  "presence",
+  "media",
+  "alarm",
+  "cover",
+  "garage",
+  "lock",
+  "vacuum",
+  "weather",
+  "sensor",
+  "image",
+], "subpage type options include status presets for newer card styles");
+assert.strictEqual(
+  hooks.subpageKind({ options: "subpage_kind=vacuum" }),
+  "vacuum",
+  "vacuum subpage type is accepted by the web config normalizer"
+);
 assert.deepStrictEqual(Array.from(hooks.cardContractDomains("climate")), ["climate"], "generated contract exposes card domains");
 assert.deepStrictEqual(buttonShape(hooks.cardContractDefaultConfig("climate")), buttonShape({
   entity: "",
@@ -249,7 +273,6 @@ function assertButtonTypeSpecBacked(type, description) {
   assert.strictEqual(spec.label, hooks.cardContractCardLabel(type), `${description} picker label is spec-backed`);
   assert.strictEqual(spec.allowInSubpage, hooks.cardContractAllowInSubpage(type), `${description} subpage visibility is spec-backed`);
   assert.strictEqual(spec.pickerKey, hooks.cardContractPickerKey(type), `${description} picker key is spec-backed`);
-  assert.strictEqual(spec.experimental, hooks.cardContractExperimental(type), `${description} experimental flag is spec-backed`);
   assert.strictEqual(spec.hidden, hooks.cardContractHidden(type), `${description} hidden flag is spec-backed`);
   assert.deepStrictEqual(Array.from(spec.domains), Array.from(hooks.cardContractDomains(type)), `${description} entity domains are spec-backed`);
   assert.deepStrictEqual(
@@ -265,11 +288,13 @@ assertButtonTypeSpecBacked("cover", "cover card");
 assertButtonTypeSpecBacked("light_brightness", "light brightness card");
 assertButtonTypeSpecBacked("light_switch", "light switch card");
 assertButtonTypeSpecBacked("light_temperature", "light temperature card");
+assertButtonTypeSpecBacked("light_control", "full light control card");
 assertButtonTypeSpecBacked("calendar", "calendar card");
 assertButtonTypeSpecBacked("clock", "clock card");
 assertButtonTypeSpecBacked("timezone", "timezone card");
 assertButtonTypeSpecBacked("weather", "weather card");
 assertButtonTypeSpecBacked("push", "push card");
+assertButtonTypeSpecBacked("screen_lock", "screen lock card");
 assertButtonTypeSpecBacked("webhook", "webhook card");
 assertButtonTypeSpecBacked("internal", "internal relay card");
 assertButtonTypeSpecBacked("garage", "garage card");
@@ -391,20 +416,31 @@ const coverOptionSpecs = hooks.cardContractOptions("cover");
 const coverOptionByName = Object.fromEntries(coverOptionSpecs.map((option) => [option.name, option]));
 assert.deepStrictEqual(
   Array.from(coverOptionByName.cover_mode.values),
-  ["", "tilt", "toggle", "open", "close", "stop", "set_position"],
-  "cover mode spec exposes slider, tilt, toggle, and command modes"
+  ["modal", "", "tilt", "toggle", "open", "close", "stop", "set_position"],
+  "cover mode spec exposes modal, slider, tilt, toggle, and command modes"
 );
 assert.deepStrictEqual(
   Array.from(hooks.coverModeOptionValues(false)),
-  ["", "tilt", "toggle"],
+  ["modal", "", "tilt", "toggle"],
   "cover mode helper hides command modes when commands are not allowed"
 );
 assert.deepStrictEqual(
   Array.from(hooks.coverModeOptionValues(true)),
-  ["", "tilt", "toggle", "open", "close", "stop", "set_position"],
+  ["modal", "", "tilt", "toggle", "open", "close", "stop", "set_position"],
   "cover mode helper exposes command modes when commands are allowed"
 );
+assert.strictEqual(hooks.normalizeCoverMode("modal", true), "modal", "cover modal mode normalizes from spec");
 assert.strictEqual(hooks.normalizeCoverMode("set_position", true), "set_position", "cover command mode normalizes from spec");
+assert.deepStrictEqual(
+  Array.from(hooks.coverModeOptionLabels("")),
+  ["modal:Modal", ":Slider: Position", "tilt:Slider: Tilt", "toggle:Toggle", "open:Open", "close:Close", "stop:Stop", "set_position:Set Position"],
+  "cover modal option is visible"
+);
+assert.deepStrictEqual(
+  Array.from(hooks.coverModeOptionLabels("modal")),
+  ["modal:Modal", ":Slider: Position", "tilt:Slider: Tilt", "toggle:Toggle", "open:Open", "close:Close", "stop:Stop", "set_position:Set Position"],
+  "saved cover modal cards use the normal modal label"
+);
 assert.strictEqual(hooks.normalizeCoverMode("set_position", false), "", "cover command mode is rejected when commands are disabled");
 assert.strictEqual(hooks.normalizeCoverPosition("-1"), "0", "cover position spec clamps minimum");
 assert.strictEqual(hooks.normalizeCoverPosition("101"), "100", "cover position spec clamps maximum");
@@ -422,7 +458,7 @@ const switchOptionSpecs = hooks.cardContractOptions("");
 const switchOptionByName = Object.fromEntries(switchOptionSpecs.map((option) => [option.name, option]));
 assert.deepStrictEqual(
   Array.from(switchOptionSpecs, (option) => option.name),
-  ["large_numbers", "confirmation_mode", "confirm_message", "confirm_yes", "confirm_no"],
+  ["large_numbers", "confirmation_mode", "on_pattern", "confirm_message", "confirm_yes", "confirm_no"],
   "switch option specs preserve current option order"
 );
 assert.deepStrictEqual(
@@ -441,19 +477,20 @@ assert.strictEqual(
   "switch confirmation message spec exposes mode-specific defaults"
 );
 assert.strictEqual(switchOptionByName.large_numbers.kind, "flag", "switch large-number option is a flag");
+assert.deepStrictEqual(Array.from(switchOptionByName.on_pattern.values), ["", "stripes"], "switch on pattern spec exposes stripes option");
 assert.strictEqual(switchOptionByName.confirm_yes.defaultValue, "Yes", "switch confirm text spec exposes current default");
 assert.strictEqual(switchOptionByName.confirm_no.defaultValue, "No", "switch cancel text spec exposes current default");
 const sensorOptionSpecs = hooks.cardContractOptions("sensor");
 const sensorOptionByName = Object.fromEntries(sensorOptionSpecs.map((option) => [option.name, option]));
 assert.deepStrictEqual(
   Array.from(sensorOptionSpecs, (option) => option.name),
-  ["large_numbers", "active_color", "state_labels", "state_input", "state_output"],
+  ["large_numbers", "active_color", "state_labels", "state_input", "state_output", "state_input_2", "state_output_2"],
   "sensor option specs preserve current option order"
 );
 assert.deepStrictEqual(
   Array.from(sensorOptionByName.large_numbers.supportedWhen.precisionNot),
-  ["text"],
-  "sensor large-number option spec excludes text sensor mode"
+  ["icon", "text"],
+  "sensor large-number option spec excludes icon and text sensor modes"
 );
 assert.strictEqual(
   hooks.cardContractOptionSupportedFor("sensor", "large_numbers", { precision: "" }),
@@ -464,6 +501,11 @@ assert.strictEqual(
   hooks.cardContractOptionSupportedFor("sensor", "large_numbers", { precision: "text" }),
   false,
   "sensor large-number option blocks text mode"
+);
+assert.strictEqual(
+  hooks.cardContractOptionSupportedFor("sensor", "large_numbers", { precision: "icon" }),
+  false,
+  "sensor large-number option blocks icon mode"
 );
 assert.strictEqual(sensorOptionByName.active_color.hidden, true, "sensor active-colour option spec remains hidden");
 assert.strictEqual(sensorOptionByName.active_color.migration, "drop", "sensor active-colour option spec documents cleanup");
@@ -632,6 +674,11 @@ assert.strictEqual(hooks.switchConfirmationEnabled(confirmOnSwitch), true, "swit
 assert.strictEqual(hooks.switchConfirmationMode(confirmOnSwitch), "on", "switch on confirmation mode");
 assert.strictEqual(hooks.switchConfirmationMessage(confirmOnSwitch), "Turn on this device?", "switch on confirmation default message");
 assert.strictEqual(hooks.serializeButtonConfig(confirmOnSwitch), "switch.printer;Printer;Printer 3D;Auto;;;;;confirm_on", "switch on confirmation round-trip");
+const patternedSwitch = hooks.parseButtonConfig("switch.printer;Printer;Printer 3D;Auto;;;;;on_pattern=stripes");
+assert.strictEqual(hooks.cardOnPattern(patternedSwitch), "stripes", "switch on pattern is decoded");
+assert.strictEqual(hooks.serializeButtonConfig(patternedSwitch), "switch.printer;Printer;Printer 3D;Auto;;;;;on_pattern=stripes", "switch on pattern round-trip");
+hooks.setCardOnPattern(patternedSwitch, "");
+assert.strictEqual(patternedSwitch.options, "", "switch on pattern can be cleared");
 const confirmBothSwitch = hooks.parseButtonConfig("switch.printer;Printer;Printer 3D;Auto;;;;;confirm_off,confirm_on");
 assert.strictEqual(hooks.switchConfirmationMode(confirmBothSwitch), "both", "switch both confirmation mode");
 assert.strictEqual(hooks.switchConfirmationMessage(confirmBothSwitch), "Toggle this device?", "switch both confirmation default message");
@@ -659,13 +706,25 @@ assertButtonRoundTrip(hooks, "large sensor numbers option", {
   options: "large_numbers",
 }, false);
 
+const iconSensor = hooks.parseButtonConfig(";;;;binary_sensor.patio_door;;sensor;icon;");
+iconSensor.icon = "Door Closed";
+iconSensor.icon_on = "Door Open";
+assertButtonRoundTrip(hooks, "sensor icon display", iconSensor, false);
+assert.strictEqual(
+  hooks.cardLargeNumbersEnabled({ type: "sensor", precision: "icon", options: "large_numbers" }),
+  false,
+  "sensor icon display does not use large numbers"
+);
+
 const parsedActiveSensor = hooks.parseButtonConfig(";;;;binary_sensor.patio_door;;sensor;text;active_color");
 assert.strictEqual(hooks.sensorActiveColorEnabled(parsedActiveSensor), false, "sensor active colour removed");
 
-const stateLabelSensor = hooks.parseButtonConfig(";;;;sensor.bin_level;;sensor;text;state_labels,state_input=high,state_output=Please%20empty");
+const stateLabelSensor = hooks.parseButtonConfig(";;;;sensor.bin_level;;sensor;text;state_labels,state_input=high,state_output=Please%20empty,state_input_2=low,state_output_2=Full");
 assert.strictEqual(hooks.sensorStateLabelsEnabled(stateLabelSensor), true, "sensor text state labels enabled");
 assert.strictEqual(hooks.sensorStateInput(stateLabelSensor), "high", "sensor state input is decoded");
 assert.strictEqual(hooks.sensorStateOutput(stateLabelSensor), "Please empty", "sensor state output is decoded");
+assert.strictEqual(hooks.sensorStateInput2(stateLabelSensor), "low", "second sensor state input is decoded");
+assert.strictEqual(hooks.sensorStateOutput2(stateLabelSensor), "Full", "second sensor state output is decoded");
 assertButtonRoundTrip(hooks, "sensor status translation", stateLabelSensor, false);
 const legacyStateLabelSensor = hooks.parseButtonConfig(";;;;sensor.bin_level;;sensor;text;state_labels,state_high_label=Please%20empty");
 assert.strictEqual(legacyStateLabelSensor.options, "state_labels,state_input=high,state_output=Please empty", "legacy high label migrates to status translation");
@@ -758,6 +817,34 @@ assertButtonRoundTrip(hooks, "internal relay push button", {
   precision: "",
 }, false);
 
+const screenLockCard = {
+  entity: "",
+  label: "",
+  icon: "Lock",
+  icon_on: "Lock Open",
+  sensor: "",
+  unit: "",
+  type: "screen_lock",
+  precision: "",
+  options: "",
+};
+assertButtonRoundTrip(hooks, "screen lock local card", screenLockCard, false);
+assert.deepStrictEqual(
+  buttonShape(hooks.parseButtonConfig(hooks.serializeButtonConfig({
+    entity: "switch.should_not_save",
+    label: "Screen Lock",
+    icon: "Auto",
+    icon_on: "Auto",
+    sensor: "sensor.should_not_save",
+    unit: "%",
+    type: "screen_lock",
+    precision: "2",
+    options: "large_numbers",
+  }))),
+  buttonShape(screenLockCard),
+  "screen lock card strips non-local config fields"
+);
+
 assertButtonRoundTrip(hooks, "webhook post json", {
   entity: "https://maker.ifttt.com/trigger/door/json/with/key/test",
   label: "Door Alert",
@@ -806,7 +893,7 @@ assertButtonRoundTrip(hooks, "garage open command button", {
   precision: "",
 }, false);
 
-assertButtonMigration(hooks, "garage command clears status display", "cover.garage;Open;Garage Open;Auto;open;;garage;;label_display=status", {
+assertButtonRoundTrip(hooks, "garage open command status button", {
   entity: "cover.garage",
   label: "Open",
   icon: "Garage Open",
@@ -815,8 +902,18 @@ assertButtonMigration(hooks, "garage command clears status display", "cover.gara
   unit: "",
   type: "garage",
   precision: "",
-  options: "",
-});
+  options: "label_display=status",
+}, false);
+
+assert.strictEqual(
+  hooks.garageLabelDisplayMode({
+    type: "garage",
+    sensor: "open",
+    options: "label_display=status",
+  }),
+  "status",
+  "garage open command status display option"
+);
 
 assertButtonRoundTrip(hooks, "garage close command button", {
   entity: "cover.garage",
@@ -827,6 +924,18 @@ assertButtonRoundTrip(hooks, "garage close command button", {
   unit: "",
   type: "garage",
   precision: "",
+}, false);
+
+assertButtonRoundTrip(hooks, "garage close command status button", {
+  entity: "cover.garage",
+  label: "Close",
+  icon: "Garage",
+  icon_on: "Auto",
+  sensor: "close",
+  unit: "",
+  type: "garage",
+  precision: "",
+  options: "label_display=status",
 }, false);
 
 assertButtonRoundTrip(hooks, "lock button", {
@@ -897,6 +1006,36 @@ assert.strictEqual(hooks.alarmPinRequired(parsedCustomAlarm, "arm"), false, "ala
 assert.strictEqual(hooks.alarmPinRequired(parsedCustomAlarm, "disarm"), true, "alarm disarm PIN remains default");
 assert.deepStrictEqual(Array.from(hooks.alarmVisibleActions(parsedCustomAlarm)), ["away", "disarm"], "alarm visible action subset");
 
+const nightVacationAlarmCard = {
+  entity: "alarm_control_panel.house",
+  label: "House Alarm",
+  icon: "Alarm",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "alarm",
+  precision: "",
+  options: "actions=night%7Cvacation",
+};
+assertButtonRoundTrip(hooks, "alarm card night vacation options", nightVacationAlarmCard, false);
+const parsedNightVacationAlarm = hooks.parseButtonConfig(hooks.serializeButtonConfig(nightVacationAlarmCard));
+assert.deepStrictEqual(Array.from(hooks.alarmVisibleActions(parsedNightVacationAlarm)), ["night", "vacation"], "alarm visible night and vacation actions");
+
+const tooManyAlarmCard = {
+  entity: "alarm_control_panel.house",
+  label: "House Alarm",
+  icon: "Alarm",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "alarm",
+  precision: "",
+  options: "actions=away%7Chome%7Cnight%7Cvacation%7Cdisarm",
+};
+const parsedTooManyAlarm = hooks.parseButtonConfig(hooks.serializeButtonConfig(tooManyAlarmCard));
+assert.deepStrictEqual(Array.from(hooks.alarmVisibleActions(parsedTooManyAlarm)), ["away", "home", "night"], "alarm visible actions are limited to three");
+assert.strictEqual(parsedTooManyAlarm.options, "actions=away%7Chome%7Cnight", "alarm visible action overflow is trimmed when saved");
+
 const statusAlarmCard = {
   entity: "alarm_control_panel.house",
   label: "House Alarm",
@@ -938,7 +1077,7 @@ assertButtonMigration(hooks, "alarm clears ignored fields", "alarm_control_panel
   unit: "",
   type: "alarm",
   precision: "",
-  options: "pin_disarm=0,actions=home",
+  options: "pin_disarm=0,actions=home%7Cnight",
 });
 
 assertButtonRoundTrip(hooks, "alarm action button", {
@@ -953,22 +1092,40 @@ assertButtonRoundTrip(hooks, "alarm action button", {
   options: "pin_arm=0",
 }, false);
 
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("alarm", false, false), true, "alarm modal picker visible on parent page");
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("alarm", true, false), true, "alarm modal picker visible with experimental flag");
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("alarm", true, true), true, "alarm card family visible in subpages");
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("alarm_action", false, false), false, "alarm actions hidden as a separate picker item");
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("alarm_action", false, true), false, "alarm actions hidden as a separate subpage picker item");
+assertButtonRoundTrip(hooks, "alarm night action button", {
+  entity: "alarm_control_panel.house",
+  label: "Arm Night",
+  icon: "Weather Night",
+  icon_on: "Auto",
+  sensor: "night",
+  unit: "",
+  type: "alarm_action",
+  precision: "",
+  options: "pin_arm=0",
+}, false);
+
+assertButtonRoundTrip(hooks, "alarm vacation action button", {
+  entity: "alarm_control_panel.house",
+  label: "Arm Vacation",
+  icon: "Airplane",
+  icon_on: "Auto",
+  sensor: "vacation",
+  unit: "",
+  type: "alarm_action",
+  precision: "",
+  options: "pin_arm=0",
+}, false);
+
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("alarm", false), true, "alarm modal picker visible on parent page");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("alarm", true), true, "alarm card family visible in subpages");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("alarm_action", false), false, "alarm actions hidden as a separate picker item");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("alarm_action", true), false, "alarm actions hidden as a separate subpage picker item");
 assert.strictEqual(
-  loadHooks("?developer=experimental").buttonTypeVisibleInPickerForExperimental("alarm", false, false),
-  true,
-  "alarm modal picker visible with developer URL flag"
-);
-assert.strictEqual(
-  hooks.buttonTypePickerKeysForExperimental(false, false, "alarm").indexOf("alarm") >= 0,
+  hooks.buttonTypePickerKeysFor(false, "alarm").indexOf("alarm") >= 0,
   true,
   "saved alarm modal type remains selectable");
 assert.strictEqual(
-  hooks.buttonTypePickerKeysForExperimental(false, true, "alarm").indexOf("alarm") >= 0,
+  hooks.buttonTypePickerKeysFor(true, "alarm").indexOf("alarm") >= 0,
   true,
   "saved alarm action subtype remains represented in subpages");
 
@@ -1453,18 +1610,33 @@ assertButtonRoundTrip(hooks, "light switch card", {
   precision: "",
   options: "",
 }, false);
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("light_brightness", false, false), true, "lights picker visible on parent page");
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("light_brightness", false, true), true, "lights picker visible in subpages");
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("light_switch", false, false), false, "light switch subtype hidden from top-level picker");
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("light_switch", false, true), false, "light switch subtype hidden from subpage picker");
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("light_temperature", false, false), false, "light temperature subtype hidden from top-level picker");
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("light_temperature", false, true), false, "light temperature subtype hidden from subpage picker");
+assertButtonRoundTrip(hooks, "full light control card", {
+  entity: "light.living_room",
+  label: "Living Room",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "light_control",
+  precision: "",
+  options: "",
+}, false);
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("light_brightness", false), true, "lights picker visible on parent page");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("light_brightness", true), true, "lights picker visible in subpages");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("light_switch", false), false, "light switch subtype hidden from top-level picker");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("light_switch", true), false, "light switch subtype hidden from subpage picker");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("light_temperature", false), false, "light temperature subtype hidden from top-level picker");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("light_temperature", true), false, "light temperature subtype hidden from subpage picker");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("light_control", false), false, "full light control subtype hidden from top-level picker");
+assert.strictEqual(hooks.buttonTypeRuntimeSpec("light_control").hidden, true, "full light control is grouped under Lights");
+assert.strictEqual(hooks.defaultButtonTypeForPicker("light_brightness"), "light_control", "lights picker defaults to all controls");
+assert.strictEqual(hooks.defaultButtonTypeForPicker("cover"), "cover", "ungrouped picker entries keep their own type");
 assert.strictEqual(
-  hooks.buttonTypePickerKeysForExperimental(false, false, "light_brightness").indexOf("light_brightness") >= 0,
+  hooks.buttonTypePickerKeysFor(false, "light_brightness").indexOf("light_brightness") >= 0,
   true,
   "saved light subtypes remain represented by the lights picker");
 assert.strictEqual(
-  hooks.buttonTypePickerKeysForExperimental(false, true, "light_brightness").indexOf("light_brightness") >= 0,
+  hooks.buttonTypePickerKeysFor(true, "light_brightness").indexOf("light_brightness") >= 0,
   true,
   "saved light subtypes remain represented in subpages");
 
@@ -1544,20 +1716,148 @@ assertButtonMigration(hooks, "fan card clears ignored fields", "fan.bedroom;Bedr
   type: "fan_direction",
 });
 
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_speed", false, false), false, "fan picker hidden without experimental flag");
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_speed", true, false), true, "fan picker visible with experimental flag");
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_speed", true, true), true, "fan picker visible in subpages with experimental flag");
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_switch", true, false), false, "fan subtype hidden from top-level picker");
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_switch", true, true), false, "fan switch subtype hidden from subpage picker");
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_oscillate", true, true), false, "fan oscillation subtype hidden from subpage picker");
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_direction", true, true), false, "fan direction subtype hidden from subpage picker");
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("fan_preset", true, true), false, "fan preset subtype hidden from subpage picker");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("fan_speed", false), true, "fan picker visible on parent page");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("fan_speed", true), true, "fan picker visible in subpages");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("image", false), true, "image picker visible on parent page");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("image", true), true, "image picker visible in subpages");
+assert.deepStrictEqual(Array.from(hooks.imageModalModeValues()), ["fill", "fit"], "image modal mode values are contract-backed");
+assert.deepStrictEqual(Array.from(hooks.cardContractDomains("image")), ["camera", "image"], "image cards accept camera and image entities");
+assert.strictEqual(hooks.normalizeImageOptions("image_refresh=30,image_refresh_mode=timer,unknown=1"), "", "legacy image refresh options are dropped");
+assert.strictEqual(hooks.normalizeImageOptions("image_label,image_refresh=30,image_refresh_mode=timer,unknown=1"), "image_label", "image label option is preserved while legacy refresh values are dropped");
+assert.strictEqual(hooks.normalizeImageOptions("image_modal_mode=fit,image_refresh=30,image_refresh_mode=timer,unknown=1"), "image_modal_mode=fit", "image modal fit option is preserved while legacy refresh values are dropped");
+assert.strictEqual(hooks.normalizeImageOptions("image_modal_mode=fill,image_refresh=30"), "", "image modal fill and legacy refresh options are omitted");
+assert.strictEqual(hooks.normalizeImageOptions("image_modal_mode=bad,image_refresh=30"), "", "invalid image modal mode and legacy refresh options are dropped");
+assert.strictEqual(hooks.normalizeImageOptions("image_label,image_refresh=5,image_refresh_mode=bad"), "image_label", "image label option survives invalid legacy refresh values");
+const imageCardForLimit = {
+  entity: "camera.front_door",
+  label: "",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "image",
+  precision: "",
+  options: "",
+};
+const switchCardForImageLimit = {
+  entity: "switch.kitchen",
+  label: "Kitchen",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "",
+  precision: "",
+  options: "",
+};
+const imageLimitSnapshot = {
+  grid: [1, 2, 3, 0],
+  buttons: [imageCardForLimit, imageCardForLimit, switchCardForImageLimit, imageCardForLimit],
+  subpages: {
+    4: {
+      grid: [1, 2, 0],
+      buttons: [imageCardForLimit, imageCardForLimit, imageCardForLimit],
+    },
+  },
+};
+assert.strictEqual(hooks.imageCardLimit(), 4, "image card editor limit matches firmware downloader slots");
+assert.strictEqual(hooks.imageCardCountForTest(imageLimitSnapshot), 4, "image card count spans main page and subpages");
+assert.strictEqual(hooks.imageCardCandidateAllowedForTest(imageLimitSnapshot, {
+  isSub: false,
+  slot: 3,
+  button: imageCardForLimit,
+}), false, "saving a fifth image card on the main page is blocked");
+assert.strictEqual(hooks.imageCardCandidateAllowedForTest(imageLimitSnapshot, {
+  isSub: true,
+  homeSlot: 4,
+  slot: 3,
+  button: imageCardForLimit,
+}), false, "saving a fifth image card on a subpage is blocked");
+assert.strictEqual(hooks.imageCardCandidateAllowedForTest(imageLimitSnapshot, {
+  isSub: false,
+  slot: 2,
+  button: switchCardForImageLimit,
+}), true, "replacing an existing image card frees a firmware slot");
+assertButtonRoundTrip(hooks, "image card default options", {
+  entity: "camera.front_door",
+  label: "",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "image",
+  precision: "",
+  options: "",
+}, false);
+assert.deepStrictEqual(buttonShape(hooks.parseButtonConfig(
+  "~camera.front_door,,Auto,Auto,,,image,,image_refresh=30%2Cimage_refresh_mode=timer"
+)), buttonShape({
+  entity: "camera.front_door",
+  type: "image",
+}), "image card legacy refresh options are cleaned up by web parser");
+assertButtonRoundTrip(hooks, "image card label option", {
+  entity: "camera.front_door",
+  label: "Front Door",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "image",
+  precision: "",
+  options: "image_label",
+}, false);
+assert.deepStrictEqual(buttonShape(hooks.parseButtonConfig(
+  "~camera.front_door,Front%20Door,Auto,Auto,,,image,,image_label%2Cimage_refresh=30%2Cimage_refresh_mode=timer"
+)), buttonShape({
+  entity: "camera.front_door",
+  label: "Front Door",
+  type: "image",
+  options: "image_label",
+}), "image card label survives legacy refresh cleanup");
+assertButtonRoundTrip(hooks, "image card icon option", {
+  entity: "camera.front_door",
+  label: "",
+  icon: "Camera",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "image",
+  precision: "",
+  options: "image_icon",
+}, false);
+assertButtonRoundTrip(hooks, "image card label and icon options", {
+  entity: "camera.front_door",
+  label: "Front Door",
+  icon: "Camera",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "image",
+  precision: "",
+  options: "image_label,image_icon",
+}, false);
+assertButtonMigration(hooks, "image card clears label without overlay option", "camera.front_door;Front Door;Auto;Auto;;;image;;", {
+  entity: "camera.front_door",
+  label: "",
+  icon: "Auto",
+  icon_on: "Auto",
+  sensor: "",
+  unit: "",
+  type: "image",
+  precision: "",
+  options: "",
+});
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("fan_switch", false), false, "fan subtype hidden from top-level picker");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("fan_switch", true), false, "fan switch subtype hidden from subpage picker");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("fan_oscillate", true), false, "fan oscillation subtype hidden from subpage picker");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("fan_direction", true), false, "fan direction subtype hidden from subpage picker");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("fan_preset", true), false, "fan preset subtype hidden from subpage picker");
 assert.strictEqual(
-  hooks.buttonTypePickerKeysForExperimental(false, false, "fan_speed").indexOf("fan_speed") >= 0,
+  hooks.buttonTypePickerKeysFor(false, "fan_speed").indexOf("fan_speed") >= 0,
   true,
-  "saved fan type remains selectable while hidden");
+  "fan type remains selectable");
 assert.strictEqual(hooks.buttonTypeRuntimeSpec("todo"), null, "todo card type is removed from the webserver");
-assert.strictEqual(hooks.buttonTypeVisibleInPickerForExperimental("todo", false, false), false, "todo picker is removed");
+assert.strictEqual(hooks.buttonTypeVisibleInPickerFor("todo", false), false, "todo picker is removed");
 assert.deepStrictEqual(Array.from(hooks.cardContractDomains("todo")), [], "todo card has no webserver entity contract");
 assert.strictEqual(hooks.cardLargeNumbersEnabled({ type: "todo", options: "large_numbers" }), false, "todo no longer supports webserver large numbers");
 
@@ -1777,6 +2077,22 @@ assert.strictEqual(hooks.actionCardStateDisplayMode(parsedActionNumericState), "
 assert.strictEqual(hooks.actionCardStateUnit(parsedActionNumericState), "W", "action card numeric state unit");
 assert.strictEqual(hooks.actionCardStatePrecision(parsedActionNumericState), "1", "action card numeric state precision");
 
+const scriptActionZeroPrecisionStateCard = {
+  entity: "script.kitchen_lights",
+  label: "Kitchen Lights",
+  icon: "Flash",
+  icon_on: "Auto",
+  sensor: "script.turn_on",
+  unit: "",
+  type: "action",
+  precision: "",
+  options: "state_entity=sensor.kitchen_power,state_precision=0",
+};
+assertButtonRoundTrip(hooks, "script action card with zero-precision numeric state display", scriptActionZeroPrecisionStateCard, false);
+const parsedActionZeroPrecisionState = hooks.parseButtonConfig(hooks.serializeButtonConfig(scriptActionZeroPrecisionStateCard));
+assert.strictEqual(hooks.actionCardStateDisplayMode(parsedActionZeroPrecisionState), "numeric", "action card zero-precision numeric state mode");
+assert.strictEqual(hooks.actionCardStatePrecision(parsedActionZeroPrecisionState), "0", "action card zero-precision numeric state precision");
+
 const scriptActionTextStateCard = {
   entity: "script.washer",
   label: "Washer",
@@ -1792,6 +2108,22 @@ assertButtonRoundTrip(hooks, "script action card with text state display", scrip
 const parsedActionTextState = hooks.parseButtonConfig(hooks.serializeButtonConfig(scriptActionTextStateCard));
 assert.strictEqual(hooks.actionCardStateDisplayMode(parsedActionTextState), "text", "action card text state mode");
 assert.strictEqual(hooks.actionCardStatePrecision(parsedActionTextState), "text", "action card text state precision");
+
+const scriptActionIconStateCard = {
+  entity: "script.goodnight",
+  label: "Goodnight",
+  icon: "Flash",
+  icon_on: "Check Circle",
+  sensor: "script.turn_on",
+  unit: "",
+  type: "action",
+  precision: "",
+  options: "state_entity=input_boolean.goodnight_ready,state_precision=icon",
+};
+assertButtonRoundTrip(hooks, "script action card with icon state display", scriptActionIconStateCard, false);
+const parsedActionIconState = hooks.parseButtonConfig(hooks.serializeButtonConfig(scriptActionIconStateCard));
+assert.strictEqual(hooks.actionCardStateDisplayMode(parsedActionIconState), "icon", "action card icon state mode");
+assert.strictEqual(hooks.actionCardStatePrecision(parsedActionIconState), "icon", "action card icon state precision");
 
 assertButtonRoundTrip(hooks, "automation action card", {
   entity: "automation.goodnight",
@@ -1815,27 +2147,48 @@ assertButtonRoundTrip(hooks, "button action card", {
   precision: "",
 }, false);
 
-assertButtonRoundTrip(hooks, "vacuum start action card", {
+assertButtonMigration(hooks, "legacy vacuum start action card", "vacuum.k11_vacuum_784c;Vacuum Bath;Robot Vacuum;Auto;vacuum.start;;action", {
   entity: "vacuum.k11_vacuum_784c",
   label: "Vacuum Bath",
   icon: "Robot Vacuum",
   icon_on: "Auto",
-  sensor: "vacuum.start",
+  sensor: "start_stop",
   unit: "",
-  type: "action",
+  type: "vacuum",
   precision: "",
-}, false);
+});
 
-assertButtonRoundTrip(hooks, "vacuum return to base action card", {
+assertButtonMigration(hooks, "legacy vacuum return to base action card", "vacuum.k11_vacuum_784c;Dock Vacuum;Robot Vacuum;Auto;vacuum.return_to_base;;action", {
   entity: "vacuum.k11_vacuum_784c",
   label: "Dock Vacuum",
   icon: "Robot Vacuum",
   icon_on: "Auto",
-  sensor: "vacuum.return_to_base",
+  sensor: "dock",
   unit: "",
-  type: "action",
+  type: "vacuum",
   precision: "",
-}, false);
+});
+
+[
+  ["status", ""],
+  ["start_stop", ""],
+  ["dock", ""],
+  ["pause_resume", ""],
+  ["clean_spot", ""],
+  ["locate", ""],
+  ["clean_area", "kitchen"],
+].forEach(([mode, unit]) => {
+  assertButtonRoundTrip(hooks, `vacuum ${mode} card`, {
+    entity: "vacuum.k11_vacuum_784c",
+    label: "Vacuum",
+    icon: "Robot Vacuum",
+    icon_on: "Auto",
+    sensor: mode,
+    unit,
+    type: "vacuum",
+    precision: "",
+  }, false);
+});
 
 assertButtonRoundTrip(hooks, "input button action card", {
   entity: "input_button.doorbell",
@@ -2134,6 +2487,23 @@ assertSubpageRoundTrip(hooks, "climate subpage icon display", {
     buttonShape({ entity: "climate.hallway", label: "Hallway", icon: "Thermostat", icon_on: "Radiator", type: "climate", precision: "1", options: "number_display=icon" }),
   ],
 }, true);
+
+const climateIconSubpage = hooks.serializeSubpageConfig({
+  order: ["1", "B"],
+  buttons: [
+    buttonShape({ entity: "climate.hallway", label: "Hallway", icon: "Thermostat", icon_on: "Radiator", type: "climate", precision: "1", options: "number_display=icon" }),
+  ],
+});
+assert.deepStrictEqual(
+  Array.from(hooks.subpageChunkPostKeysFor(climateIconSubpage, { ext: "|A,scene.old,Old,Flash,,scene.turn_on" }, "")),
+  ["subpage_config", "subpage_config_ext"],
+  "saving a shorter climate subpage clears stale extension chunks"
+);
+assert.deepStrictEqual(
+  Array.from(hooks.subpageChunkPostKeysFor(climateIconSubpage, {}, climateIconSubpage + "|A," + "scene.old_action_with_long_tail_".repeat(8))),
+  ["subpage_config", "subpage_config_ext"],
+  "saving over a pending longer subpage clears stale extension chunks"
+);
 
 assertSubpageRoundTrip(hooks, "light temperature subpage", {
   order: ["1", "B"],

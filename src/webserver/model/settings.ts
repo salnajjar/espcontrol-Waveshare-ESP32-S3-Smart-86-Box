@@ -1,13 +1,25 @@
-export const MONTH_NAME_DEFAULTS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-] as const;
-
 export function normalizeTemperatureUnit(value: unknown): string {
   const unit = String(value == null ? "" : value).trim().toLowerCase();
   if (unit === "f" || unit === "\u00B0f" || unit === "fahrenheit") return "\u00B0F";
   if (unit === "c" || unit === "\u00B0c" || unit === "celsius" || unit === "centigrade") return "\u00B0C";
   return "Auto";
+}
+
+export function normalizeClockBarTemperatureEntities(value: unknown): string[] {
+  const input = Array.isArray(value) ? value : String(value || "").split(/[|,\n]/);
+  const out: string[] = [];
+  for (const entry of input) {
+    const entity = String(entry || "").trim();
+    if (entity && out.indexOf(entity) === -1) out.push(entity);
+  }
+  return out.slice(0, 1);
+}
+
+export const CLOCK_BAR_FIXED_LAYOUT = "left:temperature|middle:time|right:network";
+
+export function normalizeLanguage(value: unknown): string {
+  const language = String(value == null ? "" : value).trim().toLowerCase();
+  return language || "en";
 }
 
 export function normalizeHour(value: unknown, fallback: number): number {
@@ -16,6 +28,17 @@ export function normalizeHour(value: unknown, fallback: number): number {
   if (n < 0) return 0;
   if (n > 23) return 23;
   return n;
+}
+
+export function normalizeTimeOfDay(value: unknown, fallback: string): string {
+  const text = String(value == null ? "" : value).trim();
+  const match = /^(\d{1,2}):(\d{2})$/.exec(text);
+  if (!match) return fallback;
+  const hour = parseInt(match[1] || "", 10);
+  const minute = parseInt(match[2] || "", 10);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return fallback;
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return fallback;
+  return String(hour).padStart(2, "0") + ":" + String(minute).padStart(2, "0");
 }
 
 export function normalizeScheduleWakeTimeout(value: unknown): number {
@@ -42,6 +65,11 @@ export function normalizeScheduleClockBrightness(value: unknown): number {
   return Math.round(n);
 }
 
+export function normalizeHexColor(value: unknown, fallback: string): string {
+  const color = String(value == null ? "" : value).replace(/^#/, "").trim().toUpperCase();
+  return /^[0-9A-F]{6}$/.test(color) ? color : fallback;
+}
+
 export function normalizeScheduleDimmedBrightness(value: unknown): number {
   const n = parseFloat(String(value));
   if (!Number.isFinite(n) || n <= 0) return 10;
@@ -57,6 +85,14 @@ export function normalizeScheduleMode(value: unknown): string {
   }
   if (mode === "clock") return "clock";
   return "screen_off";
+}
+
+export function normalizeScheduleTrigger(value: unknown, scheduleEnabled = false): string {
+  const trigger = String(value || "").toLowerCase().replace(/[\s-]+/g, "_");
+  if (trigger === "sensor") return "sensor";
+  if (trigger === "time" || trigger === "timer") return "time";
+  if (trigger === "disabled" || trigger === "off") return "disabled";
+  return scheduleEnabled ? "time" : "disabled";
 }
 
 export function normalizeScreensaverAction(value: unknown): string {
@@ -96,31 +132,26 @@ export function normalizeScreensaverDimmedBrightness(value: unknown): number {
   return Math.round(n);
 }
 
+export function normalizeHomeAssistantArtworkPort(value: unknown): number {
+  const port = parseInt(String(value), 10);
+  if (!Number.isFinite(port)) return 8123;
+  if (port < 1) return 1;
+  if (port > 65535) return 65535;
+  return port;
+}
+
 export function normalizeNtpServer(value: unknown, fallback: string): string {
   const server = String(value == null ? "" : value).trim();
   return server || fallback;
-}
-
-export function normalizeMonthNames(value: unknown): string[] {
-  const parts = Array.isArray(value)
-    ? value.slice()
-    : String(value == null ? "" : value).split(",");
-  const out: string[] = [];
-  for (let i = 0; i < 12; i += 1) {
-    const text = String(parts[i] == null ? "" : parts[i]).trim();
-    out.push(text || MONTH_NAME_DEFAULTS[i] || "");
-  }
-  return out;
-}
-
-export function serializeMonthNames(value: unknown): string {
-  return normalizeMonthNames(value).join(",");
 }
 
 export interface BackupScreenSettingsState {
   brightnessDayVal: number;
   brightnessNightVal: number;
   automaticBrightnessEnabled: boolean;
+  brightnessDawnTime: string;
+  brightnessDuskTime: string;
+  scheduleTrigger: string;
   scheduleEnabled: boolean;
   scheduleOnHour: number;
   scheduleOffHour: number;
@@ -129,6 +160,7 @@ export interface BackupScreenSettingsState {
   scheduleWakeBrightness: number;
   scheduleDimmedBrightness: number;
   scheduleClockBrightness: number;
+  scheduleClockTextColor: string;
 }
 
 function numberOrFallback(value: unknown, fallback: number): number {
@@ -144,13 +176,18 @@ export function normalizeBackupScreenSettings(
   screenSettings: Record<string, unknown>,
   current: Partial<BackupScreenSettingsState>,
 ): BackupScreenSettingsState {
+  const legacyScheduleEnabled = !!screenSettings.schedule_enabled;
+  const scheduleTrigger = normalizeScheduleTrigger(screenSettings.schedule_trigger, legacyScheduleEnabled);
   return {
     brightnessDayVal: numberOrFallback(screenSettings.brightness_day, 100),
     brightnessNightVal: numberOrFallback(screenSettings.brightness_night, 75),
     automaticBrightnessEnabled: objectValue(screenSettings, "automatic_brightness") != null
       ? !!screenSettings.automatic_brightness
       : true,
-    scheduleEnabled: !!screenSettings.schedule_enabled,
+    brightnessDawnTime: normalizeTimeOfDay(screenSettings.brightness_dawn_time, "06:00"),
+    brightnessDuskTime: normalizeTimeOfDay(screenSettings.brightness_dusk_time, "18:00"),
+    scheduleTrigger,
+    scheduleEnabled: scheduleTrigger !== "disabled",
     scheduleOnHour: normalizeHour(screenSettings.schedule_on_hour, 6),
     scheduleOffHour: normalizeHour(screenSettings.schedule_off_hour, 23),
     scheduleMode: normalizeScheduleMode(screenSettings.schedule_mode),
@@ -170,19 +207,26 @@ export function normalizeBackupScreenSettings(
         ? screenSettings.schedule_clock_brightness
         : current.scheduleClockBrightness,
     ),
+    scheduleClockTextColor: normalizeHexColor(
+      objectValue(screenSettings, "schedule_clock_text_color") != null
+        ? screenSettings.schedule_clock_text_color
+        : current.scheduleClockTextColor,
+      "FFFFFF",
+    ),
   };
 }
 
 export interface BackupPanelSettingsCurrent {
   timezone: string;
+  language: string;
+  clockBarLayout: string;
   clockFormat: string;
   clockFormatOptions: readonly string[];
-  developerExperimentalFeatures: boolean;
   ntpDefaults: readonly string[];
   ntpServer1: string;
   ntpServer2: string;
   ntpServer3: string;
-  monthNames: readonly string[];
+  coverArtHomeAssistantPort: number;
   screenRotationOptions: readonly string[];
 }
 
@@ -191,26 +235,34 @@ export interface BackupPanelSettingsState {
   outdoorTempEnable: boolean;
   indoorTempEntity: string;
   outdoorTempEntity: string;
+  clockBarTemperatureEntities: string[];
   clockBar: boolean;
+  clockBarLayout: string;
+  clockBarTime: boolean;
   networkStatusIcon: boolean;
   temperatureDegreeSymbol: boolean;
+  subpageChevron: boolean;
   timezone: string;
   temperatureUnit: string;
+  language: string;
   clockFormat: string;
   hasNtpServer1: boolean;
   hasNtpServer2: boolean;
   hasNtpServer3: boolean;
-  hasMonthNames: boolean;
-  hasDeveloperExperimentalFeatures: boolean;
-  developerExperimentalFeatures: boolean;
   ntpServer1: string;
   ntpServer2: string;
   ntpServer3: string;
-  monthNames: string[];
   screensaverMode: string;
   presenceSensorEntity: string;
   mediaPlayerSleepPrevention: boolean;
   mediaPlayerSleepPreventionEntity: string;
+  coverArtScreensaver: boolean;
+  coverArtMediaPlayerEntity: string;
+  coverArtAttributeConditions: string;
+  coverArtDelay: unknown;
+  coverArtTrackOverlayDuration: unknown;
+  coverArtHideExternalInput: boolean;
+  coverArtHomeAssistantPort: number;
   screensaverAction: string;
   clockScreensaver: boolean;
   clockBrightnessDay: number;
@@ -238,8 +290,7 @@ export function normalizeBackupPanelSettings(
   const hasNtpServer1 = objectValue(settings, "ntp_server_1") !== undefined;
   const hasNtpServer2 = objectValue(settings, "ntp_server_2") !== undefined;
   const hasNtpServer3 = objectValue(settings, "ntp_server_3") !== undefined;
-  const hasMonthNames = objectValue(settings, "month_names") !== undefined;
-  const hasDeveloperExperimentalFeatures = objectValue(settings, "developer_experimental_features") !== undefined;
+  const hasOutdoorTempEnable = objectValue(settings, "outdoor_temp_enable") !== undefined;
   const clockFormat = current.clockFormatOptions.indexOf(String(settings.clock_format || "")) !== -1
     ? String(settings.clock_format)
     : current.clockFormat;
@@ -256,27 +307,41 @@ export function normalizeBackupPanelSettings(
     objectValue(settings, "clock_brightness_night") != null ? settings.clock_brightness_night : settings.clock_brightness,
     clockBrightnessDay,
   );
+  const legacyTemperatureEntities: string[] = [];
+  if (settings.outdoor_temp_enable && settings.outdoor_temp_entity) {
+    legacyTemperatureEntities.push(String(settings.outdoor_temp_entity));
+  }
+  if (settings.indoor_temp_enable && settings.indoor_temp_entity) {
+    legacyTemperatureEntities.push(String(settings.indoor_temp_entity));
+  }
+  const clockBarTemperatureEntities = normalizeClockBarTemperatureEntities(
+    objectValue(settings, "clock_bar_temperature_entities") != null
+      ? settings.clock_bar_temperature_entities
+      : legacyTemperatureEntities,
+  );
   return {
-    indoorTempEnable: !!settings.indoor_temp_enable,
-    outdoorTempEnable: !!settings.outdoor_temp_enable,
-    indoorTempEntity: String(settings.indoor_temp_entity || ""),
-    outdoorTempEntity: String(settings.outdoor_temp_entity || ""),
+    indoorTempEnable: false,
+    outdoorTempEnable: hasOutdoorTempEnable ? !!settings.outdoor_temp_enable : clockBarTemperatureEntities.length > 0,
+    indoorTempEntity: "",
+    outdoorTempEntity: clockBarTemperatureEntities[0] || "",
+    clockBarTemperatureEntities,
     clockBar: objectValue(settings, "clock_bar") != null ? !!settings.clock_bar : false,
+    clockBarLayout: CLOCK_BAR_FIXED_LAYOUT,
+    clockBarTime: objectValue(settings, "clock_bar_time") != null ? !!settings.clock_bar_time : true,
     networkStatusIcon: objectValue(settings, "network_status_icon") != null ? !!settings.network_status_icon : true,
     temperatureDegreeSymbol: objectValue(settings, "temperature_degree_symbol") != null
       ? !!settings.temperature_degree_symbol
       : true,
+    subpageChevron: objectValue(settings, "subpage_chevron") != null
+      ? !!settings.subpage_chevron
+      : true,
     timezone: String(settings.timezone || current.timezone),
     temperatureUnit: normalizeTemperatureUnit(settings.temperature_unit),
+    language: normalizeLanguage(settings.language || current.language),
     clockFormat,
     hasNtpServer1,
     hasNtpServer2,
     hasNtpServer3,
-    hasMonthNames,
-    hasDeveloperExperimentalFeatures,
-    developerExperimentalFeatures: hasDeveloperExperimentalFeatures
-      ? !!settings.developer_experimental_features
-      : current.developerExperimentalFeatures,
     ntpServer1: hasNtpServer1
       ? normalizeNtpServer(settings.ntp_server_1, current.ntpDefaults[0] || "")
       : current.ntpServer1,
@@ -286,11 +351,21 @@ export function normalizeBackupPanelSettings(
     ntpServer3: hasNtpServer3
       ? normalizeNtpServer(settings.ntp_server_3, current.ntpDefaults[2] || "")
       : current.ntpServer3,
-    monthNames: hasMonthNames ? normalizeMonthNames(settings.month_names) : normalizeMonthNames(current.monthNames),
     screensaverMode: normalizeScreensaverMode(settings.screensaver_mode),
     presenceSensorEntity: String(settings.presence_sensor_entity || ""),
     mediaPlayerSleepPrevention: !!settings.media_player_sleep_prevention,
     mediaPlayerSleepPreventionEntity: String(settings.media_player_sleep_prevention_entity || ""),
+    coverArtScreensaver: !!settings.cover_art_screensaver,
+    coverArtMediaPlayerEntity: String(settings.cover_art_media_player_entity || settings.media_player_sleep_prevention_entity || ""),
+    coverArtAttributeConditions: String(settings.cover_art_attribute_conditions || settings.cover_art_conditions || ""),
+    coverArtDelay: objectValue(settings, "cover_art_delay") != null ? settings.cover_art_delay : 10,
+    coverArtTrackOverlayDuration: objectValue(settings, "cover_art_track_overlay_duration") != null ? settings.cover_art_track_overlay_duration : 5,
+    coverArtHideExternalInput: objectValue(settings, "cover_art_hide_external_input") != null
+      ? !!settings.cover_art_hide_external_input
+      : true,
+    coverArtHomeAssistantPort: objectValue(settings, "home_assistant_artwork_port") != null
+      ? normalizeHomeAssistantArtworkPort(settings.home_assistant_artwork_port)
+      : normalizeHomeAssistantArtworkPort(current.coverArtHomeAssistantPort),
     screensaverAction,
     clockScreensaver: screensaverAction === "clock",
     clockBrightnessDay,

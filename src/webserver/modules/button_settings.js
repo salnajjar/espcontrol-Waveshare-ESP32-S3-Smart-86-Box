@@ -10,6 +10,8 @@ function updatePreviewHint(c) {
   els.previewHint.style.display = "";
   if (isConfigLocked()) {
     els.previewHint.textContent = "Editing is paused while the device reconnects";
+  } else if (state.clockBarSelectedItem) {
+    els.previewHint.textContent = clockBarItemLabel(state.clockBarSelectedItem) + " selected";
   } else if (c.selected.length > 1) {
     els.previewHint.textContent = c.selected.length + " buttons selected \u2022 right click to copy, cut, or delete";
   } else {
@@ -17,10 +19,53 @@ function updatePreviewHint(c) {
   }
 }
 
+function renderClockBarSelectionBar() {
+  if (!els.selectionBar || !state.clockBarSelectedItem) return false;
+  els.selectionBar.className = "sp-selection-bar sp-visible";
+
+  var label = document.createElement("span");
+  label.className = "sp-selection-label";
+  label.textContent = clockBarItemLabel(state.clockBarSelectedItem) + " selected";
+  els.selectionBar.appendChild(label);
+
+  var actions = document.createElement("div");
+  actions.className = "sp-selection-actions";
+
+  var editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "sp-selection-btn sp-selection-btn-primary";
+  editBtn.innerHTML = '<span class="mdi mdi-pencil"></span>Edit';
+  editBtn.disabled = !isClockBarTemperatureItem(state.clockBarSelectedItem);
+  editBtn.addEventListener("click", function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!editBtn.disabled) openClockBarTemperatureSettings();
+  });
+  actions.appendChild(editBtn);
+
+  var visible = clockBarItemActive(state.clockBarSelectedItem);
+  var hideBtn = document.createElement("button");
+  hideBtn.type = "button";
+  hideBtn.className = "sp-selection-btn";
+  hideBtn.innerHTML = '<span class="mdi mdi-' + (visible ? "eye-off-outline" : "eye-outline") + '"></span>' +
+    (visible ? "Hide" : "Show");
+  hideBtn.addEventListener("click", function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    setClockBarItemVisible(state.clockBarSelectedItem, !visible);
+    renderSelectionBar(ctx());
+  });
+  actions.appendChild(hideBtn);
+
+  els.selectionBar.appendChild(actions);
+  return true;
+}
+
 function renderSelectionBar(c) {
   if (!els.selectionBar) return;
   c = c || ctx();
   els.selectionBar.innerHTML = "";
+  if (!isConfigLocked() && renderClockBarSelectionBar()) return;
   if (isConfigLocked() || !c.selected.length) {
     els.selectionBar.className = "sp-selection-bar";
     return;
@@ -30,9 +75,11 @@ function renderSelectionBar(c) {
 
   var label = document.createElement("span");
   label.className = "sp-selection-label";
-  label.textContent = c.selected.length === 1 && c.selected[0] === -2
-    ? "Back button selected"
-    : (c.selected.length === 1 ? "1 card selected" : c.selected.length + " cards selected");
+  if (c.selected.length === 1 && c.selected[0] === -2) {
+    label.textContent = "Back button selected";
+  } else {
+    label.textContent = c.selected.length === 1 ? "1 card selected" : c.selected.length + " cards selected";
+  }
   els.selectionBar.appendChild(label);
 
   var actions = document.createElement("div");
@@ -70,15 +117,19 @@ function closeSettings() {
   _settingsDeferred = false;
   state.settingsDraft = null;
   ctx().setSelected([]);
+  state.clockBarSelectedItem = "";
+  updateClockBarItemUi();
   renderPreview();
 }
 
 function clearCardSelection() {
   var c = ctx();
-  if (!c.selected.length && c.getLastClicked() < 0) return;
+  if (!c.selected.length && c.getLastClicked() < 0 && !state.clockBarSelectedItem) return;
   c.setSelected([]);
   c.setLastClicked(-1);
+  state.clockBarSelectedItem = "";
   hideSettingsOverlay();
+  updateClockBarItemUi();
   renderPreview();
   renderButtonSettings();
 }
@@ -86,6 +137,7 @@ function clearCardSelection() {
 function isSelectionControlTarget(target) {
   return !!(
     (els.previewMain && els.previewMain.contains(target)) ||
+    (els.topbar && els.topbar.contains(target)) ||
     (els.selectionBar && els.selectionBar.contains(target)) ||
     (els.settingsOverlay && els.settingsOverlay.contains(target)) ||
     (ctxMenu && ctxMenu.contains(target)) ||
@@ -101,9 +153,90 @@ function handleDocumentSelectionMouseDown(e) {
 
 function openSelectedCardSettings() {
   if (isConfigLocked()) return;
+  if (state.clockBarSelectedItem) {
+    if (isClockBarTemperatureItem(state.clockBarSelectedItem)) openClockBarTemperatureSettings();
+    return;
+  }
   var c = ctx();
   if (c.selected.length !== 1) return;
   renderButtonSettings(true);
+}
+
+function selectClockBarItem(item) {
+  if (isConfigLocked() || clockBarItems().indexOf(item) === -1) return;
+  var c = ctx();
+  c.setSelected([]);
+  c.setLastClicked(-1);
+  hideSettingsOverlay();
+  state.clockBarSelectedItem = state.clockBarSelectedItem === item ? "" : item;
+  updateClockBarItemUi();
+  renderPreview();
+  renderButtonSettings();
+}
+
+function openClockBarTemperatureSettings() {
+  if (isConfigLocked()) return;
+  var container = els.buttonSettings;
+  if (!container) return;
+  state.clockBarSelectedItem = "temperature";
+  container.innerHTML = "";
+  if (els.settingsOverlay) els.settingsOverlay.classList.add("sp-visible");
+
+  var title = document.createElement("div");
+  title.className = "sp-section-title";
+  title.textContent = "Temperature";
+  container.appendChild(title);
+
+  var panel = document.createElement("div");
+  panel.className = "sp-panel";
+
+  var entityField = document.createElement("div");
+  entityField.className = "sp-field";
+  entityField.appendChild(fieldLabel("Entity", "sp-clockbar-temperature-entity"));
+  var entityInp = entityInput(
+    "sp-clockbar-temperature-entity",
+    primaryClockBarTemperatureEntity(),
+    "sensor.outdoor_temperature",
+    ["sensor"]
+  );
+  entityField.appendChild(entityInp);
+  panel.appendChild(entityField);
+
+  var degreeToggle = toggleRow(
+    "Show Degree Symbol",
+    "sp-clockbar-temperature-degree-symbol",
+    state.temperatureDegreeSymbolOn
+  );
+  panel.appendChild(degreeToggle.row);
+
+  var saveRow = document.createElement("div");
+  saveRow.className = "sp-btn-row sp-btn-row--save sp-has-secondary";
+
+  var visible = clockBarItemActive("temperature");
+  var hideBtn = document.createElement("button");
+  hideBtn.type = "button";
+  hideBtn.className = "sp-action-btn sp-hide-btn";
+  hideBtn.innerHTML = '<span class="mdi mdi-' + (visible ? "eye-off-outline" : "eye-outline") + '"></span>' +
+    (visible ? "Hide" : "Show");
+  hideBtn.addEventListener("click", function () {
+    setClockBarItemVisible("temperature", !visible);
+    closeSettings();
+  });
+  saveRow.appendChild(hideBtn);
+
+  var saveBtn = document.createElement("button");
+  saveBtn.type = "button";
+  saveBtn.className = "sp-action-btn sp-save-btn";
+  saveBtn.textContent = "Save";
+  saveBtn.addEventListener("click", function () {
+    saveClockBarTemperatureSettings(entityInp.value, degreeToggle.input.checked);
+    closeSettings();
+  });
+  saveRow.appendChild(saveBtn);
+  panel.appendChild(saveRow);
+
+  container.appendChild(panel);
+  entityInp.focus();
 }
 
 function openCardSettings(slot) {
@@ -168,6 +301,8 @@ function renderBackButtonSettings(container, c) {
 function renderButtonSettings(forceOpen) {
   var container = els.buttonSettings;
   container.innerHTML = "";
+  var settingsModal = els.settingsOverlay ? els.settingsOverlay.querySelector(".sp-settings-modal") : null;
+  if (settingsModal) settingsModal.classList.remove("sp-card-type-picker-open");
   var c = ctx();
 
   if (isConfigLocked()) {
@@ -196,9 +331,18 @@ function renderButtonSettings(forceOpen) {
 
   var slot = c.selected[0];
   var bIdx = slot - 1;
-  if (bIdx < 0 || bIdx >= c.buttons.length) return;
-  var liveButton = c.buttons[bIdx];
-  var draftKey = (c.isSub ? "sub:" + state.editingSubpage : "main") + ":" + slot;
+  var pendingNewDraft = !!(
+    state.settingsDraft &&
+    state.settingsDraft.isNew &&
+    state.settingsDraft.slot === slot &&
+    state.settingsDraft.isSub === c.isSub &&
+    (!c.isSub || state.settingsDraft.homeSlot === state.editingSubpage)
+  );
+  if (bIdx < 0 || (!pendingNewDraft && bIdx >= c.buttons.length)) return;
+  var liveButton = pendingNewDraft ? null : c.buttons[bIdx];
+  var draftKey = pendingNewDraft
+    ? state.settingsDraft.key
+    : (c.isSub ? "sub:" + state.editingSubpage : "main") + ":" + slot;
 
   function cloneButtonConfig(src) {
     return EspControlModel.cloneCardConfig(src);
@@ -209,7 +353,7 @@ function renderButtonSettings(forceOpen) {
     normalizeButtonConfig(target);
   }
 
-  if (!state.settingsDraft || state.settingsDraft.key !== draftKey) {
+  if (!pendingNewDraft && (!state.settingsDraft || state.settingsDraft.key !== draftKey)) {
     state.settingsDraft = {
       key: draftKey,
       slot: slot,
@@ -220,6 +364,7 @@ function renderButtonSettings(forceOpen) {
     };
   }
   var b = state.settingsDraft.button;
+  var isNewDraft = !!state.settingsDraft.isNew;
 
   var title = document.createElement("div");
   title.className = "sp-section-title";
@@ -321,20 +466,55 @@ function renderButtonSettings(forceOpen) {
     return false;
   }
 
+  function validateImageCardLimit() {
+    var count = imageCardCountWithCandidate({
+      isSub: c.isSub,
+      homeSlot: state.editingSubpage,
+      slot: slot,
+      button: b,
+    });
+    if (count <= imageCardLimit()) return true;
+    showImageCardLimitBanner();
+    return false;
+  }
+
   function applySettingsDraft() {
-    if (!state.settingsDraft || state.settingsDraft.key !== draftKey) return;
-    copyButtonConfig(liveButton, state.settingsDraft.button);
-    state.settingsDraft = null;
-    if (c.isSub) {
-      saveSubpageConfig(state.editingSubpage);
+    if (!state.settingsDraft || state.settingsDraft.key !== draftKey) return false;
+    var draft = state.settingsDraft;
+    var savedButton = liveButton;
+    if (draft.isNew) {
+      var pos = draft.pos;
+      if (pos < 0 || pos >= c.maxSlots || c.grid[pos] !== 0) {
+        showBanner("That grid space is no longer available. Close this window and try again.", "error");
+        return false;
+      }
+      while (c.buttons.length < slot) {
+        c.buttons.push(emptyButtonConfig());
+      }
+      savedButton = c.buttons[slot - 1];
+      copyButtonConfig(savedButton, draft.button);
+      c.grid[pos] = slot;
+      if (c.isSub) {
+        saveSubpageConfig(state.editingSubpage);
+      } else {
+        postText(entityName("button_order"), serializeGrid(state.grid));
+        saveButtonConfig(slot);
+      }
     } else {
+      copyButtonConfig(liveButton, draft.button);
+    }
+    state.settingsDraft = null;
+    if (!draft.isNew && c.isSub) {
+      saveSubpageConfig(state.editingSubpage);
+    } else if (!draft.isNew) {
       saveButtonConfig(slot);
     }
-    var savedTypeDef = BUTTON_TYPES[liveButton.type || ""];
+    var savedTypeDef = BUTTON_TYPES[savedButton.type || ""];
     if (savedTypeDef && savedTypeDef.afterSave) {
-      savedTypeDef.afterSave(liveButton, slot, { isSub: c.isSub });
+      savedTypeDef.afterSave(savedButton, slot, { isSub: c.isSub });
     }
     renderPreview();
+    return true;
   }
 
   function bindField(input, field, rerender) {
@@ -471,14 +651,58 @@ function renderButtonSettings(forceOpen) {
     ], value || "0", onChange);
   }
 
-  var rawTypeDef = BUTTON_TYPES[b.type || ""] || BUTTON_TYPES[""];
-  var typeDef = rawTypeDef;
-  var rawExperimental = buttonTypeRegistryValue(rawTypeDef, "experimental", "");
-  if (rawExperimental && !isExperimentalEnabled(rawExperimental)) {
-    typeDef = hiddenExperimentalButtonTypeDef(rawTypeDef);
+  function selectCardType(newType) {
+    if (newType === "__choose-card-type__") return;
+    newType = defaultButtonTypeForPicker(newType);
+    b.type = newType;
+    if (state.settingsDraft && state.settingsDraft.key === draftKey) {
+      state.settingsDraft.typeSelected = true;
+    }
+    var td = BUTTON_TYPES[newType];
+    if (td && td.onSelect) td.onSelect(b);
+    saveField("type", newType);
+    renderButtonSettings();
   }
+
+  function renderCardTypeGrid(options) {
+    var field = document.createElement("div");
+    field.className = "sp-field sp-card-type-picker-field";
+    field.appendChild(fieldLabel("Card", "sp-card-type-picker"));
+    var grid = document.createElement("div");
+    grid.className = "sp-card-type-grid";
+    grid.id = "sp-card-type-picker";
+    grid.setAttribute("role", "list");
+    (options || []).forEach(function (o) {
+      var item = document.createElement("button");
+      item.type = "button";
+      item.className = "sp-card-type-option";
+      item.disabled = !!o.disabled;
+      item.setAttribute("data-card-type", o.key);
+      item.setAttribute("aria-label", o.label + " card type");
+      item.innerHTML =
+        '<span class="sp-card-type-icon mdi mdi-' + escAttr(o.icon || "card-outline") + '"></span>' +
+        '<span class="sp-card-type-copy">' +
+        '<span class="sp-card-type-title">' + escHtml(o.label) + '</span>' +
+        '<span class="sp-card-type-description">' + escHtml(o.description || "") + '</span>' +
+        '</span>';
+      item.addEventListener("click", function () {
+        if (item.disabled) return;
+        selectCardType(o.key);
+      });
+      grid.appendChild(item);
+    });
+    field.appendChild(grid);
+    return field;
+  }
+
+  var isNewDraftWithoutType = isNewDraft && !state.settingsDraft.typeSelected;
+  var rawTypeDef = isNewDraftWithoutType ? null : (BUTTON_TYPES[b.type || ""] || BUTTON_TYPES[""]);
+  var typeDef = rawTypeDef;
   {
-    var selectedTypeKey = buttonTypeRegistryValue(rawTypeDef, "pickerKey", "") || (b.type || "");
+    var chooseTypeValue = "__choose-card-type__";
+    var selectedTypeKey = isNewDraftWithoutType
+      ? null
+      : buttonTypeRegistryValue(rawTypeDef, "pickerKey", "") || (b.type || "");
     var typeOpts = buttonTypePickerOptionList(c.isSub, selectedTypeKey);
     var tf = document.createElement("div");
     tf.className = "sp-field";
@@ -486,22 +710,31 @@ function renderButtonSettings(forceOpen) {
     var typeSelect = document.createElement("select");
     typeSelect.className = "sp-select";
     typeSelect.id = "sp-inp-type";
+    if (isNewDraftWithoutType) {
+      var chooseOpt = document.createElement("option");
+      chooseOpt.value = chooseTypeValue;
+      chooseOpt.textContent = "Select card type";
+      chooseOpt.disabled = true;
+      chooseOpt.selected = true;
+      typeSelect.appendChild(chooseOpt);
+    }
     typeOpts.forEach(function (o) {
       var opt = document.createElement("option");
       opt.value = o.key;
       opt.textContent = o.label;
       opt.disabled = !!o.disabled;
-      if (selectedTypeKey === o.key) opt.selected = true;
+      if (!isNewDraftWithoutType && selectedTypeKey === o.key) opt.selected = true;
       typeSelect.appendChild(opt);
     });
     typeSelect.addEventListener("change", function () {
-      var newType = this.value;
-      b.type = newType;
-      var td = BUTTON_TYPES[newType];
-      if (td && td.onSelect) td.onSelect(b);
-      saveField("type", newType);
-      renderButtonSettings();
+      selectCardType(this.value);
     });
+    if (isNewDraftWithoutType) {
+      if (settingsModal) settingsModal.classList.add("sp-card-type-picker-open");
+      panel.appendChild(renderCardTypeGrid(typeOpts));
+      container.appendChild(panel);
+      return;
+    }
     tf.appendChild(typeSelect);
     panel.appendChild(tf);
   }
@@ -529,7 +762,10 @@ function renderButtonSettings(forceOpen) {
     renderCardTextField: renderCardTextField,
     renderCardNumberField: renderCardNumberField,
     renderCardIconPicker: renderCardIconPicker,
+    renderCardIconPair: renderCardIconPair,
     renderCardOptionToggle: renderCardOptionToggle,
+    renderCardActiveColorToggle: renderCardActiveColorToggle,
+    renderBasicCardFields: renderBasicCardFields,
     renderCardSegmentControl: renderCardSegmentControl,
     requireField: requireField,
     clearFieldError: clearFieldError,
@@ -724,32 +960,49 @@ function renderButtonSettings(forceOpen) {
         saveField("icon_on", "Auto");
       }
     });
+
+    var patternField = selectField("On State Pattern", idPrefix + "on-pattern", [
+      ["", "Solid"],
+      ["stripes", "Stripes"],
+    ], cardOnPattern(b), function () {
+      setCardOnPattern(b, this.value);
+      saveField("options", b.options);
+      renderPreview();
+    });
+    panel.appendChild(patternField.field);
   }
 
   var saveRow = document.createElement("div");
   saveRow.className = "sp-btn-row sp-btn-row--save";
 
-  var delBtn = document.createElement("button");
-  delBtn.className = "sp-action-btn sp-delete-btn";
-  delBtn.innerHTML = '<span class="mdi mdi-trash-can-outline"></span>';
-  delBtn.addEventListener("click", function () {
-    state.settingsDraft = null;
-    deleteSlot(slot);
-  });
-  saveRow.appendChild(delBtn);
-  saveRow.classList.add("sp-has-delete");
+  if (!isNewDraft) {
+    var delBtn = document.createElement("button");
+    delBtn.className = "sp-action-btn sp-delete-btn";
+    delBtn.innerHTML = '<span class="mdi mdi-trash-can-outline"></span>';
+    delBtn.addEventListener("click", function () {
+      state.settingsDraft = null;
+      deleteSlot(slot);
+    });
+    saveRow.appendChild(delBtn);
+    saveRow.classList.add("sp-has-delete");
+  }
 
   var rightGroup = document.createElement("div");
   rightGroup.className = "sp-btn-group-right";
   var editSubBtn = panel.querySelector(".sp-edit-subpage-btn");
-  if (editSubBtn) rightGroup.appendChild(editSubBtn);
+  if (editSubBtn && isNewDraft && editSubBtn.parentNode) {
+    editSubBtn.parentNode.removeChild(editSubBtn);
+  } else if (editSubBtn) {
+    rightGroup.appendChild(editSubBtn);
+  }
   var saveBtn = document.createElement("button");
   saveBtn.className = "sp-action-btn sp-save-btn";
   saveBtn.textContent = "Save";
   saveBtn.addEventListener("click", function () {
     if (!validateSettingsDraft()) return;
+    if (!validateImageCardLimit()) return;
     if (!validateConfigSize()) return;
-    applySettingsDraft();
+    if (!applySettingsDraft()) return;
     closeSettings();
   });
   rightGroup.appendChild(saveBtn);

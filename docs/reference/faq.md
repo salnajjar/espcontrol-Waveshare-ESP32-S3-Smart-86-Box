@@ -11,7 +11,7 @@ description:
 There are several ways:
 
 - **On the display itself** — when no cards are configured yet, the panel shows its address on screen.
-- **In your router** — look at the connected devices list (usually at `192.168.1.1` or similar). The panel will appear with its hostname.
+- **In your router** — look at the connected devices list in your router admin page. The panel will appear with its hostname.
 - **In Home Assistant** — go to **Settings > Devices & Services > ESPHome**, click on the device, and look for the IP address.
 
 ## The Web Page Looks Broken or Unstyled
@@ -28,6 +28,7 @@ The panel's built-in web page loads some visual resources from the internet. If 
 - Double-check your **WiFi password** — it's easy to mistype on a small screen.
 - Move the panel **closer to your router** during initial setup. You can move it to its final location afterwards.
 - If the panel previously connected but can't anymore (e.g. you changed your WiFi password), it will first try to reconnect. If that does not work, it will create a hotspot so you can enter the new details. Look for a network called **ESP_xxxxxx**; it can take up to **90 seconds** to appear.
+- If you installed an advanced Ethernet-only build, WiFi setup is intentionally disabled. Check the Ethernet cable, switch port, and DHCP/router lease list instead.
 
 ## How Do I Reset the Device?
 
@@ -57,15 +58,13 @@ To update manually:
 3. Under **Firmware**, press **Check for Update**.
 4. If a new version is available, the panel will download and install it.
 
+Advanced Ethernet-only builds may have these built-in update controls disabled. Update those displays through ESPHome OTA or USB instead.
+
 See [Firmware Updates](/features/firmware-updates) for more details.
 
 ## What If the Icon I Need Isn't Listed?
 
 The panel includes hundreds of icons from the Material Design Icons set. If the one you need isn't there, [open an issue on GitHub](https://github.com/jtenniswood/espcontrol/issues) with the icon name (from [pictogrammers.com/library/mdi](https://pictogrammers.com/library/mdi/)) and what you'd use it for. We'll look into adding it.
-
-## What Card Types Are Available?
-
-The setup page currently includes Switch, Lights, Action, Trigger, Sensor, Doors & Windows, Slider, Cover, Garage Door, Lock, Date & Time, Clock, World Clock, Weather, Media, Climate, Internal Switches, and Subpage cards.
 
 ## How Many Cards Can I Have?
 
@@ -97,7 +96,7 @@ EspControl currently supports these touchscreen panels:
 - **ESP32-P4 86 Panel** — 4-inch, 720x720, square (ESP32-P4)
 - **4848S040** — 4-inch, 480x480, square (ESP32-S3)
 
-All use the same firmware features, card configuration, and web UI. The grid layout automatically matches each panel's screen size and orientation.
+All use the same card configuration and web UI. The grid layout automatically matches each panel's screen size and orientation. Some ESP32-P4 models also have an advanced Ethernet-only manual install option, which changes how networking and firmware updates work.
 
 ## Does the Panel Work with Other Smart Home Platforms?
 
@@ -112,4 +111,4 @@ EspControl is built specifically for Home Assistant. It does not support other p
 
 ## How Is My Data Handled?
 
-Everything stays on your local network. The panel communicates directly with your Home Assistant instance over your home WiFi. No data is sent to external servers, cloud services, or third parties. The only internet connection the panel makes is to check for firmware updates and to load the web page styling.
+Everything stays on your local network. The panel communicates directly with your Home Assistant instance over your home network, using WiFi or an advanced Ethernet build depending on how you installed it. No data is sent to external servers, cloud services, or third parties. The only internet connection the standard firmware makes is to check for firmware updates and to load the web page styling.

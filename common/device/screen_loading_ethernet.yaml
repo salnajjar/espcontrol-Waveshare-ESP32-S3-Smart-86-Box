@@ -40,16 +40,16 @@ lvgl:
                   text_align: center
               - label:
                   id: loading_status_title
-                  text: "Starting up"
+                  text: ""
                   text_font: $setup_title_font_id
                   text_color: 0xFFFFFF
                   width: $content_width
                   text_align: center
               - label:
                   id: loading_status_label
-                  text: "Booting"
+                  text: ""
                   text_font: $setup_body_font_id
-                  text_color: 0x888888
+                  text_color: 0xB0B0B0
                   width: $content_width
                   text_align: center
               # Hidden slider ensures LVGL compiles lv_slider for dynamic use
@@ -71,18 +71,24 @@ esphome:
     - priority: -200
       then:
         - lvgl.resume:
-        - lvgl.page.show: loading_page
+        - script.execute: clock_bar_hide
         - lambda: |-
-            lv_obj_add_flag(id(temperatures), LV_OBJ_FLAG_HIDDEN);
-            lv_obj_add_flag(id(display_time), LV_OBJ_FLAG_HIDDEN);
-            lv_obj_add_flag(id(network_status_button), LV_OBJ_FLAG_HIDDEN);
+            lv_label_set_text(id(loading_status_title), espcontrol_i18n("Starting up"));
+            lv_label_set_text(id(loading_status_label), espcontrol_i18n("Booting"));
+        - lvgl.page.show: loading_page
         - delay: 100ms
         - if:
             condition:
               lambda: |-
+                auto now = panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now());
                 return id(screen_schedule_asleep) ||
-                       (id(schedule_enabled).state && !panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now()).is_valid());
+                       screen_schedule_waiting_for_time(
+                         id(screen_schedule_trigger).state,
+                         id(schedule_enabled).state,
+                         now.is_valid());
             then:
+              # Expected on boot when schedule logic says the panel should
+              # remain dark, or while time is not ready enough to decide.
               - script.execute: backlight_force_display_off
             else:
               - light.turn_on:
@@ -92,7 +98,7 @@ esphome:
     - priority: -100
       then:
         - lambda: |-
-            lv_label_set_text(id(loading_status_label), "Connecting to Ethernet");
+            lv_label_set_text(id(loading_status_label), espcontrol_i18n("Connecting to Ethernet"));
         - delay: 15s
         - lambda: 'id(boot_grace_period) = false;'
         - if:
@@ -101,5 +107,6 @@ esphome:
                 return ethernet::global_eth_component == nullptr ||
                        !ethernet::global_eth_component->is_connected();
             then:
+              - script.execute: clock_bar_hide
               - lvgl.page.show: ethernet_setup_page
               - script.execute: setup_screen_dim

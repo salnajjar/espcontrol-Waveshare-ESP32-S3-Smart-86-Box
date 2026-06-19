@@ -12,10 +12,12 @@ var SENSOR_CARD_METADATA = {
   segment: {
     label: "Type",
     options: [
+      ["icon", "Icon"],
       ["numeric", "Numeric"],
       ["text", "Text"],
     ],
     value: function (b) {
+      if (b.precision === "icon") return "icon";
       return b.precision === "text" ? "text" : "numeric";
     },
   },
@@ -23,10 +25,11 @@ var SENSOR_CARD_METADATA = {
     label: "Large Sensor Numbers",
     idSuffix: "large-sensor-numbers",
     supported: function (b) {
-      return b.precision !== "text";
+      return b.precision !== "icon" && b.precision !== "text";
     },
   },
   preview: {
+    iconBadge: "toggle-switch",
     numericBadge: "gauge",
     textBadge: "format-text",
   },
@@ -36,7 +39,6 @@ registerButtonType("sensor", {
   label: function () { return cardContractCardLabel("sensor"); },
   allowInSubpage: function () { return cardContractAllowInSubpage("sensor"); },
   pickerKey: function () { return cardContractPickerKey("sensor"); },
-  experimental: function () { return cardContractExperimental("sensor"); },
   hidden: function () { return cardContractHidden("sensor"); },
   hideLabel: true,
   defaultConfig: function () { return cardContractDefaultConfig("sensor"); },
@@ -45,11 +47,12 @@ registerButtonType("sensor", {
     b.entity = "";
     b.icon_on = "Auto";
     if (!b.precision) b.precision = "";
-    if (b.precision !== "text") b.icon = "Auto";
+    if (b.precision !== "icon" && b.precision !== "text") b.icon = "Auto";
     b.options = normalizeSensorOptions(b.options, b.precision);
   },
   renderSettings: function (panel, b, slot, helpers) {
-    var isTextMode = b.precision === "text";
+    var displayMode = b.precision === "icon" || b.precision === "text" ? b.precision : "numeric";
+    var isTextMode = displayMode === "text";
 
     helpers.renderCardEntityField(panel, b, helpers, SENSOR_CARD_METADATA);
 
@@ -60,6 +63,7 @@ registerButtonType("sensor", {
         },
       }),
     });
+    var iconBtn = mode.buttons.icon;
     var numericBtn = mode.buttons.numeric;
     var textBtn = mode.buttons.text;
 
@@ -104,6 +108,23 @@ registerButtonType("sensor", {
     });
     panel.appendChild(textSection);
 
+    var iconSection = condField();
+    var offIconPicker = helpers.renderCardIconPicker(iconSection, b, helpers, {
+      pickerIdSuffix: "icon-off-picker",
+      idSuffix: "icon-off",
+      field: "icon",
+      fallback: "Auto",
+      label: "Icon",
+    });
+    var onIconPicker = helpers.renderCardIconPicker(iconSection, b, helpers, {
+      pickerIdSuffix: "icon-on-picker",
+      idSuffix: "icon-on",
+      field: "icon_on",
+      fallback: "Auto",
+      label: "On Icon",
+    });
+    panel.appendChild(iconSection);
+
     var hasStateLabels = sensorStateLabelsEnabled(b);
     var advancedToggleSection = helpers.toggleSection(
       "Advanced",
@@ -113,7 +134,11 @@ registerButtonType("sensor", {
     var advancedToggle = advancedToggleSection.toggle;
     var advanced = advancedToggleSection.section;
     panel.appendChild(advancedToggle.row);
-    if (hasStateLabels) advanced.classList.add("sp-visible");
+    if (hasStateLabels && isTextMode) advanced.classList.add("sp-visible");
+
+    var stateTextGrid = document.createElement("div");
+    stateTextGrid.className = "sp-state-translation-grid";
+    advanced.appendChild(stateTextGrid);
 
     var inputTextField = helpers.textField(
       "Input Status",
@@ -122,7 +147,7 @@ registerButtonType("sensor", {
       "e.g. high"
     );
     var inputTextInp = inputTextField.input;
-    advanced.appendChild(inputTextField.field);
+    stateTextGrid.appendChild(inputTextField.field);
 
     var outputTextField = helpers.textField(
       "Display Text",
@@ -131,15 +156,42 @@ registerButtonType("sensor", {
       "e.g. Please empty"
     );
     var outputTextInp = outputTextField.input;
-    advanced.appendChild(outputTextField.field);
+    stateTextGrid.appendChild(outputTextField.field);
+
+    var inputText2Field = helpers.textField(
+      "Input Status 2",
+      helpers.idPrefix + "sensor-state-input-2",
+      sensorStateInput2(b),
+      "e.g. low"
+    );
+    var inputText2Inp = inputText2Field.input;
+    stateTextGrid.appendChild(inputText2Field.field);
+
+    var outputText2Field = helpers.textField(
+      "Display Text 2",
+      helpers.idPrefix + "sensor-state-output-2",
+      sensorStateOutput2(b),
+      "e.g. Full"
+    );
+    var outputText2Inp = outputText2Field.input;
+    stateTextGrid.appendChild(outputText2Field.field);
 
     function saveStateTranslation() {
-      setSensorStateTranslation(b, advancedToggle.input.checked, inputTextInp.value, outputTextInp.value);
+      setSensorStateTranslations(
+        b,
+        advancedToggle.input.checked,
+        inputTextInp.value,
+        outputTextInp.value,
+        inputText2Inp.value,
+        outputText2Inp.value
+      );
       helpers.saveField("options", b.options);
     }
 
     inputTextInp.addEventListener("change", saveStateTranslation);
     outputTextInp.addEventListener("change", saveStateTranslation);
+    inputText2Inp.addEventListener("change", saveStateTranslation);
+    outputText2Inp.addEventListener("change", saveStateTranslation);
     advancedToggle.input.addEventListener("change", function () {
       if (this.checked) {
         if (!isTextMode) setMode("text", true);
@@ -148,17 +200,35 @@ registerButtonType("sensor", {
         advanced.classList.remove("sp-visible");
         inputTextInp.value = "";
         outputTextInp.value = "";
+        inputText2Inp.value = "";
+        outputText2Inp.value = "";
       }
       saveStateTranslation();
     });
     panel.appendChild(advanced);
 
+    function resetIconPicker(picker, value, slug) {
+      var iconPreview = picker.querySelector(".sp-icon-picker-preview");
+      if (iconPreview) iconPreview.className = "sp-icon-picker-preview mdi mdi-" + slug;
+      var iconInput = picker.querySelector(".sp-icon-picker-input");
+      if (iconInput) iconInput.value = value;
+    }
+
+    function syncAdvancedVisibility() {
+      advancedToggle.row.style.display = isTextMode ? "" : "none";
+      if (!isTextMode) advanced.classList.remove("sp-visible");
+    }
+
     function setMode(mode, persist) {
-      isTextMode = mode === "text";
-      numericBtn.classList.toggle("active", !isTextMode);
+      displayMode = mode === "icon" || mode === "text" ? mode : "numeric";
+      isTextMode = displayMode === "text";
+      iconBtn.classList.toggle("active", displayMode === "icon");
+      numericBtn.classList.toggle("active", displayMode === "numeric");
       textBtn.classList.toggle("active", isTextMode);
-      numericSection.classList.toggle("sp-visible", !isTextMode);
+      numericSection.classList.toggle("sp-visible", displayMode === "numeric");
       textSection.classList.toggle("sp-visible", isTextMode);
+      iconSection.classList.toggle("sp-visible", displayMode === "icon");
+      syncAdvancedVisibility();
       if (!persist) return;
       if (isTextMode) {
         b.precision = "text";
@@ -173,28 +243,54 @@ registerButtonType("sensor", {
         helpers.saveField("unit", "");
         helpers.saveField("icon_on", "Auto");
         helpers.saveField("options", b.options);
-      } else {
-        b.precision = "";
-        b.icon = "Auto";
-        b.options = normalizeSensorOptions(b.options, "");
-        helpers.saveField("precision", "");
-        helpers.saveField("icon", "Auto");
+        resetIconPicker(onIconPicker, "Auto", "cog");
+      } else if (displayMode === "icon") {
+        b.precision = "icon";
+        b.unit = "";
+        b.options = normalizeSensorOptions(b.options, "icon");
+        unitInp.value = "";
+        helpers.saveField("precision", "icon");
+        helpers.saveField("unit", "");
         helpers.saveField("options", b.options);
         advancedToggle.input.checked = false;
         advanced.classList.remove("sp-visible");
         inputTextInp.value = "";
         outputTextInp.value = "";
-        var iconPreview = textIconPicker.querySelector(".sp-icon-picker-preview");
-        if (iconPreview) iconPreview.className = "sp-icon-picker-preview mdi mdi-cog";
-        var iconInput = textIconPicker.querySelector(".sp-icon-picker-input");
-        if (iconInput) iconInput.value = "Auto";
+        inputText2Inp.value = "";
+        outputText2Inp.value = "";
+      } else {
+        b.precision = "";
+        b.icon = "Auto";
+        b.icon_on = "Auto";
+        b.options = normalizeSensorOptions(b.options, "");
+        helpers.saveField("precision", "");
+        helpers.saveField("icon", "Auto");
+        helpers.saveField("icon_on", "Auto");
+        helpers.saveField("options", b.options);
+        advancedToggle.input.checked = false;
+        advanced.classList.remove("sp-visible");
+        inputTextInp.value = "";
+        outputTextInp.value = "";
+        inputText2Inp.value = "";
+        outputText2Inp.value = "";
+        resetIconPicker(textIconPicker, "Auto", "cog");
+        resetIconPicker(offIconPicker, "Auto", "cog");
+        resetIconPicker(onIconPicker, "Auto", "cog");
         precisionSelect.value = "0";
       }
     }
 
-    setMode(isTextMode ? "text" : "numeric", false);
+    setMode(displayMode, false);
   },
   renderPreview: function (b, helpers) {
+    if (b.precision === "icon") {
+      var stateIconName = b.icon && b.icon !== "Auto" ? iconSlug(b.icon) : "cog";
+      return {
+        iconHtml: '<span class="sp-btn-icon mdi mdi-' + stateIconName + '"></span>',
+        labelHtml: cardBadgeLabelHtml(helpers, b.label || b.sensor || "Sensor", SENSOR_CARD_METADATA.preview.iconBadge),
+      };
+    }
+
     if (b.precision === "text") {
       var iconName = b.icon && b.icon !== "Auto" ? iconSlug(b.icon) : "cog";
       return {

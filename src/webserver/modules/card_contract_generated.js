@@ -36,6 +36,16 @@ var CARD_CONTRACT_CARDS = {
         ]
       },
       {
+        "name": "on_pattern",
+        "label": "On State Pattern",
+        "kind": "choice",
+        "values": [
+          "",
+          "stripes"
+        ],
+        "defaultValue": ""
+      },
+      {
         "name": "confirm_message",
         "label": "Message",
         "kind": "text",
@@ -79,7 +89,6 @@ var CARD_CONTRACT_CARDS = {
       "script",
       "automation",
       "button",
-      "vacuum",
       "input_button",
       "input_boolean",
       "input_number",
@@ -91,6 +100,32 @@ var CARD_CONTRACT_CARDS = {
         "name": "large_numbers",
         "label": "Large State Numbers",
         "kind": "flag"
+      },
+      {
+        "name": "confirmation_required",
+        "label": "Confirmation Required",
+        "kind": "flag",
+        "storage": [
+          "confirm_on"
+        ]
+      },
+      {
+        "name": "confirm_message",
+        "label": "Message",
+        "kind": "text",
+        "defaultValue": "Run this script?"
+      },
+      {
+        "name": "confirm_yes",
+        "label": "Confirm Button",
+        "kind": "text",
+        "defaultValue": "Yes"
+      },
+      {
+        "name": "confirm_no",
+        "label": "Cancel Button",
+        "kind": "text",
+        "defaultValue": "No"
       }
     ],
     "default": {
@@ -101,6 +136,41 @@ var CARD_CONTRACT_CARDS = {
       "sensor": "scene.turn_on",
       "unit": "",
       "type": "action",
+      "precision": "",
+      "options": ""
+    }
+  },
+  "vacuum": {
+    "label": "Vacuum",
+    "allowInSubpage": true,
+    "domains": [
+      "vacuum"
+    ],
+    "options": [
+      {
+        "name": "vacuum_mode",
+        "label": "Type",
+        "kind": "choice",
+        "values": [
+          "status",
+          "start_stop",
+          "dock",
+          "pause_resume",
+          "clean_spot",
+          "locate",
+          "clean_area"
+        ],
+        "defaultValue": "start_stop"
+      }
+    ],
+    "default": {
+      "entity": "",
+      "label": "",
+      "icon": "Robot Vacuum",
+      "icon_on": "Auto",
+      "sensor": "start_stop",
+      "unit": "",
+      "type": "vacuum",
       "precision": "",
       "options": ""
     }
@@ -120,6 +190,8 @@ var CARD_CONTRACT_CARDS = {
           "control_panel",
           "away",
           "home",
+          "night",
+          "vacation",
           "disarm"
         ],
         "defaultValue": "control_panel"
@@ -143,6 +215,8 @@ var CARD_CONTRACT_CARDS = {
         "values": [
           "away",
           "home",
+          "night",
+          "vacation",
           "disarm"
         ],
         "defaultValue": "away|home|disarm"
@@ -190,6 +264,20 @@ var CARD_CONTRACT_CARDS = {
             "service": "alarm_control_panel.alarm_arm_home",
             "icon": "Shield Home",
             "legacyIcon": "Home"
+          },
+          {
+            "value": "night",
+            "label": "Arm Night",
+            "service": "alarm_control_panel.alarm_arm_night",
+            "icon": "Weather Night",
+            "legacyIcon": "Weather Night"
+          },
+          {
+            "value": "vacation",
+            "label": "Arm Vacation",
+            "service": "alarm_control_panel.alarm_arm_vacation",
+            "icon": "Airplane",
+            "legacyIcon": "Airplane"
           },
           {
             "value": "disarm",
@@ -377,6 +465,7 @@ var CARD_CONTRACT_CARDS = {
         "label": "Type",
         "kind": "choice",
         "values": [
+          "modal",
           "",
           "tilt",
           "toggle",
@@ -385,7 +474,7 @@ var CARD_CONTRACT_CARDS = {
           "stop",
           "set_position"
         ],
-        "defaultValue": ""
+        "defaultValue": "modal"
       },
       {
         "name": "cover_position",
@@ -412,7 +501,7 @@ var CARD_CONTRACT_CARDS = {
       "label": "",
       "icon": "Blinds",
       "icon_on": "Blinds Open",
-      "sensor": "",
+      "sensor": "modal",
       "unit": "",
       "type": "cover",
       "precision": "",
@@ -462,7 +551,6 @@ var CARD_CONTRACT_CARDS = {
     "label": "Fans",
     "allowInSubpage": true,
     "pickerKey": "fan_speed",
-    "experimental": "developer",
     "domains": [
       "fan"
     ],
@@ -482,7 +570,6 @@ var CARD_CONTRACT_CARDS = {
     "label": "Fans",
     "allowInSubpage": true,
     "pickerKey": "fan_speed",
-    "experimental": "developer",
     "domains": [
       "fan"
     ],
@@ -502,7 +589,6 @@ var CARD_CONTRACT_CARDS = {
     "label": "Fans",
     "allowInSubpage": true,
     "pickerKey": "fan_speed",
-    "experimental": "developer",
     "domains": [
       "fan"
     ],
@@ -521,7 +607,6 @@ var CARD_CONTRACT_CARDS = {
   "fan_speed": {
     "label": "Fans",
     "allowInSubpage": true,
-    "experimental": "developer",
     "domains": [
       "fan"
     ],
@@ -541,7 +626,6 @@ var CARD_CONTRACT_CARDS = {
     "label": "Fans",
     "allowInSubpage": true,
     "pickerKey": "fan_speed",
-    "experimental": "developer",
     "domains": [
       "fan"
     ],
@@ -699,6 +783,26 @@ var CARD_CONTRACT_CARDS = {
       "sensor": "",
       "unit": "2000-6500",
       "type": "light_temperature",
+      "precision": "",
+      "options": ""
+    }
+  },
+  "light_control": {
+    "label": "Lights",
+    "allowInSubpage": true,
+    "pickerKey": "light_brightness",
+    "hidden": true,
+    "domains": [
+      "light"
+    ],
+    "default": {
+      "entity": "",
+      "label": "",
+      "icon": "Lightbulb Outline",
+      "icon_on": "Lightbulb",
+      "sensor": "",
+      "unit": "",
+      "type": "light_control",
       "precision": "",
       "options": ""
     }
@@ -874,6 +978,22 @@ var CARD_CONTRACT_CARDS = {
       "options": ""
     }
   },
+  "screen_lock": {
+    "label": "Screen Lock",
+    "allowInSubpage": true,
+    "domains": [],
+    "default": {
+      "entity": "",
+      "label": "",
+      "icon": "Lock",
+      "icon_on": "Lock Open",
+      "sensor": "",
+      "unit": "",
+      "type": "screen_lock",
+      "precision": "",
+      "options": ""
+    }
+  },
   "webhook": {
     "label": "Webhook",
     "allowInSubpage": true,
@@ -913,6 +1033,7 @@ var CARD_CONTRACT_CARDS = {
         "kind": "flag",
         "supportedWhen": {
           "precisionNot": [
+            "icon",
             "text"
           ]
         }
@@ -950,6 +1071,26 @@ var CARD_CONTRACT_CARDS = {
       {
         "name": "state_output",
         "label": "Display Text",
+        "kind": "text",
+        "supportedWhen": {
+          "precision": [
+            "text"
+          ]
+        }
+      },
+      {
+        "name": "state_input_2",
+        "label": "Input Status 2",
+        "kind": "text",
+        "supportedWhen": {
+          "precision": [
+            "text"
+          ]
+        }
+      },
+      {
+        "name": "state_output_2",
+        "label": "Display Text 2",
         "kind": "text",
         "supportedWhen": {
           "precision": [
@@ -1000,10 +1141,19 @@ var CARD_CONTRACT_CARDS = {
         "kind": "choice",
         "values": [
           "",
+          "switch",
           "lights",
           "climate",
           "presence",
-          "media"
+          "media",
+          "alarm",
+          "cover",
+          "garage",
+          "lock",
+          "vacuum",
+          "weather",
+          "sensor",
+          "image"
         ],
         "defaultValue": ""
       },
@@ -1103,6 +1253,47 @@ var CARD_CONTRACT_CARDS = {
       "options": ""
     }
   },
+  "image": {
+    "label": "Camera Card",
+    "allowInSubpage": true,
+    "domains": [
+      "camera",
+      "image"
+    ],
+    "options": [
+      {
+        "name": "image_label",
+        "label": "Show Label",
+        "kind": "flag"
+      },
+      {
+        "name": "image_icon",
+        "label": "Show Icon",
+        "kind": "flag"
+      },
+      {
+        "name": "image_modal_mode",
+        "label": "Expanded Image",
+        "kind": "choice",
+        "values": [
+          "fill",
+          "fit"
+        ],
+        "defaultValue": "fill"
+      }
+    ],
+    "default": {
+      "entity": "",
+      "label": "",
+      "icon": "Auto",
+      "icon_on": "Auto",
+      "sensor": "",
+      "unit": "",
+      "type": "image",
+      "precision": "",
+      "options": ""
+    }
+  },
   "weather_forecast": {
     "label": "Weather Forecast",
     "allowInSubpage": true,
@@ -1168,16 +1359,19 @@ var CARD_CONTRACT_SUBPAGE_TYPE_CODES = {
   "fan_preset": "Z",
   "light_brightness": "V",
   "light_switch": "Q",
+  "light_control": "LC",
   "alarm": "Y",
   "alarm_action": "AA",
   "slider": "L",
   "cover": "C",
+  "vacuum": "VC",
   "light_temperature": "N",
   "garage": "R",
   "lock": "K",
   "media": "M",
   "climate": "H",
   "push": "P",
+  "screen_lock": "SL",
   "webhook": "WH",
   "internal": "I",
   "subpage": "G"
@@ -1200,16 +1394,19 @@ var CARD_CONTRACT_SUBPAGE_TYPES_BY_CODE = {
   "Z": "fan_preset",
   "V": "light_brightness",
   "Q": "light_switch",
+  "LC": "light_control",
   "Y": "alarm",
   "AA": "alarm_action",
   "L": "slider",
   "C": "cover",
+  "VC": "vacuum",
   "N": "light_temperature",
   "R": "garage",
   "K": "lock",
   "M": "media",
   "H": "climate",
   "P": "push",
+  "SL": "screen_lock",
   "WH": "webhook",
   "I": "internal",
   "G": "subpage"
@@ -1219,6 +1416,7 @@ var CARD_CONTRACT_LARGE_NUMBERS = {
   "action": true,
   "sensor": {
     "excludedPrecisions": [
+      "icon",
       "text"
     ]
   },
@@ -1261,11 +1459,6 @@ function cardContractAllowInSubpage(type) {
 function cardContractPickerKey(type) {
   var card = cardContractCard(type);
   return card && card.pickerKey ? card.pickerKey : "";
-}
-
-function cardContractExperimental(type) {
-  var card = cardContractCard(type);
-  return card && card.experimental ? card.experimental : "";
 }
 
 function cardContractHidden(type) {

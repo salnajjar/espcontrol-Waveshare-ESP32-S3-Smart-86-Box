@@ -49,10 +49,189 @@ def package_substitution_lines(device: dict) -> list[str]:
                 '  disable_updates: "false"',
                 '  network_package_suffix: ${ "_ethernet" if network_transport == "ethernet" else "" }',
                 '  firmware_update_package_suffix: ${ "_disabled" if disable_updates == "true" else "" }',
+                '  esp32_c6_firmware_update_package_suffix: ${ "_disabled" if network_transport == "ethernet" else "" }',
                 f'  backlight_pwm_frequency: ${{ "{frequency["ethernet"]}" if network_transport == "ethernet" else "{frequency["wifi"]}" }}',
             ]
         )
+    lines.extend(cover_art_substitution_lines(device))
     return lines
+
+
+def cover_art_substitution_lines(device: dict) -> list[str]:
+    layouts = {
+        "guition-esp32-s3-4848s040": {
+            "cover_art_size": "480",
+            "cover_art_decode_size": "320",
+            "cover_art_x": "0",
+            "cover_art_y": "0",
+            "cover_art_accent_x": "0",
+            "cover_art_accent_y": "0",
+            "cover_art_accent_width": "480",
+            "cover_art_accent_height": "480",
+            "cover_art_accent_bg_opa": "80%",
+            "cover_art_accent_opa": "80%",
+            "cover_art_panel_x": "0",
+            "cover_art_panel_y": "0",
+            "cover_art_panel_width": "480",
+            "cover_art_panel_height": "480",
+            "cover_art_panel_pad_top": "24",
+            "cover_art_panel_pad_bottom": "16",
+            "cover_art_panel_pad_left": "24",
+            "cover_art_panel_pad_right": "24",
+            "cover_art_panel_pad_row": "0",
+            "cover_art_title_font": "font_cover_art_title",
+            "cover_art_title_max_height": "330",
+            "cover_art_title_line_space": "0",
+            "cover_art_artist_font": "font_cover_art_artist",
+            "cover_art_artist_pad_top": "6",
+            "cover_art_artist_long_mode": "dot",
+            "cover_art_time_font": "font_cover_art_time",
+            "cover_art_time_pad_top": "12",
+            "cover_art_progress_width": "480",
+            "cover_art_progress_height": "4",
+            "cover_art_text_color": "0xFFFFFF",
+            "cover_art_square_overlay": "true",
+            "cover_art_live_image_updates": "false",
+        },
+        "esp32-p4-86": {
+            "cover_art_size": "720",
+            "cover_art_decode_size": "720",
+            "cover_art_x": "0",
+            "cover_art_y": "0",
+            "cover_art_accent_x": "0",
+            "cover_art_accent_y": "0",
+            "cover_art_accent_width": "720",
+            "cover_art_accent_height": "720",
+            "cover_art_accent_bg_opa": "80%",
+            "cover_art_accent_opa": "80%",
+            "cover_art_panel_x": "0",
+            "cover_art_panel_y": "0",
+            "cover_art_panel_width": "720",
+            "cover_art_panel_height": "720",
+            "cover_art_panel_pad_top": "36",
+            "cover_art_panel_pad_bottom": "24",
+            "cover_art_panel_pad_left": "36",
+            "cover_art_panel_pad_right": "36",
+            "cover_art_panel_pad_row": "0",
+            "cover_art_title_font": "font_cover_art_title",
+            "cover_art_title_max_height": "495",
+            "cover_art_title_line_space": "0",
+            "cover_art_artist_font": "font_cover_art_artist",
+            "cover_art_artist_pad_top": "9",
+            "cover_art_artist_long_mode": "dot",
+            "cover_art_time_font": "font_cover_art_time",
+            "cover_art_time_pad_top": "18",
+            "cover_art_progress_width": "720",
+            "cover_art_progress_height": "4",
+            "cover_art_text_color": "0xFFFFFF",
+            "cover_art_square_overlay": "true",
+        },
+        "guition-esp32-p4-jc4880p443": {
+            "cover_art_size": "480",
+            "cover_art_decode_size": "480",
+            "cover_art_x": "0",
+            "cover_art_y": "0",
+            "cover_art_accent_x": "0",
+            "cover_art_accent_y": "480",
+            "cover_art_accent_width": "480",
+            "cover_art_accent_height": "320",
+            "cover_art_accent_bg_opa": "100%",
+            "cover_art_accent_opa": "100%",
+            "cover_art_panel_x": "24",
+            "cover_art_panel_y": "514",
+            "cover_art_panel_width": "432",
+            "cover_art_panel_height": "262",
+            "cover_art_panel_pad_top": "0",
+            "cover_art_panel_pad_bottom": "0",
+            "cover_art_panel_pad_left": "0",
+            "cover_art_panel_pad_right": "0",
+            "cover_art_panel_pad_row": "0",
+            "cover_art_title_font": "font_cover_art_title",
+            "cover_art_title_max_height": "130",
+            "cover_art_title_line_space": "0",
+            "cover_art_artist_font": "font_cover_art_artist",
+            "cover_art_artist_pad_top": "10",
+            "cover_art_artist_long_mode": "dot",
+            "cover_art_time_font": "font_cover_art_time",
+            "cover_art_time_pad_top": "14",
+            "cover_art_progress_width": "480",
+            "cover_art_progress_height": "4",
+            "cover_art_text_color": "0xFFFFFF",
+            "cover_art_square_overlay": "false",
+        },
+        "guition-esp32-p4-jc8012p4a1": {
+            "cover_art_size": "800",
+            "cover_art_decode_size": "800",
+            "cover_art_x": "0",
+            "cover_art_y": "0",
+            "cover_art_accent_x": "800",
+            "cover_art_accent_y": "0",
+            "cover_art_accent_width": "480",
+            "cover_art_accent_height": "800",
+            "cover_art_accent_bg_opa": "100%",
+            "cover_art_accent_opa": "100%",
+            "cover_art_panel_x": "840",
+            "cover_art_panel_y": "40",
+            "cover_art_panel_width": "400",
+            "cover_art_panel_height": "720",
+            "cover_art_panel_pad_top": "0",
+            "cover_art_panel_pad_bottom": "0",
+            "cover_art_panel_pad_left": "0",
+            "cover_art_panel_pad_right": "0",
+            "cover_art_panel_pad_row": "0",
+            "cover_art_title_font": "font_cover_art_title",
+            "cover_art_title_max_height": "506",
+            "cover_art_title_line_space": "0",
+            "cover_art_artist_font": "font_cover_art_artist",
+            "cover_art_artist_pad_top": "4",
+            "cover_art_artist_long_mode": "wrap",
+            "cover_art_time_font": "font_cover_art_time",
+            "cover_art_time_pad_top": "12",
+            "cover_art_progress_width": "1280",
+            "cover_art_progress_height": "4",
+            "cover_art_text_color": "0xFFF5E0",
+            "cover_art_square_overlay": "false",
+        },
+        "guition-esp32-p4-jc1060p470": {
+            "cover_art_size": "600",
+            "cover_art_decode_size": "600",
+            "cover_art_x": "0",
+            "cover_art_y": "0",
+            "cover_art_accent_x": "585",
+            "cover_art_accent_y": "0",
+            "cover_art_accent_width": "439",
+            "cover_art_accent_height": "600",
+            "cover_art_accent_bg_opa": "100%",
+            "cover_art_accent_opa": "100%",
+            "cover_art_panel_x": "615",
+            "cover_art_panel_y": "34",
+            "cover_art_panel_width": "377",
+            "cover_art_panel_height": "430",
+            "cover_art_panel_pad_top": "0",
+            "cover_art_panel_pad_bottom": "0",
+            "cover_art_panel_pad_left": "0",
+            "cover_art_panel_pad_right": "0",
+            "cover_art_panel_pad_row": "0",
+            "cover_art_title_font": "font_cover_art_title",
+            "cover_art_title_max_height": "260",
+            "cover_art_title_line_space": "-8",
+            "cover_art_artist_font": "font_cover_art_artist",
+            "cover_art_artist_pad_top": "10",
+            "cover_art_artist_long_mode": "dot",
+            "cover_art_time_font": "font_cover_art_time",
+            "cover_art_time_pad_top": "14",
+            "cover_art_progress_width": "1024",
+            "cover_art_progress_height": "4",
+            "cover_art_text_color": "0xFFFFFF",
+            "cover_art_square_overlay": "false",
+        },
+    }
+    layout = layouts.get(device["slug"])
+    if not layout:
+        return []
+    layout = {**layout}
+    layout.setdefault("cover_art_live_image_updates", "true")
+    return [f'  {key}: "{value}"' for key, value in layout.items()]
 
 
 def include_line(key: str, include: str) -> str:
@@ -72,6 +251,11 @@ def package_file_text(device: dict) -> str:
     firmware_update_suffix = (
         "${firmware_update_package_suffix}" if package.get("ethernetSelectable") else ""
     )
+    esp32_c6_firmware_update_suffix = (
+        "${esp32_c6_firmware_update_package_suffix}"
+        if package.get("ethernetSelectable")
+        else ""
+    )
     provisioning_suffix = (
         "${provisioning_package_suffix}" if package.get("provisioningSelectable") else ""
     )
@@ -83,7 +267,7 @@ def package_file_text(device: dict) -> str:
         lines.extend(
             [
                 "defaults:",
-                '  provisioning_package_suffix: ""',
+                '  provisioning_package_suffix: "_deployed"',
                 "",
             ]
         )
@@ -111,9 +295,15 @@ def package_file_text(device: dict) -> str:
                 f"!include device/network_coprocessor{network_suffix}.yaml",
             )
         )
+    if package.get("esp32C6FirmwareUpdate"):
+        lines.append(
+            include_line(
+                "esp32_c6_firmware_update",
+                f"!include ../../common/device/esp32_c6_firmware_update{esp32_c6_firmware_update_suffix}.yaml",
+            )
+        )
     lines.extend(
         [
-            include_line("fonts", "!include ../../common/assets/fonts.yaml"),
             include_line("icons", "!include ../../common/assets/icons.yaml"),
             include_line(
                 package.get("deviceFontPackageKey", "fonts_device"),
@@ -124,6 +314,11 @@ def package_file_text(device: dict) -> str:
             "  # Configuration (text/select/number components for web UI)",
             "  # ---------------------------------------------------------------------------",
             include_line("colors", "!include ../../common/config/colors.yaml"),
+            *(
+                [include_line("theme", "!include ../../common/config/theme.yaml")]
+                if device.get("display_mode") == "monochrome"
+                else []
+            ),
             include_line("button_order", "!include ../../common/config/button_order.yaml"),
             include_line("display_config", "!include ../../common/config/display.yaml"),
             button_package_block(device).rstrip(),
@@ -138,19 +333,13 @@ def package_file_text(device: dict) -> str:
     )
     if package.get("apiNavigateAction", True):
         lines.append(include_line("api_navigate", "!include ../../common/device/api_navigate.yaml"))
-    if package.get("improvSerial"):
-        lines.append(
-            include_line(
-                "improv_serial",
-                f"!include ../../common/addon/improv_serial{provisioning_suffix}.yaml",
-            )
-        )
     lines.extend(
         [
             include_line("time_sync", "!include ../../common/addon/time.yaml"),
             include_line("backlight", "!include ../../common/addon/backlight.yaml"),
             include_line("bl_schedule", "!include ../../common/addon/backlight_schedule.yaml"),
             include_line("network", f"!include ../../common/addon/network{network_suffix}.yaml"),
+            include_line("memory_diag", "!include ../../common/addon/memory_diagnostics.yaml"),
             include_line(
                 "fw_update",
                 f"!include ../../common/addon/firmware_update{firmware_update_suffix}.yaml",
@@ -168,6 +357,19 @@ def package_file_text(device: dict) -> str:
             include_line("screen_ha_act", "!include ../../common/device/screen_ha_actions.yaml"),
             include_line("screen_setup", "!include ../../common/device/screen_button_setup.yaml"),
             include_line("screen_clock", "!include ../../common/device/screen_clock.yaml"),
+            include_line("screen_art", "!include ../../common/device/screen_cover_art.yaml"),
+            *(
+                [
+                    include_line(
+                        "image_cards",
+                        "!include ../../common/device/image_cards.yaml"
+                        if int(device.get("image_card_downloaders", 4)) == 4
+                        else f"!include ../../common/device/image_cards_{int(device.get('image_card_downloaders', 4))}.yaml",
+                    )
+                ]
+                if int(device.get("image_card_downloaders", 4)) > 0
+                else []
+            ),
             "  # ---------------------------------------------------------------------------",
             "  # Main page and dynamic sensor subscriptions (after setup screens)",
             "  # ---------------------------------------------------------------------------",
@@ -219,7 +421,7 @@ def button_slot_macro() -> str:
     return (
         "#define BTN_SLOT(n) { button_##n##_config, button_##n, button_##n##_icon_label, "
         "button_##n##_text_label, button_##n##_sensor_container, button_##n##_sensor_label, "
-        "button_##n##_unit_label }"
+        "button_##n##_unit_label, button_##n##_subpage_label }"
     )
 
 
@@ -234,6 +436,7 @@ def macro_array(name: str, macro: str, slots: int, per_line: int = 4) -> list[st
 
 
 def cfg_lines(device: dict) -> list[str]:
+    image_card_count = int(device.get("image_card_downloaders", 4))
     lines = [
         "            GridConfig cfg = {};",
         f"            cfg.num_slots = {device['slots']};",
@@ -245,6 +448,17 @@ def cfg_lines(device: dict) -> list[str]:
             lines.append("            cfg.width_compensation_vertical = portrait;")
     else:
         lines.append(f"            cfg.cols = {device['cols']};")
+    lines.append("            cfg.subpage_chevrons_enabled = id(subpage_chevrons_enabled).state;")
+    if device.get("info_only"):
+        lines.append("            cfg.info_only = true;")
+    if device.get("subpage_chevron_x", 0) != 0:
+        lines.append(f"            cfg.subpage_chevron_x = {device['subpage_chevron_x']};")
+    if device.get("subpage_chevron_y", 2) != 2:
+        lines.append(f"            cfg.subpage_chevron_y = {device['subpage_chevron_y']};")
+    if device.get("subpage_chevron_text_width_percent", 94) != 94:
+        lines.append(
+            f"            cfg.subpage_chevron_text_width_percent = {device['subpage_chevron_text_width_percent']};"
+        )
     if device["wrap_tall_labels"]:
         lines.append("            cfg.wrap_tall_labels = true;")
     if device.get("width_compensation_percent", 100) != 100:
@@ -269,6 +483,10 @@ def cfg_lines(device: dict) -> list[str]:
         lines.append(
             f"            cfg.climate_card_icon_font = id({device['climate_card_icon_font']})->get_lv_font();"
         )
+    if device.get("subpage_chevron_font"):
+        lines.append(
+            f"            cfg.subpage_chevron_font = id({device['subpage_chevron_font']})->get_lv_font();"
+        )
     if device.get("climate_option_title_font"):
         lines.append(
             f"            cfg.climate_option_title_font = id({device['climate_option_title_font']})->get_lv_font();"
@@ -279,13 +497,54 @@ def cfg_lines(device: dict) -> list[str]:
         )
     lines.append("            cfg.temperature_unit = id(temperature_unit_select).current_option();")
     lines.append("            cfg.timezone = id(timezone_select).current_option();")
-    lines.append("            cfg.pause_home_idle = []() {")
-    lines.append("              id(home_screen_idle_suspended) = true;")
-    lines.append("              id(home_screen_idle_check).stop();")
+    lines.append("            cfg.suspend_display_takeover = []() {")
+    lines.append("              id(display_takeover_suspended) = true;")
+    lines.append("              id(screensaver_idle_check).stop();")
+    lines.append("              id(screensaver_sleep_timer).stop();")
+    lines.append("              id(screensaver_sleep_sensor).stop();")
+    lines.append("              id(screensaver_sleep_display_off).stop();")
+    lines.append("              id(backlight_sleep_display_off).stop();")
+    lines.append("              id(backlight_fade_current_ui_to_black).stop();")
+    lines.append("              id(backlight_schedule_display_off).stop();")
+    lines.append("              id(show_clock_view).stop();")
+    lines.append("              id(show_dimmed_view).stop();")
+    lines.append("              id(clock_screensaver_refresh_brightness).stop();")
+    lines.append("              id(screensaver_dimmed_refresh_brightness).stop();")
+    lines.append("              id(display_asleep) = false;")
+    lines.append("              id(screensaver_display_off_active) = false;")
+    lines.append("              id(screensaver_dimmed_active) = false;")
+    lines.append("              lv_obj_add_flag(id(dim_screensaver_touch_guard), LV_OBJ_FLAG_HIDDEN);")
+    lines.append("              id(backlight_apply_brightness).execute();")
     lines.append("            };")
-    lines.append("            cfg.resume_home_idle = []() {")
-    lines.append("              id(home_screen_idle_suspended) = false;")
+    lines.append("            cfg.resume_display_takeover = []() {")
+    lines.append("              id(display_takeover_suspended) = false;")
+    lines.append("              if (id(screensaver_sensor_sleep_pending) &&")
+    lines.append("                  id(screensaver_mode).state == \"sensor\" &&")
+    lines.append("                  !id(presence_detected)) {")
+    lines.append("                id(screensaver_sleep_sensor).execute();")
+    lines.append("                return;")
+    lines.append("              }")
     lines.append("              id(home_screen_idle_check).execute();")
+    lines.append("              id(screensaver_idle_check).execute();")
+    lines.append("            };")
+    if image_card_count > 0:
+        lines.append("            static esphome::artwork_image::ArtworkImage *image_card_downloaders[] = {")
+        for num in range(1, image_card_count + 1):
+            lines.append(f"              id(image_card_download_{num}),")
+        lines.append("            };")
+        lines.append("            static esphome::artwork_image::ArtworkImage *image_card_modal_downloaders[] = {")
+        for num in range(1, image_card_count + 1):
+            lines.append(f"              id(image_card_modal_download_{num}),")
+        lines.append("            };")
+        lines.append("            cfg.image_card_images = image_card_downloaders;")
+        lines.append("            cfg.image_card_modal_images = image_card_modal_downloaders;")
+        lines.append(f"            cfg.image_card_image_count = {image_card_count};")
+    if device.get("image_card_diagnostics"):
+        lines.append("            cfg.image_card_diagnostics = true;")
+    lines.append("            cfg.home_assistant_base_url = []() {")
+    lines.append("              std::string base = id(cover_art_home_assistant_base_url);")
+    lines.append("              while (!base.empty() && base.back() == '/') base.pop_back();")
+    lines.append("              return base;")
     lines.append("            };")
     lines.append("            register_webhook_sender([](const std::string &url, const std::string &method, const std::string &body, const std::vector<esphome::http_request::Header> &headers) {")
     lines.append("              auto response = id(http_req).start(url, method, body, headers);")
@@ -305,6 +564,8 @@ def cfg_lines(device: dict) -> list[str]:
     lines.append("            set_width_compensation_vertical_axis(cfg.width_compensation_vertical);")
     lines.append("            apply_width_compensation(id(display_time), cfg.width_compensation_percent);")
     lines.append("            apply_width_compensation(id(temperatures), cfg.width_compensation_percent);")
+    for index in range(2, 7):
+        lines.append(f"            apply_width_compensation(id(temperature_{index}), cfg.width_compensation_percent);")
     lines.append("            apply_width_compensation(id(clock_label), cfg.width_compensation_percent);")
     return lines
 
@@ -407,6 +668,7 @@ def phase2_block(device: dict) -> str:
 
 
 def script_block(device: dict) -> str:
+    after_refresh = ["      - script.execute: clock_bar_apply"]
     return "\n".join(
         [
             "script:",
@@ -417,6 +679,7 @@ def script_block(device: dict) -> str:
             "          grid_refresh_layout(slots, cfg,",
             "            id(button_order).state,",
             "            id(main_page)->obj);",
+            *after_refresh,
             "",
         ]
     )
@@ -441,22 +704,9 @@ def replace_phase(text: str, phase: int, block: str, call: str, slug: str) -> st
 
 def replace_script_block(text: str, device: dict) -> str:
     block = script_block(device)
-    marker = re.compile(
-        r"(?ms)^script:\n"
-        r"  - id: refresh_button_grid\n"
-        r".*?^          grid_(?:phase1|refresh_layout)\(slots, cfg,\n"
-        r"^            id\(button_order\)\.state,\n"
-        r"(?:(?:^            id\(button_on_color\)\.state,\n"
-        r"^            id\(button_off_color\)\.state,\n"
-        r"^            id\(sensor_card_color\)\.state,\n"
-        r"))?"
-        r"^            id\(main_page\)->obj\);\n"
-        r"^\n?"
-    )
+    marker = re.compile(r"(?ms)^script:\n.*?(?=^esphome:)")
     if marker.search(text):
-        return marker.sub(block, text, count=1)
-    if "portrait_cols" not in device:
-        return text
+        return marker.sub(block + "\n", text, count=1)
     insert_at = text.find("\nesphome:")
     if insert_at < 0:
         raise ValueError(f"Could not find esphome block for {device['slug']}")
@@ -515,6 +765,8 @@ def main() -> int:
 
     changed: list[Path] = []
     for device in slot_devices():
+        if device.get("display_mode") == "monochrome":
+            continue
         slug = device["slug"]
         package_path = ROOT / "devices" / slug / "packages.yaml"
         sensor_path = ROOT / "devices" / slug / "device" / "sensors.yaml"

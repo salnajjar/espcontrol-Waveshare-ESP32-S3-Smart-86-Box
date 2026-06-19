@@ -28,3 +28,9 @@ web_server:
   version: 3
   js_url: ""
   js_include: "../docs/public/webserver/guition-esp32-s3-4848s040/www.js"
+
+wifi:
+  ap:
+    ssid: "${friendly_name}"
+
+captive_portal:

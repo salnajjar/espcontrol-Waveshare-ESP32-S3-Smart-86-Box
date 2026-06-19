@@ -1,10 +1,23 @@
 // Local action card: calls a register_local_action() callback on the device directly,
 // without going through Home Assistant. Register actions in your device on_boot lambda:
 //   register_local_action("my_key", "My Label", [=]() { id(my_component).do_thing(); });
+var LOCAL_ACTION_CARD_METADATA = {
+  icon: {
+    pickerIdSuffix: "icon-picker",
+    idSuffix: "icon",
+    field: "icon",
+    fallback: "Gesture Tap",
+  },
+  preview: {
+    badge: "chip",
+  },
+};
+
 registerButtonType("local", {
   label: "Local Action",
   allowInSubpage: true,
   labelPlaceholder: "e.g. Zoom Mute",
+  cardMetadata: LOCAL_ACTION_CARD_METADATA,
   onSelect: function (b) {
     b.entity = "";
     b.sensor = "";
@@ -137,7 +150,7 @@ registerButtonType("local", {
       labelHtml:
         '<span class="sp-btn-label-row"><span class="sp-btn-label">' +
         helpers.escHtml(label) + '</span>' +
-        '<span class="sp-type-badge mdi mdi-chip"></span></span>',
+        '<span class="sp-type-badge mdi mdi-' + LOCAL_ACTION_CARD_METADATA.preview.badge + '"></span></span>',
     };
   },
 });

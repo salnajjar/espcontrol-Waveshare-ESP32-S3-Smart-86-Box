@@ -3,12 +3,12 @@
 // Internal implementation detail for button_grid.h. Include button_grid.h from device YAML.
 
 inline std::string media_status_text(const std::string &state) {
-  if (state == "playing") return "Playing";
-  if (state == "paused") return "Paused";
-  if (state == "idle") return "Idle";
-  if (state == "off") return "Off";
-  if (state == "unavailable") return "Unavailable";
-  if (state == "unknown" || state.empty()) return "Unknown";
+  if (state == "playing") return espcontrol_i18n(std::string("Playing"));
+  if (state == "paused") return espcontrol_i18n(std::string("Paused"));
+  if (state == "idle") return espcontrol_i18n(std::string("Idle"));
+  if (state == "off") return espcontrol_i18n(std::string("Off"));
+  if (state == "unavailable") return espcontrol_i18n(std::string("Unavailable"));
+  if (state == "unknown" || state.empty()) return espcontrol_i18n(std::string("Unknown"));
   return sentence_cap_text(state);
 }
 
@@ -19,6 +19,19 @@ inline void media_set_metadata_text(lv_obj_t *label, esphome::StringRef value,
   if (text.empty() || text == "unknown" || text == "unavailable")
     text = fallback ? fallback : "--";
   lv_label_set_text(label, text.c_str());
+}
+
+inline void media_refresh_artist_text(lv_obj_t *artist_lbl,
+                                      const std::string &entity_id) {
+  if (!artist_lbl || entity_id.empty()) return;
+  lv_label_set_text(artist_lbl, "");
+  ha_get_attribute(
+    entity_id, std::string("media_artist"),
+    std::function<void(esphome::StringRef)>(
+      [artist_lbl](esphome::StringRef artist) {
+        media_set_metadata_text(artist_lbl, artist, "");
+      })
+  );
 }
 
 inline bool media_seek_pending_active(SliderCtx *ctx) {
@@ -164,7 +177,7 @@ inline void setup_media_action_layout(lv_obj_t *btn, lv_obj_t *icon_lbl,
   }
   if (text_lbl) {
     std::string label = media_play_pause_show_state(p)
-      ? std::string("Paused")
+      ? espcontrol_i18n(std::string("Paused"))
       : media_action_label(p, mode);
     lv_label_set_text(text_lbl, label.c_str());
     lv_obj_align(text_lbl, LV_ALIGN_BOTTOM_LEFT, 0, 0);
@@ -217,7 +230,7 @@ inline void setup_media_now_playing_layout(lv_obj_t *btn, lv_obj_t *icon_lbl,
   }
   if (artist_lbl) {
     const lv_font_t *font = lv_obj_get_style_text_font(artist_lbl, LV_PART_MAIN);
-    if (reset_text) lv_label_set_text(artist_lbl, "--");
+    if (reset_text) lv_label_set_text(artist_lbl, "");
     lv_label_set_long_mode(artist_lbl, LV_LABEL_LONG_DOT);
     if (font && font->line_height > 0) lv_obj_set_size(artist_lbl, text_width, font->line_height);
     else lv_obj_set_width(artist_lbl, text_width);
@@ -320,7 +333,7 @@ inline lv_obj_t *setup_media_slider_layout(lv_obj_t *btn, lv_obj_t *icon_lbl,
     }
     if (text_lbl) {
       lv_obj_clear_flag(text_lbl, LV_OBJ_FLAG_HIDDEN);
-      lv_label_set_text(text_lbl, media_position_show_state(p) ? "Paused" : media_action_label(p, mode).c_str());
+      lv_label_set_text(text_lbl, media_position_show_state(p) ? espcontrol_i18n("Paused") : media_action_label(p, mode).c_str());
       lv_obj_align(text_lbl, LV_ALIGN_BOTTOM_LEFT, pad, -pad);
       configure_button_label_wrap(text_lbl);
       lv_obj_move_foreground(text_lbl);
@@ -480,6 +493,7 @@ inline void setup_media_card(BtnSlot &s, const ParsedCfg &p, uint32_t on_color,
 inline void subscribe_media_state(lv_obj_t *btn_ptr,
                                   lv_obj_t *status_lbl,
                                   const std::string &entity_id) {
+  register_ha_control_availability(btn_ptr, btn_ptr);
   ha_subscribe_state(
     entity_id,
     std::function<void(esphome::StringRef)>(
@@ -488,8 +502,7 @@ inline void subscribe_media_state(lv_obj_t *btn_ptr,
         bool unavailable = ha_state_unavailable_ref(state);
         apply_control_availability(btn_ptr, btn_ptr, !unavailable);
         bool playing = state_text == "playing";
-        if (playing) lv_obj_add_state(btn_ptr, LV_STATE_CHECKED);
-        else lv_obj_clear_state(btn_ptr, LV_STATE_CHECKED);
+        set_card_checked_state(btn_ptr, playing);
         if (status_lbl) {
           std::string label = media_status_text(state_text);
           lv_label_set_text(status_lbl, label.c_str());
@@ -510,15 +523,16 @@ inline void subscribe_media_now_playing_state(MediaNowPlayingCtx *ctx,
   ha_subscribe_attribute(
     entity_id, std::string("media_title"),
     std::function<void(esphome::StringRef)>(
-      [title_lbl](esphome::StringRef title) {
+      [title_lbl, artist_lbl, entity_id](esphome::StringRef title) {
         media_set_metadata_text(title_lbl, title, "--");
+        media_refresh_artist_text(artist_lbl, entity_id);
       })
   );
   ha_subscribe_attribute(
     entity_id, std::string("media_artist"),
     std::function<void(esphome::StringRef)>(
       [artist_lbl](esphome::StringRef artist) {
-        media_set_metadata_text(artist_lbl, artist, "--");
+        media_set_metadata_text(artist_lbl, artist, "");
       })
   );
   if (ctx && ctx->progress_slider) {
@@ -543,8 +557,8 @@ inline MediaVolumeCtx *create_media_volume_context(lv_obj_t *btn,
                                                    int width_compensation_percent = 100,
                                                    lv_obj_t *pct_lbl = nullptr,
                                                    lv_obj_t *unit_lbl = nullptr,
-                                                   std::function<void()> pause_home_idle = nullptr,
-                                                   std::function<void()> resume_home_idle = nullptr) {
+                                                   std::function<void()> suspend_display_takeover = nullptr,
+                                                   std::function<void()> resume_display_takeover = nullptr) {
   MediaVolumeCtx *ctx = new MediaVolumeCtx();
   ctx->entity_id = p.entity;
   ctx->label = media_label(p);
@@ -562,14 +576,15 @@ inline MediaVolumeCtx *create_media_volume_context(lv_obj_t *btn,
   ctx->unit_font = unit_font;
   ctx->label_font = label_font;
   ctx->icon_font = icon_font;
-  ctx->pause_home_idle = pause_home_idle;
-  ctx->resume_home_idle = resume_home_idle;
+  ctx->suspend_display_takeover = suspend_display_takeover;
+  ctx->resume_display_takeover = resume_display_takeover;
   if (btn) lv_obj_set_user_data(btn, ctx);
   return ctx;
 }
 
 inline void subscribe_media_volume_state(MediaVolumeCtx *ctx) {
   if (!ctx || ctx->entity_id.empty()) return;
+  register_ha_control_availability(ctx->btn, ctx->btn);
   ha_subscribe_state(
     ctx->entity_id,
     std::function<void(esphome::StringRef)>(
@@ -609,6 +624,8 @@ inline void subscribe_media_slider_state(lv_obj_t *btn_ptr,
                                          const std::string &entity_id) {
   SliderCtx *ctx = (SliderCtx *)lv_obj_get_user_data(slider);
   if (!ctx) return;
+  register_ha_control_availability(
+    btn_ptr, ctx->interactive ? ctx->media_slider : nullptr, ctx->interactive);
 
   ha_subscribe_state(
     entity_id,

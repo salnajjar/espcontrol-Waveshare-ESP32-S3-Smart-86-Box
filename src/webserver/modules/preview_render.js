@@ -13,33 +13,101 @@ function buttonTypeRegistryValue(typeDef, key, fallback) {
   return value == null ? fallback : value;
 }
 
+function buttonTypeDisabledForDevice(key) {
+  var disabled = CFG.disabledCardTypes || [];
+  return disabled.indexOf(key || "") !== -1;
+}
+
+function buttonTypeInfoOnlyVisible(key) {
+  if (!CFG.infoOnly) return true;
+  return [
+    "sensor",
+    "calendar",
+    "clock",
+    "door_window",
+    "image",
+    "presence",
+    "timezone",
+    "weather",
+    "weather_forecast",
+  ].indexOf(key || "") !== -1;
+}
+
+var CARD_TYPE_PICKER_DETAILS = {
+  "": { icon: "toggle-switch", description: "Toggle lights, switches, helpers, or fans." },
+  action: { icon: "flash", description: "Run a Home Assistant action or service." },
+  alarm: { icon: "shield-home", description: "Control or trigger alarm panel actions." },
+  calendar: { icon: "calendar-clock", description: "Show date, time, or world clock values." },
+  climate: { icon: "thermostat", description: "Show climate status and temperature controls." },
+  cover: { icon: "window-shutter", description: "Control blinds, curtains, or covers." },
+  door_window: { icon: "door-open", description: "Show open or closed sensor state." },
+  presence: { icon: "account", description: "Show person or presence status." },
+  fan_speed: { icon: "fan", description: "Control fan speed, mode, or direction." },
+  garage: { icon: "garage", description: "Show and control a garage door." },
+  image: { icon: "image", description: "Display an image card where supported." },
+  internal: { icon: "power-plug", description: "Control built-in device relays." },
+  light_brightness: { icon: "lightbulb", description: "Configure light switch, brightness, or temperature controls." },
+  lock: { icon: "lock", description: "Show and control a lock." },
+  media: { icon: "speaker", description: "Control media playback or volume." },
+  push: { icon: "gesture-tap-button", description: "Fire a momentary button event." },
+  sensor: { icon: "gauge", description: "Display sensor values or states." },
+  slider: { icon: "tune-vertical", description: "Adjust a numeric or brightness value." },
+  subpage: { icon: "view-grid-plus", description: "Open a nested page of cards." },
+  webhook: { icon: "webhook", description: "Send a direct HTTP request." },
+  vacuum: { icon: "robot-vacuum", description: "Show or control a vacuum cleaner." },
+  weather: { icon: "weather-partly-cloudy", description: "Show weather or forecast data." },
+};
+
+var CARD_TYPE_PICKER_DEFAULTS = {
+  light_brightness: "light_control",
+};
+
+function defaultButtonTypeForPicker(key) {
+  return Object.prototype.hasOwnProperty.call(CARD_TYPE_PICKER_DEFAULTS, key)
+    ? CARD_TYPE_PICKER_DEFAULTS[key]
+    : key;
+}
+
+function buttonTypePickerDetails(key, label) {
+  var details = CARD_TYPE_PICKER_DETAILS[key || ""] || {};
+  return {
+    icon: details.icon || "card-outline",
+    description: details.description || ("Configure a " + (label || "card") + " card."),
+  };
+}
+
 function buttonTypePickerOptionList(isSub, selectedTypeKey) {
   var typeOpts = [];
-  var selectedHiddenExperimental = null;
+  var selectedUnsupported = null;
+  var hasSelectedType = selectedTypeKey !== null && selectedTypeKey !== undefined;
   for (var k in BUTTON_TYPES) {
     var td = BUTTON_TYPES[k];
     var pickerKey = buttonTypeRegistryValue(td, "pickerKey", "");
     var allowInSubpage = !!buttonTypeRegistryValue(td, "allowInSubpage", false);
-    var experimental = buttonTypeRegistryValue(td, "experimental", "");
     var label = buttonTypeRegistryValue(td, "label", td.key || "Toggle");
+    if (buttonTypeDisabledForDevice(td.key) || buttonTypeDisabledForDevice(pickerKey)) continue;
+    if (!buttonTypeInfoOnlyVisible(td.key) || (pickerKey && !buttonTypeInfoOnlyVisible(pickerKey))) {
+      if (hasSelectedType && (selectedTypeKey === td.key || (pickerKey && selectedTypeKey === pickerKey))) {
+        selectedUnsupported = { key: selectedTypeKey, label: label };
+      }
+      continue;
+    }
     if (pickerKey && pickerKey !== td.key) continue;
     if (isSub && !allowInSubpage) continue;
     if (td.isAvailable && !td.isAvailable({ isSub: isSub }) && selectedTypeKey !== td.key) continue;
-    var experimentalHidden = experimental && !isExperimentalEnabled(experimental);
-    if (experimentalHidden) {
-      var showSelectedExperimental = buttonTypeRegistryValue(td, "showSelectedWhenExperimentalHidden", true);
-      if (selectedTypeKey === td.key && showSelectedExperimental !== false) selectedHiddenExperimental = td;
-      continue;
-    }
-    typeOpts.push({ key: td.key, label: label, disabled: false });
+    typeOpts.push(Object.assign({
+      key: td.key,
+      label: label,
+      disabled: false,
+    }, buttonTypePickerDetails(td.key, label)));
   }
-  if (selectedHiddenExperimental) {
-    typeOpts.push({
-      key: selectedHiddenExperimental.key,
-      label: buttonTypeRegistryValue(selectedHiddenExperimental, "label", selectedHiddenExperimental.key || "Toggle") +
-        " (experimental)",
+  if (selectedUnsupported) {
+    var unsupportedLabel = selectedUnsupported.label + " (not available)";
+    typeOpts.push(Object.assign({
+      key: selectedUnsupported.key,
+      label: unsupportedLabel,
       disabled: true,
-    });
+    }, buttonTypePickerDetails(selectedUnsupported.key, unsupportedLabel)));
   }
   typeOpts.sort(function (a, b) {
     return a.label.localeCompare(b.label);
@@ -48,33 +116,25 @@ function buttonTypePickerOptionList(isSub, selectedTypeKey) {
 }
 
 function buttonTypePickerKeys(isSub, selectedTypeKey) {
-  return buttonTypePickerOptionList(!!isSub, selectedTypeKey || "").map(function (opt) {
+  return buttonTypePickerOptionList(!!isSub, selectedTypeKey).map(function (opt) {
     return opt.key;
   });
 }
 
 function buttonTypeVisibleInPicker(key, isSub) {
-  return buttonTypePickerKeys(!!isSub, "").indexOf(key) >= 0;
-}
-
-function hiddenExperimentalButtonTypeDef(typeDef) {
-  if (!typeDef) return null;
-  return Object.assign({}, typeDef, {
-    hideLabel: true,
-    renderSettingsBeforeLabel: null,
-    renderSettings: function (panel) {
-      var note = document.createElement("div");
-      note.className = "sp-field-hint";
-      note.textContent = "Enable Developer/Experimental Features from ?developer=experimental to edit this card.";
-      panel.appendChild(note);
-    },
-    contextMenuItems: null,
-  });
+  return buttonTypePickerKeys(!!isSub, null).indexOf(key) >= 0;
 }
 
 function renderPreview() {
   var main = els.previewMain;
   main.innerHTML = "";
+  main.className = "sp-main" + (state.subpageChevronsOn ? "" : " sp-hide-subpage-chevrons");
+  if (gridPreviewBlockedByRotationStartup()) {
+    main.className += " sp-grid-loading";
+    main.setAttribute("aria-busy", "true");
+    return;
+  }
+  main.removeAttribute("aria-busy");
   var c = ctx();
 
   updatePreviewHint(c);
@@ -92,7 +152,8 @@ function renderPreview() {
       backBtn.innerHTML =
         '<span class="sp-btn-icon sp-back-hit mdi mdi-chevron-left"></span>' +
         '<span class="sp-btn-label">' + escHtml(backLabel) + '</span>';
-      backBtn.style.backgroundColor = "#" + (state.offColor.length === 6 ? state.offColor : "313131");
+      var backColor = isEpaperPreview() ? epaperPreviewFillColor() : state.offColor;
+      backBtn.style.backgroundColor = "#" + (backColor.length === 6 ? backColor : "CECECE");
       backBtn.style.cursor = "pointer";
       backBtn.setAttribute("data-pos", pos);
       backBtn.draggable = !isConfigLocked();
@@ -107,9 +168,17 @@ function renderPreview() {
           (!c.isSub || state.settingsDraft.homeSlot === state.editingSubpage)) {
         b = state.settingsDraft.button;
       }
+      if (!buttonTypeInfoOnlyVisible(b.type || "")) {
+        var hidden = document.createElement("div");
+        hidden.className = "sp-empty-cell sp-info-only-hidden";
+        hidden.setAttribute("data-pos", pos);
+        main.appendChild(hidden);
+        continue;
+      }
       var iconName = resolveIcon(b);
       var label = b.label || b.entity || "Configure";
-      var color = (b.type === "sensor" || b.type === "door_window" || b.type === "presence" || b.type === "weather" || b.type === "weather_forecast" || b.type === "calendar" || b.type === "clock" || b.type === "timezone")
+      var color = isEpaperPreview() ? epaperPreviewFillColor() :
+        (b.type === "sensor" || b.type === "door_window" || b.type === "presence" || b.type === "weather" || b.type === "weather_forecast" || b.type === "calendar" || b.type === "clock" || b.type === "timezone")
         ? state.sensorColor : state.offColor;
       var previewTypeDef = BUTTON_TYPES[b.type || ""] || null;
       if (previewTypeDef && c.isSub && !buttonTypeRegistryValue(previewTypeDef, "allowInSubpage", false)) {
@@ -125,11 +194,17 @@ function renderPreview() {
         (typePreview && typePreview.buttonClass ? " " + typePreview.buttonClass : "") +
         sizeClass(slotSz) +
         (c.selected.indexOf(slot) !== -1 ? " sp-selected" : "");
-      btn.style.backgroundColor = "#" + (color.length === 6 ? color : "313131");
+      btn.style.backgroundColor = "#" + (color.length === 6 ? color : "CECECE");
       btn.draggable = !isConfigLocked();
       btn.setAttribute("data-pos", pos);
       btn.setAttribute("data-slot", slot);
       var hasWhenOn = !typePreview && (b.sensor || (b.icon_on && b.icon_on !== "Auto"));
+      if (!typePreview && hasWhenOn && typeof cardOnPattern === "function" && cardOnPattern(b) === "stripes" && !isEpaperPreview()) {
+        var onColor = state.onColor && state.onColor.length === 6 ? state.onColor : "FF8C00";
+        btn.style.backgroundImage =
+          "repeating-linear-gradient(135deg,#" + onColor + " 0,#" + onColor +
+          " 12px,rgba(255,255,255,.22) 12px,rgba(255,255,255,.22) 20px)";
+      }
       var badgeIcon = b.sensor ? "gauge" : "swap-horizontal";
       var sensorBadge = hasWhenOn
         ? '<span class="sp-sensor-badge mdi mdi-' + badgeIcon + '"></span>'

@@ -38,7 +38,6 @@ export interface CardTypeSpec {
   default: CardConfig;
   domains: readonly string[];
   pickerKey?: string;
-  experimental?: "developer";
   hidden?: boolean;
   options?: readonly CardOptionSpec[];
   behavior?: {
@@ -112,8 +111,11 @@ export interface PanelSettings {
   sensor_card_color: string;
   temperature_unit: string;
   clock_bar: boolean;
+  clock_bar_layout?: string;
+  clock_bar_time?: boolean;
   network_status_icon: boolean;
   timezone: string;
+  language: string;
   clock_format: string;
   screensaver_mode: string;
   screen_rotation: string;

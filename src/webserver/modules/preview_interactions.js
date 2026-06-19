@@ -186,6 +186,41 @@ function setupPreviewEvents() {
   var container = els.previewMain;
   var pendingCellIdx = -1;
 
+  state.clockBarDragItem = "";
+
+  if (els.topbar) {
+    els.topbar.addEventListener("click", function (e) {
+      if (isConfigLocked()) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      var target = e.target.closest("[data-clockbar-item]");
+      if (!target) return;
+      e.preventDefault();
+      e.stopPropagation();
+      selectClockBarItem(target.getAttribute("data-clockbar-item"));
+    });
+    els.topbar.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      var target = e.target.closest("[data-clockbar-item]");
+      if (!target) return;
+      e.preventDefault();
+      selectClockBarItem(target.getAttribute("data-clockbar-item"));
+    });
+    els.topbar.addEventListener("contextmenu", function (e) {
+      if (isConfigLocked()) {
+        e.preventDefault();
+        return;
+      }
+      var target = e.target.closest("[data-clockbar-item]");
+      if (!target) return;
+      e.preventDefault();
+      e.stopPropagation();
+      showClockBarContextMenu(e, target.getAttribute("data-clockbar-item"));
+    });
+  }
+
   function isBackExitTarget(e, target) {
     var icon = target.querySelector(".sp-back-hit");
     if (!icon) return false;
@@ -369,6 +404,7 @@ function setupPreviewEvents() {
 function handleBtnClick(e, slot, pos) {
   if (isConfigLocked()) return;
   if (didDrag) { didDrag = false; return; }
+  state.clockBarSelectedItem = "";
   var c = ctx();
   if (e.shiftKey || e.ctrlKey || e.metaKey) e.preventDefault();
 
@@ -463,31 +499,45 @@ function emptyButtonConfig(type) {
   return EspControlModel.emptyCardConfig(type);
 }
 
+function newCardDraftKey(isSub, homeSlot, pos, slot) {
+  return (isSub ? "sub:" + homeSlot : "main") + ":new:" + pos + ":" + slot;
+}
+
+function beginNewCardDraft(pos, slot, isSub) {
+  state.settingsDraft = {
+    key: newCardDraftKey(isSub, state.editingSubpage, pos, slot),
+    slot: slot,
+    homeSlot: state.editingSubpage,
+    isSub: isSub,
+    isNew: true,
+    pos: pos,
+    dirty: false,
+    typeSelected: false,
+    button: emptyButtonConfig(),
+  };
+  if (isSub) {
+    state.subpageSelectedSlots = [slot];
+    state.subpageLastClicked = slot;
+  } else {
+    state.selectedSlots = [slot];
+    state.lastClickedSlot = slot;
+  }
+  renderPreview();
+  renderButtonSettings(true);
+}
+
 function addSlot(pos) {
   if (isConfigLocked()) return;
   var c = ctx();
+  if (pos < 0 || pos >= c.maxSlots || c.grid[pos] !== 0) return;
   if (c.isSub) {
     var sp = getSubpage(state.editingSubpage);
     var newSlot = subpageFirstFreeSlot(sp);
-    while (sp.buttons.length < newSlot) {
-      sp.buttons.push(emptyButtonConfig());
-    }
-    sp.grid[pos] = newSlot;
-    sp.order = serializeSubpageGrid(sp);
-    saveSubpageConfig(state.editingSubpage);
-    state.subpageSelectedSlots = [newSlot];
-    state.subpageLastClicked = newSlot;
-    renderPreview();
-    renderButtonSettings(true);
+    beginNewCardDraft(pos, newSlot, true);
   } else {
     var slot = firstFreeSlot();
     if (slot < 0) return;
-    state.grid[pos] = slot;
-    postText(entityName("button_order"), serializeGrid(state.grid));
-    state.selectedSlots = [slot];
-    state.lastClickedSlot = slot;
-    renderPreview();
-    renderButtonSettings(true);
+    beginNewCardDraft(pos, slot, false);
   }
 }
 
@@ -517,6 +567,12 @@ function duplicateButton(srcSlot) {
   if (placement.pos < 0) return;
 
   var src = state.buttons[srcSlot - 1];
+  var extraImageCards = isImageCard(src) ? 1 : 0;
+  if (state.subpages[srcSlot]) extraImageCards += imageCardCountInSubpage(state.subpages[srcSlot]);
+  if (!canAddImageCards(extraImageCards)) {
+    showImageCardLimitBanner();
+    return;
+  }
   state.buttons[newSlot - 1] = {
     entity: src.entity, label: src.label, icon: src.icon,
     icon_on: src.icon_on, sensor: src.sensor, unit: src.unit,
@@ -556,6 +612,10 @@ function duplicateSubpageButton(srcSlot) {
   if (placement.pos < 0) return;
 
   var src = sp.buttons[srcSlot - 1];
+  if (!canAddImageCards(isImageCard(src) ? 1 : 0)) {
+    showImageCardLimitBanner();
+    return;
+  }
   sp.buttons[newSlot - 1] = {
     entity: src.entity, label: src.label, icon: src.icon,
     icon_on: src.icon_on, sensor: src.sensor, unit: src.unit,
@@ -800,6 +860,19 @@ function addSingleCardMenuItems(slot) {
   addCtxItem("delete", "Delete", function () { deleteSlot(slot); }, true);
 }
 
+function addClockBarMenuItems(item) {
+  if (isClockBarTemperatureItem(item)) {
+    addCtxItem("pencil", "Edit Temperature", function () { openClockBarTemperatureSettings(); });
+    addCtxDivider();
+  }
+
+  var visible = clockBarItemActive(item);
+  var label = clockBarItemLabel(item);
+  addCtxItem(visible ? "eye-off-outline" : "eye-outline", (visible ? "Hide " : "Show ") + label, function () {
+    setClockBarItemVisible(item, !visible);
+  });
+}
+
 function showSelectionMenu(e) {
   if (isConfigLocked()) return;
   hideContextMenu();
@@ -813,6 +886,28 @@ function showSelectionMenu(e) {
   } else {
     addSingleCardMenuItems(c.selected[0]);
   }
+  document.body.appendChild(ctxMenu);
+  positionMenu(ctxMenu, e);
+}
+
+function showClockBarContextMenu(e, item) {
+  if (isConfigLocked() || clockBarItems().indexOf(item) === -1) return;
+  hideContextMenu();
+  var c = ctx();
+
+  if (state.clockBarSelectedItem !== item) {
+    c.setSelected([]);
+    c.setLastClicked(-1);
+    state.clockBarSelectedItem = item;
+    hideSettingsOverlay();
+    updateClockBarItemUi();
+    renderPreview();
+    renderButtonSettings();
+  }
+
+  ctxMenu = document.createElement("div");
+  ctxMenu.className = "sp-ctx-menu";
+  addClockBarMenuItems(item);
   document.body.appendChild(ctxMenu);
   positionMenu(ctxMenu, e);
 }
@@ -959,6 +1054,10 @@ function pasteButton(pos) {
   if (isConfigLocked()) return;
   if (!state.clipboard) return;
   var entries = state.clipboard.buttons;
+  if (!canAddImageCards(imageCardCountInClipboardEntries(entries))) {
+    showImageCardLimitBanner();
+    return;
+  }
   var lastSlot = -1;
   for (var i = 0; i < entries.length; i++) {
     var newSlot = firstFreeSlot();
@@ -999,6 +1098,10 @@ function pasteSubpageButton(pos) {
   var sp = getSubpage(homeSlot);
   var maxPos = NUM_SLOTS;
   var entries = state.clipboard.buttons;
+  if (!canAddImageCards(imageCardCountInClipboardEntries(entries))) {
+    showImageCardLimitBanner();
+    return;
+  }
   var lastSlot = -1;
   for (var i = 0; i < entries.length; i++) {
     var e = entries[i];

@@ -1,3 +1,6 @@
+#ifndef ESPCONTROL_SUN_CALC_H
+#define ESPCONTROL_SUN_CALC_H
+
 #pragma once
 #include <string>
 #include <cstdint>
@@ -5,17 +8,22 @@
 #include <cstdlib>
 #include <ctime>
 #include <cctype>
+#include <cstdio>
 
 #if defined(USE_ESP_IDF)
 #include <esp_sntp.h>
 #endif
 
+#include "esphome/core/application.h"
+#include "esphome/core/log.h"
+#include "esphome/components/network/util.h"
+
 // ============================================================================
 // Timezone coordinate and POSIX TZ lookup table
 // ============================================================================
 // Representative city lat/lon for sunrise/sunset calculation, plus POSIX TZ
-// strings for DST-aware local time via setenv("TZ")/tzset(). Keep the POSIX
-// names alphabetic and DST offsets explicit for embedded C library compatibility.
+// strings for DST-aware local time. Keep the POSIX names alphabetic and DST
+// offsets explicit for embedded parser compatibility.
 
 struct TzCoord { const char* tz; float lat; float lon; const char* posix_tz; };
 struct TzUtcPoint { int year; int month; int day; int hour; int minute; };
@@ -467,7 +475,13 @@ inline void apply_ntp_servers(const std::string &server_1,
                               const std::string &server_2,
                               const std::string &server_3) {
 #if defined(USE_ESP_IDF)
-  if (!esp_sntp_enabled()) {
+  if (!esphome::App.is_setup_complete()) {
+    ESP_LOGI("sntp", "Application setup not complete; deferring NTP server apply");
+    return;
+  }
+
+  if (esphome::network::get_ip_addresses().empty()) {
+    ESP_LOGI("sntp", "Network not ready; deferring NTP server apply");
     return;
   }
 
@@ -480,11 +494,22 @@ inline void apply_ntp_servers(const std::string &server_1,
   if (active_servers[1].empty()) active_servers[1] = "1.pool.ntp.org";
   if (active_servers[2].empty()) active_servers[2] = "2.pool.ntp.org";
 
-  for (int i = 0; i < 3; i++) {
-    esp_sntp_setservername(i, active_servers[i].c_str());
+  static char server_storage[3][101] = {};
+
+  if (esp_sntp_enabled()) {
+    esp_sntp_stop();
   }
 
-  esp_sntp_restart();
+  esp_sntp_setoperatingmode(ESP_SNTP_OPMODE_POLL);
+  for (int i = 0; i < 3; i++) {
+    std::snprintf(server_storage[i], sizeof(server_storage[i]), "%s",
+                  active_servers[i].c_str());
+    esp_sntp_setservername(i, server_storage[i]);
+  }
+
+  esp_sntp_init();
+  ESP_LOGI("sntp", "NTP servers applied: %s, %s, %s",
+           server_storage[0], server_storage[1], server_storage[2]);
 #else
   (void) server_1;
   (void) server_2;
@@ -492,46 +517,22 @@ inline void apply_ntp_servers(const std::string &server_1,
 #endif
 }
 
-inline float utc_offset_hours_at(time_t t) {
-  struct tm utc_tm, local_tm;
-  gmtime_r(&t, &utc_tm);
-  localtime_r(&t, &local_tm);
-  int diff_min = (local_tm.tm_hour - utc_tm.tm_hour) * 60
-               + (local_tm.tm_min - utc_tm.tm_min);
-  int day_diff = local_tm.tm_mday - utc_tm.tm_mday;
-  if (day_diff > 1) day_diff = -1;
-  else if (day_diff < -1) day_diff = 1;
-  diff_min += day_diff * 1440;
-  return diff_min / 60.0f;
-}
-
-inline float current_utc_offset_hours() {
-  return utc_offset_hours_at(time(nullptr));
-}
-
 inline float utc_offset_hours_for_date(
     int year, int month, int day, const std::string &tz_option) {
-  std::string tz_id = timezone_id_from_option(tz_option);
-  setenv("TZ", lookup_posix_tz(tz_id), 1);
-  tzset();
-
-  struct tm local_noon = {};
-  local_noon.tm_year = year - 1900;
-  local_noon.tm_mon = month - 1;
-  local_noon.tm_mday = day;
-  local_noon.tm_hour = 12;
-  local_noon.tm_isdst = -1;
-  time_t noon_epoch = mktime(&local_noon);
-  float offset = utc_offset_hours_at(noon_epoch);
-
-  if (tz_id == "Africa/Casablanca") {
-    struct tm utc_tm;
-    gmtime_r(&noon_epoch, &utc_tm);
-    offset = casablanca_pause_at_utc(utc_point_from_tm(utc_tm)) ? 0.0f : 1.0f;
+  int64_t local_noon = tz_epoch_utc(year, month, day, 12 * 3600);
+  int offset_minutes = 0;
+  if (!timezone_offset_minutes_at_utc(
+          tz_option, static_cast<time_t>(local_noon), offset_minutes)) {
+    return 0.0f;
   }
 
-  apply_timezone(tz_option);
-  return offset;
+  time_t utc_noon = static_cast<time_t>(
+      local_noon - static_cast<int64_t>(offset_minutes) * 60);
+  int refined_offset_minutes = offset_minutes;
+  if (timezone_offset_minutes_at_utc(tz_option, utc_noon, refined_offset_minutes)) {
+    offset_minutes = refined_offset_minutes;
+  }
+  return offset_minutes / 60.0f;
 }
 
 // ============================================================================
@@ -541,8 +542,8 @@ inline float utc_offset_hours_for_date(
 // Writes sunrise and sunset as local hours and minutes.
 // Returns false for polar day/night (no rise or set).
 
-static constexpr float DEG_TO_RAD = M_PI / 180.0f;
-static constexpr float RAD_TO_DEG = 180.0f / M_PI;
+static constexpr float SUN_CALC_DEG_TO_RAD = M_PI / 180.0f;
+static constexpr float SUN_CALC_RAD_TO_DEG = 180.0f / M_PI;
 
 inline bool calc_sunrise_sunset(int year, int month, int day,
                                 float lat, float lon, float tz_offset,
@@ -562,13 +563,13 @@ inline bool calc_sunrise_sunset(int year, int month, int day,
 
     float mean_anomaly = (0.9856f * t) - 3.289f;
     float sun_lon = mean_anomaly
-      + (1.916f * sinf(mean_anomaly * DEG_TO_RAD))
-      + (0.020f * sinf(2.0f * mean_anomaly * DEG_TO_RAD))
+      + (1.916f * sinf(mean_anomaly * SUN_CALC_DEG_TO_RAD))
+      + (0.020f * sinf(2.0f * mean_anomaly * SUN_CALC_DEG_TO_RAD))
       + 282.634f;
     while (sun_lon < 0) sun_lon += 360.0f;
     while (sun_lon >= 360.0f) sun_lon -= 360.0f;
 
-    float ra = RAD_TO_DEG * atanf(0.91764f * tanf(sun_lon * DEG_TO_RAD));
+    float ra = SUN_CALC_RAD_TO_DEG * atanf(0.91764f * tanf(sun_lon * SUN_CALC_DEG_TO_RAD));
     while (ra < 0) ra += 360.0f;
     while (ra >= 360.0f) ra -= 360.0f;
 
@@ -577,20 +578,20 @@ inline bool calc_sunrise_sunset(int year, int month, int day,
     ra += (l_quad - ra_quad);
     ra /= 15.0f;
 
-    float sin_dec = 0.39782f * sinf(sun_lon * DEG_TO_RAD);
+    float sin_dec = 0.39782f * sinf(sun_lon * SUN_CALC_DEG_TO_RAD);
     float cos_dec = cosf(asinf(sin_dec));
 
     float zenith = 90.833f;
-    float cos_h = (cosf(zenith * DEG_TO_RAD) - (sin_dec * sinf(lat * DEG_TO_RAD)))
-                  / (cos_dec * cosf(lat * DEG_TO_RAD));
+    float cos_h = (cosf(zenith * SUN_CALC_DEG_TO_RAD) - (sin_dec * sinf(lat * SUN_CALC_DEG_TO_RAD)))
+                  / (cos_dec * cosf(lat * SUN_CALC_DEG_TO_RAD));
 
     if (cos_h > 1.0f || cos_h < -1.0f) return false;
 
     float h;
     if (is_sunrise)
-      h = 360.0f - RAD_TO_DEG * acosf(cos_h);
+      h = 360.0f - SUN_CALC_RAD_TO_DEG * acosf(cos_h);
     else
-      h = RAD_TO_DEG * acosf(cos_h);
+      h = SUN_CALC_RAD_TO_DEG * acosf(cos_h);
     h /= 15.0f;
 
     float local_t = h + ra - (0.06571f * t) - 6.622f;
@@ -615,3 +616,5 @@ inline bool calc_sunrise_sunset(int year, int month, int day,
 
   return ok_rise && ok_set;
 }
+
+#endif  // ESPCONTROL_SUN_CALC_H

@@ -9,11 +9,13 @@ wifi:
   power_save_mode: none
   reboot_timeout: 30min
   on_connect:
+    - script.execute: network_status_refresh
+    - script.execute: ntp_servers_apply_after_network
     - script.stop: wifi_reconnect_flow
     - script.stop: setup_screen_dim
     - lambda: |-
         ESP_LOGI("connectivity", "WiFi connected (%lu ms)", millis());
-        lv_label_set_text(id(loading_status_label), "Connected");
+        lv_label_set_text(id(loading_status_label), espcontrol_i18n("Connected"));
     - delay: 200ms
     - if:
         condition:
@@ -25,11 +27,13 @@ wifi:
               condition:
                 lambda: 'return id(button_order).state.empty();'
               then:
+                - script.execute: clock_bar_hide
                 - lvgl.page.show: ha_setup_page
                 - script.execute: setup_screen_dim
               else:
                 - script.execute: navigate_after_api
   on_disconnect:
+    - script.execute: network_status_refresh
     - if:
         condition:
           lambda: 'return !id(boot_grace_period);'
@@ -48,6 +52,7 @@ api:
                 lambda: 'return lv_scr_act() == id(ha_setup_page)->obj;'
               then:
                 - script.stop: setup_screen_dim
+                - script.execute: clock_bar_hide
                 - lvgl.page.show: ha_actions_page
               else:
                 - script.execute: navigate_after_api
@@ -56,38 +61,24 @@ script:
   - id: wifi_show_reconnecting
     mode: restart
     then:
-      - lvgl.widget.update:
-          id: temperatures
-          hidden: true
-      - lvgl.widget.update:
-          id: display_time
-          hidden: true
-      - lvgl.widget.update:
-          id: network_status_button
-          hidden: true
+      - script.execute: clock_bar_hide
       - lambda: |-
-          network_status_hide_modal();
-          lv_label_set_text(id(wifi_setup_title), "WiFi Disconnected");
-          lv_label_set_text(id(wifi_setup_instructions), "Trying to reconnect\nto your saved network");
+          lv_label_set_text(id(wifi_setup_title), espcontrol_i18n("WiFi Disconnected"));
+          lv_label_set_text(
+              id(wifi_setup_instructions),
+              espcontrol_i18n("Trying to reconnect\nto your saved network"));
       - lvgl.page.show: wifi_setup_page
       - script.execute: setup_screen_dim
 
   - id: wifi_show_hotspot_setup
     mode: restart
     then:
-      - lvgl.widget.update:
-          id: temperatures
-          hidden: true
-      - lvgl.widget.update:
-          id: display_time
-          hidden: true
-      - lvgl.widget.update:
-          id: network_status_button
-          hidden: true
+      - script.execute: clock_bar_hide
       - lambda: |-
-          network_status_hide_modal();
-          lv_label_set_text(id(wifi_setup_title), "WiFi Disconnected");
-          lv_label_set_text(id(wifi_setup_instructions), "No saved WiFi connection\nReinstall by USB to reconfigure");
+          lv_label_set_text(id(wifi_setup_title), espcontrol_i18n("WiFi Disconnected"));
+          lv_label_set_text(
+              id(wifi_setup_instructions),
+              espcontrol_i18n("No saved WiFi connection\nReinstall by USB to reconfigure"));
       - lvgl.page.show: wifi_setup_page
       - script.execute: setup_screen_dim
 
@@ -111,45 +102,7 @@ script:
             lambda: 'return !id(button_order).state.empty();'
           then:
             - lvgl.page.show: main_page
-            - if:
-                condition:
-                  switch.is_on: clock_bar_enabled
-                then:
-                  - if:
-                      condition:
-                        or:
-                          - switch.is_on: indoor_temp_enable
-                          - switch.is_on: outdoor_temp_enable
-                      then:
-                        - lvgl.widget.update:
-                            id: temperatures
-                            hidden: false
-                  - lvgl.widget.update:
-                      id: display_time
-                      hidden: false
-                  - if:
-                      condition:
-                        switch.is_on: network_status_enabled
-                      then:
-                        - lvgl.widget.update:
-                            id: network_status_button
-                            hidden: false
-                        - script.execute: network_status_refresh
-                      else:
-                        - lvgl.widget.update:
-                            id: network_status_button
-                            hidden: true
-                        - lambda: 'network_status_hide_modal();'
-                else:
-                  - lvgl.widget.update:
-                      id: temperatures
-                      hidden: true
-                  - lvgl.widget.update:
-                      id: display_time
-                      hidden: true
-                  - lvgl.widget.update:
-                      id: network_status_button
-                      hidden: true
+            - script.execute: clock_bar_apply
             - script.execute: screensaver_idle_check
           else:
             - lambda: |-
@@ -160,5 +113,6 @@ script:
                   std::string url = "http://" + std::string(ip_buf);
                   lv_label_set_text(id(setup_ip_label), url.c_str());
                 }
+            - script.execute: clock_bar_hide
             - lvgl.page.show: button_setup_page
             - script.execute: setup_screen_dim

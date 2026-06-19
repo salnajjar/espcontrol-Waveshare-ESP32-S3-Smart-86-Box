@@ -16,17 +16,17 @@ substitutions:
 # ---------------------------------------------------------------------------
 esp32:
   variant: esp32p4
-  # Keep OTA app slots inside the first 16MB. Some existing ESP32-P4 86
-  # bootloaders cannot boot OTA images that cross the 16MB flash boundary.
-  flash_size: 16MB
+  # Waveshare documents this panel with 32MB external NOR flash.
+  flash_size: 32MB
   cpu_frequency: 360MHZ
   engineering_sample: true
   framework:
     type: esp-idf
-    version: 5.5.2
+    # stick to recommended version, currently 5.5.4, 55.03.39 with tool-esptoolpy 5.3.0. No issues
+    #version: 5.5.2
     # pioarduino 55.03.38-1 pulls tool-esptoolpy 5.2.0, which can install
     # incompletely in ESPHome containers and then fail while creating .bin files.
-    platform_version: 55.03.37
+    #platform_version: 55.03.37
     advanced:
       enable_idf_experimental_features: true
       execute_from_psram: true
@@ -62,7 +62,7 @@ external_components:
       url: ${espcontrol_component_url}
       ref: ${espcontrol_component_ref}
       path: components
-    components: [espcontrol, web_server_idf]
+    components: [espcontrol, web_server_idf, artwork_image]
     refresh: 1s
 
 espcontrol:
@@ -77,6 +77,7 @@ esphome:
     build_flags:
       - "-Wno-deprecated-declarations"
       - "-DESPCONTROL_DISABLE_TODO=1"
+      - "-DESPCONTROL_MAX_GRID_SLOTS=9"
       # Force PlatformIO to rebuild cached ESPHome objects after the 2026.5
       # core/scheduler/watchdog changes; stale 2026.4 objects can boot-loop.
       - "-DESPCONTROL_ESPHOME_2026_5_REBUILD=1"
@@ -106,6 +107,7 @@ esphome:
       then:
         - lambda: 'id(screen_rotation_ready) = true;'
         - script.execute: apply_screen_rotation
+        - script.execute: clock_bar_apply
 
 # ---------------------------------------------------------------------------
 # PSRAM (video frame buffer memory)
@@ -191,8 +193,13 @@ light:
         - if:
             condition:
               lambda: |-
-                return id(screen_schedule_asleep) ||
-                       (id(schedule_enabled).state && !panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now()).is_valid());
+                auto now = panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now());
+                return (id(screen_schedule_asleep) &&
+                        !id(schedule_mode_clock)) ||
+                       screen_schedule_waiting_for_time(
+                         id(screen_schedule_trigger).state,
+                         id(schedule_enabled).state,
+                         now.is_valid());
             then:
               - script.execute: backlight_force_display_off
             else:
@@ -331,7 +338,7 @@ select:
     icon: "mdi:screen-rotation"
     optimistic: true
     restore_value: true
-    initial_option: "180"
+    initial_option: "0"
     options:
       - "0"
       - "90"
@@ -344,3 +351,4 @@ select:
               lambda: 'return id(screen_rotation_ready);'
             then:
               - script.execute: apply_screen_rotation
+              - script.execute: clock_bar_apply

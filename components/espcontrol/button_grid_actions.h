@@ -203,6 +203,10 @@ inline bool cover_tilt_mode(const std::string &sensor) {
   return card_runtime_cover_tilt_mode(sensor);
 }
 
+inline bool cover_modal_mode(const std::string &sensor) {
+  return card_runtime_cover_modal_mode(sensor);
+}
+
 inline bool cover_command_mode(const std::string &sensor) {
   return card_runtime_cover_command_mode(sensor);
 }
@@ -288,6 +292,14 @@ inline void send_cover_command_action(const ParsedCfg &p) {
     cover_stop_clear_pending(req.call_id);
     ha_cancel_action_response_callback(req.call_id, "send failed");
   }
+}
+
+inline void send_cover_command_action(const std::string &entity_id,
+                                      const std::string &mode) {
+  ParsedCfg p;
+  p.entity = entity_id;
+  p.sensor = mode;
+  send_cover_command_action(p);
 }
 
 // Send HA action for a slider change: toggle (value<0), brightness, or cover position/tilt
@@ -376,6 +388,35 @@ inline void send_light_temp_action(const std::string &entity_id, int pct, int mi
   ha_action_send(req);
 }
 
+inline void send_light_color_name_action(const std::string &entity_id, const char *color_name) {
+  esphome::api::HomeassistantActionRequest req;
+  if (!ha_action_begin(req, "light.turn_on", false, 2)) return;
+  if (entity_id.empty() || !color_name || color_name[0] == '\0') return;
+  ha_action_add_entity(req, entity_id);
+  ha_action_add_data(req, "color_name", color_name);
+  ha_action_send(req);
+}
+
+inline void send_light_rgb_action(const std::string &entity_id, uint32_t color) {
+  esphome::api::HomeassistantActionRequest req;
+  if (!ha_action_begin(req, "light.turn_on", false, 1)) return;
+  if (entity_id.empty()) return;
+  req.data_template.init(1);
+  req.variables.init(3);
+  ha_action_add_entity(req, entity_id);
+  ha_action_add_data_template(req, "rgb_color", "{{ [red | int, green | int, blue | int] }}");
+  char red[4];
+  char green[4];
+  char blue[4];
+  snprintf(red, sizeof(red), "%u", static_cast<unsigned>((color >> 16) & 0xFF));
+  snprintf(green, sizeof(green), "%u", static_cast<unsigned>((color >> 8) & 0xFF));
+  snprintf(blue, sizeof(blue), "%u", static_cast<unsigned>(color & 0xFF));
+  ha_action_add_variable(req, "red", red);
+  ha_action_add_variable(req, "green", green);
+  ha_action_add_variable(req, "blue", blue);
+  ha_action_send(req);
+}
+
 inline const char *light_temp_icon(const std::string &icon) {
   return (!icon.empty() && icon != "Auto") ? find_icon(icon.c_str()) : find_icon("Lightbulb");
 }
@@ -430,12 +471,43 @@ inline void send_media_playback_action(const std::string &entity_id,
   send_media_player_action(entity_id, media_service_for_mode(mode));
 }
 
+inline bool media_fast_press_mode(const std::string &mode) {
+  return mode == "previous" || mode == "next";
+}
+
+inline bool *media_fast_press_slots() {
+  static bool slots[MAX_GRID_SLOTS + 1] = {};
+  return slots;
+}
+
+inline bool media_fast_press_consume(int slot_num) {
+  if (slot_num <= 0 || slot_num > MAX_GRID_SLOTS) return false;
+  bool *slots = media_fast_press_slots();
+  bool sent = slots[slot_num];
+  slots[slot_num] = false;
+  return sent;
+}
+
+inline void handle_button_press(const std::string &cfg, int slot_num,
+                                lv_obj_t *btn_obj) {
+  if (slot_num <= 0 || slot_num > MAX_GRID_SLOTS) return;
+  if (btn_obj && lv_obj_has_state(btn_obj, LV_STATE_DISABLED)) return;
+  ParsedCfg p = parse_cfg(cfg);
+  if (p.type != "media") return;
+  std::string mode = media_card_mode(p.sensor);
+  if (!media_fast_press_mode(mode) || p.entity.empty()) return;
+  media_fast_press_slots()[slot_num] = true;
+  send_media_playback_action(p.entity, mode);
+}
+
 // ── Button click dispatch ─────────────────────────────────────────────
 
 struct MediaVolumeCtx;
 inline void media_volume_open_modal(MediaVolumeCtx *ctx);
 struct ClimateControlCtx;
 inline void climate_control_open_modal(ClimateControlCtx *ctx);
+struct ImageCardCtx;
+inline void image_card_open_modal(ImageCardCtx *ctx);
 inline void switch_confirmation_open_modal(const ParsedCfg &p, lv_obj_t *btn_obj, bool turn_on);
 struct OptionSelectCtx;
 inline void option_select_open_modal(OptionSelectCtx *ctx);
@@ -451,11 +523,16 @@ inline bool alarm_action_context_valid(AlarmActionCtx *action);
 struct FanCardCtx;
 inline bool fan_non_speed_card_type(const std::string &type);
 inline void fan_card_handle_click(FanCardCtx *ctx);
+struct CoverControlCtx;
+inline void cover_control_open_modal(CoverControlCtx *ctx);
+struct LightControlCtx;
+inline void light_control_open_modal(LightControlCtx *ctx);
 
 // Handle a main-grid button press: dispatch push event, subpage nav,
 // slider toggle, or entity toggle based on the config string.
 inline void handle_button_click(const std::string &cfg, int slot_num,
                                 lv_obj_t *btn_obj) {
+  if (media_fast_press_consume(slot_num)) return;
   if (btn_obj && lv_obj_has_state(btn_obj, LV_STATE_DISABLED)) return;
   ParsedCfg p = parse_cfg(cfg);
   if (p.type == "sensor" || p.type == "text_sensor" ||
@@ -463,7 +540,9 @@ inline void handle_button_click(const std::string &cfg, int slot_num,
       p.type == "presence" ||
       p.type == "calendar" || p.type == "clock" || p.type == "timezone" ||
       p.type == "weather_forecast") return;
-  if (p.type == "push") {
+  if (p.type == "screen_lock") {
+    screen_lock_toggle();
+  } else if (p.type == "push") {
     std::string label = p.label;
     if (label.empty()) {
       char buf[16];
@@ -490,13 +569,19 @@ inline void handle_button_click(const std::string &cfg, int slot_num,
   } else if (fan_non_speed_card_type(p.type)) {
     FanCardCtx *ctx = (FanCardCtx *)lv_obj_get_user_data(btn_obj);
     if (ctx) fan_card_handle_click(ctx);
+  } else if (p.type == "cover" && cover_modal_mode(p.sensor)) {
+    CoverControlCtx *ctx = (CoverControlCtx *)lv_obj_get_user_data(btn_obj);
+    if (ctx) cover_control_open_modal(ctx);
+  } else if (p.type == "light_control") {
+    LightControlCtx *ctx = (LightControlCtx *)lv_obj_get_user_data(btn_obj);
+    if (ctx) light_control_open_modal(ctx);
   } else if (p.type == "garage") {
-    if (garage_card_show_status(p)) {
-      return;
-    } else if (garage_command_mode(p.sensor)) {
+    if (garage_command_mode(p.sensor)) {
       send_cover_command_action(p);
+    } else if (garage_card_show_status(p)) {
+      return;
     } else if (!p.entity.empty()) {
-      lv_obj_add_state(btn_obj, LV_STATE_CHECKED);
+      set_card_checked_state(btn_obj, true);
       send_toggle_action(p.entity);
     }
   } else if (p.type == "lock") {
@@ -511,7 +596,7 @@ inline void handle_button_click(const std::string &cfg, int slot_num,
     send_cover_command_action(p);
   } else if (p.type == "cover" && cover_toggle_mode(p.sensor)) {
     if (!p.entity.empty()) {
-      lv_obj_add_state(btn_obj, LV_STATE_CHECKED);
+      set_card_checked_state(btn_obj, true);
       send_toggle_action(p.entity);
     }
   } else if (p.type == "internal") {
@@ -522,8 +607,21 @@ inline void handle_button_click(const std::string &cfg, int slot_num,
     if (action_card_option_select(p)) {
       OptionSelectCtx *ctx = (OptionSelectCtx *)lv_obj_get_user_data(btn_obj);
       if (ctx) option_select_open_modal(ctx);
+    } else if (action_script_confirmation_enabled(p) && btn_obj) {
+      switch_confirmation_open_modal(p, btn_obj, false);
     } else {
       send_action_card_action(p);
+    }
+  } else if (p.type == "vacuum") {
+    VacuumCardCtx *ctx = (VacuumCardCtx *)lv_obj_get_user_data(btn_obj);
+    if (ctx) {
+      send_vacuum_card_action(ctx);
+    } else if (!vacuum_card_read_only(p)) {
+      VacuumCardCtx fallback;
+      fallback.entity_id = p.entity;
+      fallback.mode = vacuum_card_mode(p.sensor);
+      fallback.area_id = p.unit;
+      send_vacuum_card_action(&fallback);
     }
   } else if (p.type == "webhook") {
     send_webhook_action(p);
@@ -543,6 +641,9 @@ inline void handle_button_click(const std::string &cfg, int slot_num,
   } else if (p.type == "climate") {
     ClimateControlCtx *ctx = (ClimateControlCtx *)lv_obj_get_user_data(btn_obj);
     if (ctx) climate_control_open_modal(ctx);
+  } else if (p.type == "image") {
+    ImageCardCtx *ctx = (ImageCardCtx *)lv_obj_get_user_data(btn_obj);
+    if (ctx) image_card_open_modal(ctx);
   } else if (p.type == "light_temperature") {
     // Tap does nothing; only dragging the slider sends commands.
   } else if (brightness_slider_type(p.type) || p.type == "cover") {

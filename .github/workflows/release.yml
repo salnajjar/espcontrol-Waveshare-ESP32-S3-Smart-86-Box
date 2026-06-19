@@ -15,10 +15,7 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  ESPHOME_VERSION: 2026.5.1
-  ESPCONTROL_ESPHOME_CACHE_MAX_MB: 6144
-  ESPCONTROL_PLATFORMIO_CACHE_MAX_MB: 4096
-  ESPCONTROL_BUILD_CACHE_MAX_MB: 1024
+  ESPHOME_VERSION: 2026.6.0
   ESPCONTROL_DOCKER_BUILD_CACHE_KEEP: 2GB
 
 jobs:
@@ -31,7 +28,7 @@ jobs:
           rm -rf "${GITHUB_WORKSPACE:?}/"* "${GITHUB_WORKSPACE:?}/".[!.]* "${GITHUB_WORKSPACE:?}/"..?* 2>/dev/null ||
             sudo rm -rf "${GITHUB_WORKSPACE:?}/"* "${GITHUB_WORKSPACE:?}/".[!.]* "${GITHUB_WORKSPACE:?}/"..?*
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7.0.0
       - run: git sparse-checkout disable || true
 
       - uses: actions/setup-node@v6
@@ -60,7 +57,7 @@ jobs:
           rm -rf "${GITHUB_WORKSPACE:?}/"* "${GITHUB_WORKSPACE:?}/".[!.]* "${GITHUB_WORKSPACE:?}/"..?* 2>/dev/null ||
             sudo rm -rf "${GITHUB_WORKSPACE:?}/"* "${GITHUB_WORKSPACE:?}/".[!.]* "${GITHUB_WORKSPACE:?}/"..?*
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7.0.0
 
       - name: Generate device matrix
         id: matrix
@@ -74,7 +71,7 @@ jobs:
     runs-on: self-hosted
     strategy:
       fail-fast: false
-      max-parallel: 1
+      max-parallel: 2
       matrix: ${{ fromJSON(needs.device-matrix.outputs.matrix) }}
     steps:
       - name: Prepare self-hosted workspace
@@ -82,7 +79,7 @@ jobs:
           rm -rf "${GITHUB_WORKSPACE:?}/"* "${GITHUB_WORKSPACE:?}/".[!.]* "${GITHUB_WORKSPACE:?}/"..?* 2>/dev/null ||
             sudo rm -rf "${GITHUB_WORKSPACE:?}/"* "${GITHUB_WORKSPACE:?}/".[!.]* "${GITHUB_WORKSPACE:?}/"..?*
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7.0.0
         with:
           path: espcontrol-${{ matrix.slug }}
       - run: git sparse-checkout disable || true
@@ -103,22 +100,52 @@ jobs:
         working-directory: espcontrol-${{ matrix.slug }}
         run: bash scripts/reclaim_actions_disk.sh
 
-      - name: Prepare local ESPHome cache
+      - name: Prepare isolated ESPHome cache
         working-directory: espcontrol-${{ matrix.slug }}
         run: |
-          CACHE_ROOT="${HOME}/.cache/espcontrol-actions/esphome"
-          PLATFORMIO_CACHE="${CACHE_ROOT}/platformio-${ESPHOME_VERSION}"
-          RUN_CACHE_ROOT="${CACHE_ROOT}/release/${{ github.run_id }}-${{ github.run_attempt }}"
-          BUILD_CACHE="${RUN_CACHE_ROOT}/${{ matrix.slug }}"
+          RUN_CACHE_ROOT="${RUNNER_TEMP}/espcontrol-esphome/${{ github.run_id }}-${{ github.run_attempt }}/${{ matrix.slug }}"
+          PLATFORMIO_CACHE="${RUN_CACHE_ROOT}/platformio-${ESPHOME_VERSION}"
+          BUILD_CACHE="${RUN_CACHE_ROOT}/build"
+          rm -rf "${RUN_CACHE_ROOT}"
           mkdir -p "${PLATFORMIO_CACHE}" "${BUILD_CACHE}" builds
-          rm -rf "${CACHE_ROOT}/shared"
-          bash scripts/prune_actions_cache.sh "${CACHE_ROOT}" "${ESPCONTROL_ESPHOME_CACHE_MAX_MB}" --protect "${PLATFORMIO_CACHE}" --protect "${RUN_CACHE_ROOT}"
-          bash scripts/prune_actions_cache.sh "${CACHE_ROOT}/release" "${ESPCONTROL_BUILD_CACHE_MAX_MB}" --protect "${RUN_CACHE_ROOT}"
-          bash scripts/prune_actions_cache.sh "${PLATFORMIO_CACHE}" "${ESPCONTROL_PLATFORMIO_CACHE_MAX_MB}" --strategy reset
+          export PLATFORMIO_CACHE
+          python3 - <<'PY'
+          import json
+          import os
+          import shutil
+          from pathlib import Path
+
+          cache_root = Path(os.environ["PLATFORMIO_CACHE"])
+          package_roots = [cache_root / "platformio" / "packages", cache_root / "packages"]
+          for packages in package_roots:
+              if not packages.is_dir():
+                  continue
+              for metadata in packages.glob("*/.piopm"):
+                  try:
+                      with metadata.open(encoding="utf-8") as handle:
+                          json.load(handle)
+                  except Exception as exc:
+                      package_dir = metadata.parent
+                      print(f"Removing corrupted PlatformIO package cache: {package_dir} ({exc})")
+                      shutil.rmtree(package_dir, ignore_errors=True)
+          PY
           rm -rf .esphome
           rm -rf builds/.esphome
+          echo "RUN_CACHE_ROOT=${RUN_CACHE_ROOT}" >> "$GITHUB_ENV"
           echo "PLATFORMIO_CACHE=${PLATFORMIO_CACHE}" >> "$GITHUB_ENV"
           echo "BUILD_CACHE=${BUILD_CACHE}" >> "$GITHUB_ENV"
+
+      - name: Pull ESPHome image
+        working-directory: espcontrol-${{ matrix.slug }}
+        run: |
+          ESPHOME_IMAGE="ghcr.io/esphome/esphome:${ESPHOME_VERSION}"
+          LOCK_FILE="/tmp/espcontrol-esphome-image.lock"
+          if command -v flock >/dev/null 2>&1; then
+            flock "${LOCK_FILE}" ${DOCKER} pull "${ESPHOME_IMAGE}"
+          else
+            ${DOCKER} pull "${ESPHOME_IMAGE}"
+          fi
+          echo "ESPHOME_IMAGE=${ESPHOME_IMAGE}" >> "$GITHUB_ENV"
 
       - name: Compile firmware
         working-directory: espcontrol-${{ matrix.slug }}
@@ -133,7 +160,7 @@ jobs:
           -v "${PWD}:/config"
           -v "${PLATFORMIO_CACHE}:/config/.esphome"
           -v "${BUILD_CACHE}:/config/builds/.esphome"
-          ghcr.io/esphome/esphome:${ESPHOME_VERSION}
+          "${ESPHOME_IMAGE}"
           -s firmware_version "${VERSION}"
           compile /config/builds/${{ matrix.slug }}.factory.yaml
 
@@ -177,15 +204,11 @@ jobs:
         if: always()
         working-directory: espcontrol-${{ matrix.slug }}
         run: |
-          if [ -z "${BUILD_CACHE:-}" ] || [ -z "${PLATFORMIO_CACHE:-}" ]; then
+          if [ -z "${RUN_CACHE_ROOT:-}" ] || [ -z "${BUILD_CACHE:-}" ] || [ -z "${PLATFORMIO_CACHE:-}" ]; then
             echo "No firmware cache paths were prepared."
             exit 0
           fi
-          rm -rf "${BUILD_CACHE}"
-          RUN_CACHE_ROOT="$(dirname "${BUILD_CACHE}")"
-          bash scripts/prune_actions_cache.sh "${PLATFORMIO_CACHE}" "${ESPCONTROL_PLATFORMIO_CACHE_MAX_MB}" --strategy reset
-          bash scripts/prune_actions_cache.sh "$(dirname "${RUN_CACHE_ROOT}")" "${ESPCONTROL_BUILD_CACHE_MAX_MB}" --protect "${RUN_CACHE_ROOT}"
-          bash scripts/prune_actions_cache.sh "${HOME}/.cache/espcontrol-actions/esphome" "${ESPCONTROL_ESPHOME_CACHE_MAX_MB}" --protect "${PLATFORMIO_CACHE}"
+          rm -rf "${RUN_CACHE_ROOT}"
           bash scripts/reclaim_actions_disk.sh
 
   publish:

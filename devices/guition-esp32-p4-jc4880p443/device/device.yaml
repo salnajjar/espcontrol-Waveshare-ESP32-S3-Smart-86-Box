@@ -19,10 +19,11 @@ esp32:
   engineering_sample: true
   framework:
     type: esp-idf
-    version: 5.5.2
+    # stick to recommended version, currently 5.5.4, 55.03.39 with tool-esptoolpy 5.3.0. No issues
+    #version: 5.5.2
     # pioarduino 55.03.38-1 pulls tool-esptoolpy 5.2.0, which can install
     # incompletely in ESPHome containers and then fail while creating .bin files.
-    platform_version: 55.03.37
+    #platform_version: 55.03.37
     advanced:
       enable_idf_experimental_features: yes
       execute_from_psram: true
@@ -52,7 +53,7 @@ external_components:
       url: ${espcontrol_component_url}
       ref: ${espcontrol_component_ref}
       path: components
-    components: [espcontrol, web_server_idf]
+    components: [espcontrol, web_server_idf, artwork_image]
     refresh: 1s
 
 espcontrol:
@@ -67,6 +68,7 @@ esphome:
     build_flags:
       - "-Wno-deprecated-declarations"
       - "-DESPCONTROL_DISABLE_TODO=1"
+      - "-DESPCONTROL_MAX_GRID_SLOTS=6"
       # Force PlatformIO to rebuild cached ESPHome objects after the 2026.5
       # core/scheduler/watchdog changes; stale 2026.4 objects can boot-loop.
       - "-DESPCONTROL_ESPHOME_2026_5_REBUILD=1"
@@ -204,8 +206,13 @@ light:
         - if:
             condition:
               lambda: |-
-                return id(screen_schedule_asleep) ||
-                       (id(schedule_enabled).state && !panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now()).is_valid());
+                auto now = panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now());
+                return (id(screen_schedule_asleep) &&
+                        !id(schedule_mode_clock)) ||
+                       screen_schedule_waiting_for_time(
+                         id(screen_schedule_trigger).state,
+                         id(schedule_enabled).state,
+                         now.is_valid());
             then:
               - script.execute: backlight_force_display_off
             else:
@@ -287,6 +294,7 @@ script:
                         - lvgl.display.set_rotation: 90
                       else:
                         - lvgl.display.set_rotation: 180
+      - script.execute: cover_art_apply_responsive_layout
 
 select:
   - platform: template
