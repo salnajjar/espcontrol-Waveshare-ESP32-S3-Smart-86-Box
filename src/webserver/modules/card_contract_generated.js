@@ -1146,6 +1146,8 @@ var CARD_CONTRACT_CARDS = {
   "local_sensor": {
     "label": "Local Sensor",
     "allowInSubpage": true,
+    "pickerKey": "sensor",
+    "hidden": true,
     "domains": [
       "sensor",
       "text_sensor"
@@ -1155,9 +1157,9 @@ var CARD_CONTRACT_CARDS = {
       "label": "",
       "icon": "Auto",
       "icon_on": "Auto",
-      "sensor": "",
+      "sensor": "local",
       "unit": "",
-      "type": "local_sensor",
+      "type": "sensor",
       "precision": "",
       "options": ""
     }
@@ -1378,6 +1380,10 @@ var CARD_CONTRACT_MIGRATION_ALIASES = {
   "weather_forecast": {
     "type": "weather",
     "precision": "tomorrow"
+  },
+  "local_sensor": {
+    "type": "sensor",
+    "sensor": "local"
   }
 };
 var CARD_CONTRACT_BRIGHTNESS_SLIDER_TYPES = ["slider", "light_brightness", "fan_speed"];

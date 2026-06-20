@@ -403,6 +403,17 @@ async function assertSettingsPage(page, label, options = {}) {
   assert(appearanceVisible, `${label}: settings content should render`);
   assert.strictEqual(themeVisible, !!options.isEpaper, `${label}: theme selector visibility should match display type`);
   assert.strictEqual(onColorVisible, !options.isEpaper, `${label}: color controls visibility should match display type`);
+  const clockBarCard = page.locator("#sp-settings .card").filter({ hasText: "Clock Bar" }).first();
+  const clockBarText = await clockBarCard.textContent();
+  const voiceServicesCard = page.locator("#sp-settings .card").filter({
+    has: page.locator(".card-header h3", { hasText: /^Voice Services$/ }),
+  }).first();
+  if (options.slug === "esp32-p4-86") {
+    assert(await voiceServicesCard.isVisible(), `${label}: voice services settings card is available for the voice-capable panel`);
+  } else {
+    assert(!clockBarText.includes("Voice Services"), `${label}: voice services toggle is hidden from the clock bar`);
+    assert.strictEqual(await voiceServicesCard.count(), 0, `${label}: voice services settings card is hidden on panels without local voice`);
+  }
   const nightScheduleCard = page.locator("#sp-settings .card").filter({
     has: page.locator(".card-header h3", { hasText: /^Night Schedule$/ }),
   }).first();
@@ -428,8 +439,18 @@ async function assertSettingsPage(page, label, options = {}) {
     );
     assert.strictEqual(
       await page.locator("#sp-set-ss-media-sleep-prevention").count(),
-      0,
-      `${label}: keep-screen-awake option should not render separately`
+      1,
+      `${label}: keep-screen-awake option should render separately`
+    );
+    await coverArtCard.locator("#sp-set-ss-media-sleep-prevention + .sp-toggle-track").click();
+    assert(
+      await coverArtCard.locator("#sp-set-ss-cover-art-player").isVisible(),
+      `${label}: media player entity field should render when keep-screen-awake is enabled`
+    );
+    assert.strictEqual(
+      await coverArtCard.locator("#sp-set-ss-cover-art-delay").isVisible(),
+      false,
+      `${label}: cover art show-after field should stay hidden until cover art is enabled`
     );
     await coverArtCard.locator("#sp-set-ss-cover-art-enable + .sp-toggle-track").click();
     assert(

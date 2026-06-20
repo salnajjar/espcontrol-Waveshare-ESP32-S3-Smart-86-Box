@@ -1,5 +1,7 @@
 // ── State ──────────────────────────────────────────────────────────────
 
+var AUTO_TIMEZONE_OPTION = "Auto (Home Assistant)";
+var FALLBACK_TIMEZONE_OPTION = "UTC (GMT+0)";
 var NTP_SERVER_DEFAULTS = ["0.pool.ntp.org", "1.pool.ntp.org", "2.pool.ntp.org"];
 var LANGUAGE_LABELS = {
   cs: "Čeština (Czech)",
@@ -27,6 +29,7 @@ var THEME_PRESETS = {
   Light: { on: "0073FF", off: "CECECE", sensor: "DEDEDE" },
   Dark: { on: "FF8C00", off: "313131", sensor: "212121" },
 };
+var DEFAULT_COLOR_PRESET = THEME_PRESETS[defaultTheme()];
 
 function defaultTheme() {
   return "Dark";
@@ -41,12 +44,27 @@ function epaperPreviewFillColor() {
 }
 
 function defaultTimezoneOptions() {
-  return (CFG && Array.isArray(CFG.timezoneOptions)) ? CFG.timezoneOptions.slice() : [];
+  var options = (CFG && Array.isArray(CFG.timezoneOptions)) ? CFG.timezoneOptions.slice() : [];
+  return options;
+}
+
+function isHomeAssistantAutoTimezone(value) {
+  return String(value || "") === AUTO_TIMEZONE_OPTION;
+}
+
+function effectiveTimezoneOptionForWeb(value) {
+  if (!isHomeAssistantAutoTimezone(value)) return value;
+  var active = String(state && state.activeTimezone || "").trim();
+  return active && !isHomeAssistantAutoTimezone(active) ? active : FALLBACK_TIMEZONE_OPTION;
 }
 
 function timezoneOptionsWithFallback(options, selected) {
   var list = Array.isArray(options) && options.length ? options.slice() : defaultTimezoneOptions();
-  if (selected && list.indexOf(selected) === -1) list.unshift(selected);
+  var supportsAuto = list.indexOf(AUTO_TIMEZONE_OPTION) !== -1;
+  if (selected && list.indexOf(selected) === -1 &&
+      (!isHomeAssistantAutoTimezone(selected) || supportsAuto)) {
+    list.unshift(selected);
+  }
   return list;
 }
 
@@ -56,9 +74,9 @@ var state = {
   buttons: [],
   theme: defaultTheme(),
   themeOptions: ["Light", "Dark"],
-  onColor: THEME_PRESETS[defaultTheme()].on,
-  offColor: THEME_PRESETS[defaultTheme()].off,
-  sensorColor: THEME_PRESETS[defaultTheme()].sensor,
+  onColor: DEFAULT_COLOR_PRESET.on,
+  offColor: DEFAULT_COLOR_PRESET.off,
+  sensorColor: DEFAULT_COLOR_PRESET.sensor,
   selectedSlots: [],
   lastClickedSlot: -1,
   clockBarSelectedItem: "",
@@ -77,6 +95,7 @@ var state = {
   _clockBarStateValues: {},
   clockBarTimeOn: true,
   networkStatusOn: true,
+  voiceServicesOn: false,
   networkTransport: "wifi",
   wifiStrengthPercent: 100,
   temperatureDegreeSymbolOn: true,
@@ -91,6 +110,7 @@ var state = {
   coverArtDelay: 10,
   coverArtTrackOverlayDuration: 5,
   coverArtHideExternalInputOn: true,
+  homeAssistantArtworkProtocol: "http",
   coverArtHomeAssistantPort: 8123,
   screensaverMode: "disabled",
   _screensaverModeReceived: false,
@@ -122,7 +142,8 @@ var state = {
   scheduleDimmedBrightness: 10,
   scheduleClockBrightness: 10,
   scheduleClockTextColor: "FFFFFF",
-  timezone: "UTC (GMT+0)",
+  timezone: AUTO_TIMEZONE_OPTION,
+  activeTimezone: FALLBACK_TIMEZONE_OPTION,
   timezoneOptions: defaultTimezoneOptions(),
   language: "en",
   languageOptions: ["en", "cs", "da", "de", "es", "fi", "fr", "hu", "it", "nb", "nl", "pl", "pt", "pt-br", "ro", "sk", "sl", "sv", "tr", "uk"],
@@ -289,7 +310,7 @@ function syncLanguageSelect() {
 }
 
 function timezonePrefersFahrenheit(timezone) {
-  var tz = getTzId(timezone || state.timezone);
+  var tz = getTzId(effectiveTimezoneOptionForWeb(timezone || state.timezone));
   var fahrenheitZones = {
     "America/Adak": true,
     "America/Anchorage": true,
@@ -622,6 +643,11 @@ function normalizeHomeAssistantArtworkPort(value) {
   return port;
 }
 
+function normalizeHomeAssistantArtworkProtocol(value) {
+  value = String(value == null ? "" : value).trim().toLowerCase();
+  return value === "https" ? "https" : "http";
+}
+
 function setSelectValue(select, value, label) {
   if (!select) return;
   value = String(value);
@@ -778,6 +804,19 @@ function applyThemePreset(theme, postChanges) {
   }
 }
 
+function resetAppearanceColors(postChanges) {
+  state.onColor = DEFAULT_COLOR_PRESET.on;
+  state.offColor = DEFAULT_COLOR_PRESET.off;
+  state.sensorColor = DEFAULT_COLOR_PRESET.sensor;
+  syncColorUi();
+  renderPreview();
+  if (postChanges) {
+    postText(entityName("button_on_color"), state.onColor);
+    postText(entityName("button_off_color"), state.offColor);
+    postText(entityName("sensor_card_color"), state.sensorColor);
+  }
+}
+
 function syncThemeFromDevice(theme, options) {
   state.theme = normalizeTheme(theme);
   if (options && Array.isArray(options)) state.themeOptions = options;
@@ -802,6 +841,9 @@ function syncClockBarUi() {
   if (els.setClockBarTimeToggle) els.setClockBarTimeToggle.checked = !!state.clockBarTimeOn;
   if (els.setNetworkStatusToggle) {
     els.setNetworkStatusToggle.checked = !!state.networkStatusOn;
+  }
+  if (els.setVoiceServicesToggle) {
+    els.setVoiceServicesToggle.checked = !!state.voiceServicesOn;
   }
   if (els.setClockBarBadge) {
     els.setClockBarBadge.className = "sp-card-badge" + (state.clockBarOn ? "" : " sp-hidden");
