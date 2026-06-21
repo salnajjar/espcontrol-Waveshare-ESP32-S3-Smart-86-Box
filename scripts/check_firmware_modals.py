@@ -229,6 +229,7 @@ def firmware_modal_sleep_takeover_errors(root: Path) -> list[str]:
 
 def firmware_subpage_modal_wiring_errors(root: Path) -> list[str]:
     grid_path = root / "components" / "espcontrol" / "button_grid_grid.h"
+    subpages_path = root / "components" / "espcontrol" / "button_grid_subpages.h"
     errors: list[str] = []
 
     if not grid_path.exists():
@@ -253,6 +254,24 @@ def firmware_subpage_modal_wiring_errors(root: Path) -> list[str]:
         or "LV_EVENT_CLICKED" not in body
     ):
         errors.append("components/espcontrol/button_grid_grid.h: open light control modals from subpage cards")
+
+    if not subpages_path.exists():
+        errors.append("components/espcontrol/button_grid_subpages.h: preserve light control tab options in subpages")
+        return errors
+
+    subpages_text = subpages_path.read_text(encoding="utf-8")
+    if (
+        'b.type == "light_control"' not in subpages_text
+        or "light_control_card_options_normalized(b.options)" not in subpages_text
+    ):
+        errors.append("components/espcontrol/button_grid_subpages.h: preserve light control tab options in subpages")
+    unsupported_block = re.search(
+        r'if\s*\(\s*!b\.type\.empty\(\)(?P<body>.*?)\)\s*\{\s*\n\s*b\.options\.clear\(\);',
+        subpages_text,
+        re.S,
+    )
+    if unsupported_block is None or 'b.type != "light_control"' not in unsupported_block.group("body"):
+        errors.append("components/espcontrol/button_grid_subpages.h: keep light control options out of the unsupported-card cleanup")
 
     return errors
 
@@ -340,6 +359,15 @@ def expect_subpage_modal_wiring_errors(name: str, grid_text: str, expected: tupl
         path = root / "components" / "espcontrol" / "button_grid_grid.h"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(grid_text, encoding="utf-8")
+        (path.parent / "button_grid_subpages.h").write_text(
+            'if (b.type == "light_control") {\n'
+            "  b.options = light_control_card_options_normalized(b.options);\n"
+            "}\n"
+            'if (!b.type.empty() && b.type != "light_control") {\n'
+            "  b.options.clear();\n"
+            "}\n",
+            encoding="utf-8",
+        )
 
         errors = firmware_subpage_modal_wiring_errors(root)
         for item in expected:
