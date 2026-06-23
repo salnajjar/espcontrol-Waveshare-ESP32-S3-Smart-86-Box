@@ -99,6 +99,7 @@ off=Oprit
 on=Pornit
 open=Deschide
 opening=Se deschide
+state_open=Deschis
 option=Opțiune
 oscillating=Oscilează
 oscillation=Oscilație

@@ -99,6 +99,7 @@ off=Wyłączone
 on=Włączone
 open=Otwórz
 opening=Otwieranie
+state_open=Otwarte
 option=Opcja
 oscillating=Oscyluje
 oscillation=Oscylacja

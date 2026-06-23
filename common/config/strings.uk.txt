@@ -99,6 +99,7 @@ off=Вимкнено
 on=Увімкнено
 open=Відкрити
 opening=Відкривається
+state_open=Відкрито
 option=Параметр
 oscillating=Коливається
 oscillation=Коливання

@@ -99,6 +99,7 @@ off=Av
 on=På
 open=Åpne
 opening=Åpner
+state_open=Åpen
 option=Alternativ
 oscillating=Oscillerer
 oscillation=Oscillasjon

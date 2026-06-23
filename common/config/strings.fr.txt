@@ -99,6 +99,7 @@ off=Éteint
 on=Allumé
 open=Ouvrir
 opening=Ouverture
+state_open=Ouvert
 option=Option
 oscillating=Oscillant
 oscillation=Oscillation

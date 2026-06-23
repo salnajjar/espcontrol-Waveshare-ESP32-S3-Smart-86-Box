@@ -99,6 +99,7 @@ off=Pois
 on=Päällä
 open=Avaa
 opening=Avautuu
+state_open=Auki
 option=Vaihtoehto
 oscillating=Kääntyvä
 oscillation=Kääntö

@@ -99,6 +99,7 @@ off=Slukket
 on=Tændt
 open=Åbn
 opening=Åbner
+state_open=Åben
 option=Mulighed
 oscillating=Oscillerer
 oscillation=Oscillation

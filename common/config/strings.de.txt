@@ -99,6 +99,7 @@ off=Aus
 on=Ein
 open=Öffnen
 opening=Öffnet
+state_open=Offen
 option=Option
 oscillating=Schwenkt
 oscillation=Schwenken

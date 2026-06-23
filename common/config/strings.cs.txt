@@ -99,6 +99,7 @@ off=Vypnuto
 on=Zapnuto
 open=Otevřít
 opening=Otevírá se
+state_open=Otevřeno
 option=Možnost
 oscillating=Osciluje
 oscillation=Oscilace

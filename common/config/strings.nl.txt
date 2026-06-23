@@ -99,6 +99,7 @@ off=Uit
 on=Aan
 open=Openen
 opening=Opent
+state_open=Open
 option=Optie
 oscillating=Oscillerend
 oscillation=Oscillatie

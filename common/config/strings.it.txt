@@ -99,6 +99,7 @@ off=Spento
 on=Acceso
 open=Apri
 opening=Apertura
+state_open=Aperto
 option=Opzione
 oscillating=Oscillante
 oscillation=Oscillazione

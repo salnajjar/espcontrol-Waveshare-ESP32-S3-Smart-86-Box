@@ -99,6 +99,7 @@ off=Izklop
 on=Vklop
 open=Odpri
 opening=Odpiranje
+state_open=Odprto
 option=Možnost
 oscillating=Nihanje
 oscillation=Nihanje
