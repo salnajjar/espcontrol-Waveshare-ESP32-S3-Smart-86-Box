@@ -717,9 +717,9 @@ inline void grid_refresh_layout(
     ParsedCfg p = parse_cfg(s.config->state);
     int row_span = order.row_span[idx - 1] > 0 ? order.row_span[idx - 1] : 1;
     refresh_card_layout(s, p, cfg, row_span);
-    if (p.type == "vacuum" && vacuum_card_mode_needs_state(p.sensor)) {
+    if (p.type == "vacuum") {
       refresh_vacuum_card_translated_text(
-        static_cast<VacuumCardCtx *>(lv_obj_get_user_data(s.btn)), p);
+        s.text_lbl, static_cast<VacuumCardCtx *>(lv_obj_get_user_data(s.btn)), p);
     }
   }
   ESP_LOGI("sensors", "Grid refresh: layout done (%lu ms)", esphome::millis());

@@ -120,16 +120,22 @@ inline void apply_vacuum_card_state(VacuumCardCtx *ctx,
   }
 }
 
-inline void refresh_vacuum_card_translated_text(VacuumCardCtx *ctx,
+inline void refresh_vacuum_card_translated_text(lv_obj_t *text_lbl,
+                                                VacuumCardCtx *ctx,
                                                 const ParsedCfg &p) {
-  if (!ctx || !ctx->text_lbl) return;
-  if (p.label.empty()) {
+  if (!text_lbl) return;
+  std::string label = p.label.empty()
+    ? espcontrol_i18n(std::string(vacuum_card_mode_label(p.sensor)))
+    : p.label;
+  if (ctx && p.label.empty()) {
     ctx->label = espcontrol_i18n(std::string(vacuum_card_mode_label(ctx->mode)));
   }
-  std::string label = ctx->status_card && !ctx->state.empty()
-    ? vacuum_state_label(ctx->state, ctx->label)
-    : ctx->label;
-  set_wrapped_button_label_text(ctx->text_lbl, label);
+  if (ctx && ctx->status_card && !ctx->state.empty()) {
+    label = vacuum_state_label(ctx->state, ctx->label);
+  } else if (ctx) {
+    label = ctx->label;
+  }
+  set_wrapped_button_label_text(text_lbl, label);
 }
 
 inline void subscribe_vacuum_card_state(VacuumCardCtx *ctx) {
