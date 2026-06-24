@@ -116,7 +116,10 @@ function clockBarTemperatureItemIds() {
 }
 
 function clockBarItems() {
-  return ["temperature", "time", "voice", "network"];
+  var items = ["temperature", "time"];
+  if (voiceServicesSupported()) items.push("voice");
+  items.push("network");
+  return items;
 }
 
 function clockBarDefaultSection(item) {
@@ -131,7 +134,7 @@ function clockBarItemActive(item) {
   var tempIndex = clockBarTemperatureItemIndex(item);
   if (tempIndex >= 0) return clockBarTemperatureVisible();
   if (item === "time") return !!state.clockBarTimeOn;
-  if (item === "voice") return !!state.voiceServicesOn;
+  if (item === "voice") return voiceServicesSupported() && !!state.voiceServicesOn;
   if (item === "network") return !!state.networkStatusOn;
   return false;
 }
@@ -216,12 +219,7 @@ function saveClockBarLayout(postDevice) {
 }
 
 function normalizeClockBarLayout() {
-  var next = { left: [], middle: [], right: [] };
-  CLOCK_BAR_SECTIONS.forEach(function (section) {
-    (CLOCK_BAR_DEFAULT_LAYOUT[section] || []).forEach(function (item) {
-      if (next[section].indexOf(item) === -1) next[section].push(item);
-    });
-  });
+  var next = cloneClockBarLayout(CLOCK_BAR_DEFAULT_LAYOUT);
   state.clockBarLayout = next;
   return next;
 }
@@ -286,6 +284,7 @@ function renderClockBarLayout() {
   updateTempPreview();
   updateClockText();
   updateNetworkPreview();
+  updateVoicePreview();
 }
 
 function syncClockBarItemElement(item) {
@@ -394,8 +393,11 @@ function updateNetworkPreview() {
   els.networkPreview.className = "sp-network-preview mdi mdi-" +
     networkPreviewIconSlug(state.networkTransport, state.wifiStrengthPercent) +
     (show ? " sp-visible" : "");
-  if (els.voicePreview) {
-    els.voicePreview.className = "sp-voice-preview mdi mdi-microphone" +
-      (show && state.voiceServicesOn ? " sp-visible" : "");
-  }
+}
+
+function updateVoicePreview() {
+  if (!els.voicePreview) return;
+  var show = clockBarVisibleInPreview();
+  els.voicePreview.className = "sp-voice-preview mdi mdi-microphone" +
+    (show && voiceServicesSupported() && state.voiceServicesOn ? " sp-visible" : "");
 }

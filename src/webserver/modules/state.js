@@ -39,6 +39,10 @@ function isEpaperPreview() {
   return CFG && CFG.previewTheme === "epaper";
 }
 
+function voiceServicesSupported() {
+  return !!(CFG.features && CFG.features.voiceServices);
+}
+
 function epaperPreviewFillColor() {
   return normalizeTheme(state.theme) === "Light" ? "FFFFFF" : "000000";
 }
@@ -462,7 +466,7 @@ function setClockBarItemVisible(item, visible) {
   } else if (item === "time") {
     state.clockBarTimeOn = visible;
     postClockBarTime(state.clockBarTimeOn);
-  } else if (item === "voice") {
+  } else if (item === "voice" && voiceServicesSupported()) {
     state.voiceServicesOn = visible;
     postVoiceServices(state.voiceServicesOn);
   } else if (item === "network") {
@@ -860,6 +864,7 @@ function syncClockBarUi() {
   updateClockBarItemUi();
   renderSelectionBar(ctx());
   updateNetworkPreview();
+  updateVoicePreview();
   updateTempPreview();
 }
 
