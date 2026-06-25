@@ -855,6 +855,16 @@ inline AlarmActionCtx *grid_delete_alarm_action_with_owner(lv_obj_t *owner,
   return ctx;
 }
 
+inline AlarmCardCtx *grid_delete_alarm_card_with_owner(lv_obj_t *owner,
+                                                       AlarmCardCtx *ctx) {
+  if (owner != nullptr && ctx != nullptr) {
+    lv_obj_add_event_cb(owner, [](lv_event_t *e) {
+      grid_delete_alarm_card_runtime_ptr(lv_event_get_user_data(e));
+    }, LV_EVENT_DELETE, ctx);
+  }
+  return ctx;
+}
+
 struct GridRuntimeAllocation {
   lv_obj_t *owner = nullptr;
   void *ptr = nullptr;
@@ -1842,7 +1852,7 @@ inline void grid_phase2(
             false,
             cfg.suspend_display_takeover,
             cfg.resume_display_takeover);
-          grid_delete_with_owner(sb_btn, ctx);
+          grid_delete_alarm_card_with_owner(sb_btn, ctx);
           ctx->grid_page = sub_scr;
           lv_obj_set_user_data(sb_btn, ctx);
           subscribe_alarm_state(ctx);
