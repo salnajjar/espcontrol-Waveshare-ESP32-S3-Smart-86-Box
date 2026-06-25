@@ -355,7 +355,6 @@ function postOptional(url) {
   var throttleMs = _postThrottleMs;
   _postQueue = _postQueue.then(function () {
     return postFirstAvailable(urls).then(function (r) {
-      if (r && !r.ok) _postQueueHadError = true;
       return postDelay(throttleMs).then(function () { return r; });
     }).catch(function () {
       _postQueueHadError = true;
