@@ -1856,11 +1856,6 @@ inline void apply_weather_forecast_card_text(const WeatherForecastCardRef &ref,
   lv_label_set_text(ref.unit_lbl, normalized_unit.c_str());
 }
 
-inline void weather_forecast_schedule_visual_refresh() {
-  // Forecast callbacks can arrive while the grid is rebuilding. Keep the parsed
-  // values cached, but avoid touching LVGL objects from this async path.
-}
-
 inline bool weather_forecast_card_ref_ready(const WeatherForecastCardRef &ref) {
   if (!esphome::App.is_setup_complete()) return false;
   if (!lv_display_get_default()) return false;
@@ -1872,7 +1867,7 @@ inline bool weather_forecast_card_ref_ready(const WeatherForecastCardRef &ref) {
   return true;
 }
 
-inline void refresh_weather_forecast_card_unit_labels() {
+inline void refresh_weather_forecast_card_visuals() {
   WeatherForecastCardRef *refs = weather_forecast_card_refs();
   int count = weather_forecast_card_count();
   bool updated = false;
@@ -1884,6 +1879,24 @@ inline void refresh_weather_forecast_card_unit_labels() {
     updated = true;
   }
   if (updated) notify_dashboard_content_changed();
+}
+
+inline lv_timer_t *&weather_forecast_visual_refresh_timer() {
+  static lv_timer_t *timer = nullptr;
+  return timer;
+}
+
+inline void weather_forecast_apply_visuals_cb(lv_timer_t *timer) {
+  lv_timer_t *&active_timer = weather_forecast_visual_refresh_timer();
+  if (active_timer == timer) active_timer = nullptr;
+  lv_timer_del(timer);
+  refresh_weather_forecast_card_visuals();
+}
+
+inline void weather_forecast_schedule_visual_refresh() {
+  lv_timer_t *&timer = weather_forecast_visual_refresh_timer();
+  if (timer) lv_timer_reset(timer);
+  else timer = lv_timer_create(weather_forecast_apply_visuals_cb, 25, nullptr);
 }
 
 inline void apply_weather_forecast_to_entity(const std::string &entity_id,
@@ -2459,7 +2472,7 @@ inline void refresh_temperature_unit_labels() {
     climate_update_card(climate_refs[i]);
     climate_control_set_modal_value(climate_refs[i]);
   }
-  refresh_weather_forecast_card_unit_labels();
+  refresh_weather_forecast_card_visuals();
   if (climate_count > 0) notify_dashboard_content_changed();
 }
 
