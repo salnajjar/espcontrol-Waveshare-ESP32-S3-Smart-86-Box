@@ -779,7 +779,9 @@ def script_block(device: dict) -> str:
             [
                 "script:",
                 "  - id: refresh_button_grid",
+                "    mode: restart",
                 "    then:",
+                "      - delay: 3s",
                 "      - lambda: |-",
                 refresh_block(device),
                 *refresh_subpage_arrays(device),
@@ -796,7 +798,9 @@ def script_block(device: dict) -> str:
         [
             "script:",
             "  - id: refresh_button_grid",
+            "    mode: restart",
             "    then:",
+            "      - delay: 3s",
             "      - lambda: |-",
             refresh_block(device),
             "          grid_refresh_layout(slots, cfg,",
