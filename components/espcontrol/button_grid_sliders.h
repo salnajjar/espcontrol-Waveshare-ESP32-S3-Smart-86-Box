@@ -751,6 +751,8 @@ inline void light_control_layout_power(lv_obj_t *group, lv_obj_t *on_btn,
   if (group_w < width / 2) group_w = width / 2;
   if (group_w > width) group_w = width;
   lv_obj_set_size(group, group_w, height);
+  apply_width_compensation(
+    group, width_compensation_vertical_axis() ? width_compensation_percent : 100);
   lv_obj_align(group, LV_ALIGN_CENTER, 0, center_y);
   lv_coord_t radius = group_w / 4;
   if (radius < 24) radius = 24;
