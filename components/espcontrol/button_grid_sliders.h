@@ -713,7 +713,7 @@ inline lv_obj_t *light_control_create_power_button(lv_obj_t *parent, const lv_fo
                                                    bool turn_on) {
   lv_obj_t *btn = lv_btn_create(parent);
   if (!btn) return nullptr;
-  apply_width_compensation(btn, width_compensation_percent);
+  (void) width_compensation_percent;
   lv_obj_set_style_bg_opa(btn, LV_OPA_TRANSP, LV_PART_MAIN);
   lv_obj_set_style_border_width(btn, 0, LV_PART_MAIN);
   lv_obj_set_style_shadow_width(btn, 0, LV_PART_MAIN);
@@ -744,7 +744,8 @@ inline lv_obj_t *light_control_create_power_button(lv_obj_t *parent, const lv_fo
 
 inline void light_control_layout_power(lv_obj_t *group, lv_obj_t *on_btn,
                                        lv_obj_t *off_btn, lv_coord_t width,
-                                       lv_coord_t height, lv_coord_t center_y) {
+                                       lv_coord_t height, lv_coord_t center_y,
+                                       int width_compensation_percent) {
   if (!group) return;
   lv_obj_set_size(group, width, height);
   lv_obj_align(group, LV_ALIGN_CENTER, 0, center_y);
@@ -757,9 +758,10 @@ inline void light_control_layout_power(lv_obj_t *group, lv_obj_t *on_btn,
   if (inset < 8) inset = 8;
   if (inset > 16) inset = 16;
   lv_coord_t gap = inset;
-  lv_coord_t button_w = width - inset * 2;
+  lv_coord_t button_w = compensated_width(width - inset * 2, width_compensation_percent);
   lv_coord_t button_h = (height - inset * 2 - gap) / 2;
   if (button_w < width / 2) button_w = width / 2;
+  if (button_w > width - inset * 2) button_w = width - inset * 2;
   if (button_h < 48) button_h = 48;
   lv_coord_t button_radius = width > 0 ? radius * button_w / width : radius;
   if (button_radius < 16) button_radius = 16;
@@ -858,7 +860,8 @@ inline void light_control_layout_modal(LightControlCtx *ctx) {
     layout, control_modal_home_card_width(ctx->btn, layout), slider_h);
   lv_coord_t content_center_y = content_top + slider_h / 2 - layout.panel_h / 2;
   light_control_layout_power(
-    ui.power_group, ui.power_on_btn, ui.power_off_btn, slider_w, slider_h, content_center_y);
+    ui.power_group, ui.power_on_btn, ui.power_off_btn, slider_w, slider_h,
+    content_center_y, ctx->width_compensation_percent);
   light_control_apply_modal_power(ctx);
   light_control_layout_slider(
     ui.slider, slider_w, slider_h, content_center_y, ctx->width_compensation_percent);
