@@ -747,23 +747,25 @@ inline void light_control_layout_power(lv_obj_t *group, lv_obj_t *on_btn,
                                        lv_coord_t height, lv_coord_t center_y,
                                        int width_compensation_percent) {
   if (!group) return;
-  lv_obj_set_size(group, width, height);
+  lv_coord_t group_w = compensated_width(width, width_compensation_percent);
+  if (group_w < width / 2) group_w = width / 2;
+  if (group_w > width) group_w = width;
+  lv_obj_set_size(group, group_w, height);
   lv_obj_align(group, LV_ALIGN_CENTER, 0, center_y);
-  lv_coord_t radius = width / 4;
+  lv_coord_t radius = group_w / 4;
   if (radius < 24) radius = 24;
   if (radius > 46) radius = 46;
   lv_obj_set_style_radius(group, radius, LV_PART_MAIN);
   lv_obj_set_style_clip_corner(group, true, LV_PART_MAIN);
-  lv_coord_t inset = width / 16;
+  lv_coord_t inset = group_w / 16;
   if (inset < 8) inset = 8;
   if (inset > 16) inset = 16;
   lv_coord_t gap = inset;
-  lv_coord_t button_w = compensated_width(width - inset * 2, width_compensation_percent);
+  lv_coord_t button_w = group_w - inset * 2;
   lv_coord_t button_h = (height - inset * 2 - gap) / 2;
-  if (button_w < width / 2) button_w = width / 2;
-  if (button_w > width - inset * 2) button_w = width - inset * 2;
+  if (button_w < group_w / 2) button_w = group_w / 2;
   if (button_h < 48) button_h = 48;
-  lv_coord_t button_radius = width > 0 ? radius * button_w / width : radius;
+  lv_coord_t button_radius = group_w > 0 ? radius * button_w / group_w : radius;
   if (button_radius < 16) button_radius = 16;
   if (button_radius > button_h / 2) button_radius = button_h / 2;
   if (on_btn) {
