@@ -531,20 +531,6 @@ inline lv_coord_t control_modal_card_tab_content_gap(const ControlModalLayout &l
   return control_modal_control_tab_content_gap(layout);
 }
 
-inline lv_coord_t control_modal_compensated_circle_radius(lv_coord_t width, lv_coord_t height,
-                                                          int width_compensation_percent) {
-  int percent = normalize_width_compensation_percent(width_compensation_percent);
-  lv_coord_t visual_w = width_compensation_vertical_axis()
-    ? width
-    : width * percent / 100;
-  lv_coord_t visual_h = width_compensation_vertical_axis()
-    ? height * percent / 100
-    : height;
-  lv_coord_t diameter = visual_w < visual_h ? visual_w : visual_h;
-  if (diameter < 1) diameter = 1;
-  return diameter / 2;
-}
-
 inline void light_control_center_icon_label(lv_obj_t *label) {
   if (!label) return;
   lv_obj_update_layout(label);
@@ -1902,11 +1888,7 @@ inline void cover_control_layout_modal(CoverControlCtx *ctx) {
   if (tab_frame_w > max_tab_frame_w) tab_frame_w = max_tab_frame_w;
   if (ui.tab_row && show_tab_bar) {
     lv_obj_set_size(ui.tab_row, tab_frame_w, tab_frame_h);
-    apply_width_compensation(ui.tab_row, ctx->width_compensation_percent);
-    lv_obj_set_style_radius(
-      ui.tab_row,
-      control_modal_compensated_circle_radius(tab_frame_w, tab_frame_h, ctx->width_compensation_percent),
-      LV_PART_MAIN);
+    lv_obj_set_style_radius(ui.tab_row, tab_frame_h / 2, LV_PART_MAIN);
     lv_obj_align(ui.tab_row, LV_ALIGN_TOP_MID, 0, layout.inset + 2);
   }
   lv_coord_t first_tab_x = (tab_frame_w - tabs_total_w) / 2;
@@ -1917,10 +1899,7 @@ inline void cover_control_layout_modal(CoverControlCtx *ctx) {
     lv_coord_t tab_btn_size = active ? selected_tab_size : tab_size;
     lv_obj_set_size(tab_btn, tab_btn_size, tab_btn_size);
     apply_width_compensation(tab_btn, ctx->width_compensation_percent);
-    lv_obj_set_style_radius(
-      tab_btn,
-      control_modal_compensated_circle_radius(tab_btn_size, tab_btn_size, ctx->width_compensation_percent),
-      LV_PART_MAIN);
+    lv_obj_set_style_radius(tab_btn, tab_btn_size / 2, LV_PART_MAIN);
     lv_coord_t tab_x = first_tab_x + i * (tab_size + tab_gap);
     lv_obj_align(tab_btn, LV_ALIGN_LEFT_MID, tab_x - (tab_btn_size - tab_size) / 2, 0);
     lv_obj_t *label = lv_obj_get_child(tab_btn, 0);
