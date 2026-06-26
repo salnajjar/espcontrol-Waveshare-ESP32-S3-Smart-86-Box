@@ -970,7 +970,7 @@ function buildSettingsPage(parent) {
     var coverArtBadge = statusBadge("Media cover art on");
     els.setCoverArtBadge = coverArtBadge;
     syncCoverArtScreensaverUi();
-    coverArtCard = makeCollapsibleCard("Media Cover Art", coverArtBody, true, coverArtBadge);
+    coverArtCard = makeCollapsibleCard("Cover Art", coverArtBody, true, coverArtBadge);
   }
 
   var backupBody = document.createElement("div");
@@ -1180,13 +1180,13 @@ function buildSettingsPage(parent) {
     appearanceCard,
     backlightCard,
     clockBarCard,
+    coverArtCard,
     voiceServicesCard,
     rotationCard,
   ]);
   appendSettingsSection(config, "Sleep & Schedule", [
     idleCard,
     screensaverCard,
-    coverArtCard,
     scheduleCard,
   ]);
   appendSettingsSection(config, "Preferences", [

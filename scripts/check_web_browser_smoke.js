@@ -433,9 +433,9 @@ async function assertSettingsPage(page, label, options = {}) {
   );
   if (!options.isEpaper) {
     const coverArtCard = page.locator("#sp-settings .card").filter({
-      has: page.locator(".card-header h3", { hasText: /^Media Cover Art$/ }),
+      has: page.locator(".card-header h3", { hasText: /^Cover Art$/ }),
     }).first();
-    assert(await coverArtCard.isVisible(), `${label}: media cover art settings card should render`);
+    assert(await coverArtCard.isVisible(), `${label}: cover art settings card should render`);
     await coverArtCard.locator(".card-header").click();
     assert.strictEqual(
       await page.locator("#sp-cover-art-info").count(),
