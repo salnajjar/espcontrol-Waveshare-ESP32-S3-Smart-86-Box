@@ -120,6 +120,9 @@ globals:
   - id: cover_art_accent_b
     type: int
     initial_value: '0'
+  - id: cover_art_suppressed_active
+    type: bool
+    initial_value: 'false'
 
 esphome:
   on_boot:
@@ -817,6 +820,7 @@ script:
           condition:
             lambda: |-
               return id(cover_art_screensaver_enabled).state &&
+                     !id(cover_art_suppressed_active) &&
                      id(cover_art_attribute_conditions_match) &&
                      !(id(cover_art_hide_external_input_enabled).state &&
                        id(cover_art_external_input_active)) &&
@@ -895,6 +899,7 @@ script:
           condition:
             lambda: |-
               return id(cover_art_screensaver_active) &&
+                     !id(cover_art_suppressed_active) &&
                      id(cover_art_screensaver_enabled).state &&
                      id(cover_art_attribute_conditions_match) &&
                      !(id(cover_art_hide_external_input_enabled).state &&
@@ -914,6 +919,7 @@ script:
           condition:
             lambda: |-
               return id(cover_art_screensaver_active) &&
+                     !id(cover_art_suppressed_active) &&
                      id(cover_art_screensaver_enabled).state &&
                      id(cover_art_media_playing) &&
                      id(cover_art_attribute_conditions_match) &&
@@ -933,6 +939,7 @@ script:
           condition:
             lambda: |-
               return id(cover_art_screensaver_active) &&
+                     !id(cover_art_suppressed_active) &&
                      id(cover_art_screensaver_enabled).state &&
                      id(cover_art_attribute_conditions_match) &&
                      !(id(cover_art_hide_external_input_enabled).state &&
@@ -944,6 +951,23 @@ script:
     mode: restart
     then:
       - lambda: |-
+          if (id(cover_art_suppressed_active)) {
+            ESP_LOGI("cover_art", "Skipping cached artwork while cover art is suppressed");
+            id(cover_art_screensaver_active) = false;
+            id(cover_art_refresh_needed) = false;
+            id(cover_art_retry_url).clear();
+            id(cover_art_retry_count) = 0;
+            id(cover_art_download_url).clear();
+            id(cover_art_active_download_source_url).clear();
+            id(cover_art_deferred_download).stop();
+            id(cover_art_deferred_request_artwork).stop();
+            id(cover_art_prepare_download).stop();
+            id(cover_art_retry_download).stop();
+            id(cover_art_request_artwork).stop();
+            id(cover_art_delay_timer).stop();
+            id(cover_art_show_track_overlay).stop();
+            return;
+          }
           std::string chosen = id(cover_art_cached_local_url);
           std::string alternate;
           if (chosen.empty()) {
@@ -1030,6 +1054,7 @@ script:
           condition:
             lambda: |-
               return !id(cover_art_url).empty() &&
+                     !id(cover_art_suppressed_active) &&
                      id(cover_art_screensaver_enabled).state &&
                      id(cover_art_attribute_conditions_match) &&
                      !(id(cover_art_hide_external_input_enabled).state &&
@@ -1069,6 +1094,7 @@ script:
           condition:
             lambda: |-
               return !id(cover_art_url).empty() &&
+                     !id(cover_art_suppressed_active) &&
                      id(cover_art_screensaver_enabled).state &&
                      id(cover_art_attribute_conditions_match) &&
                      !(id(cover_art_hide_external_input_enabled).state &&
@@ -1086,6 +1112,7 @@ script:
                 condition:
                   lambda: |-
                     return !id(cover_art_url).empty() &&
+                           !id(cover_art_suppressed_active) &&
                            id(cover_art_screensaver_enabled).state &&
                            id(cover_art_attribute_conditions_match) &&
                            !(id(cover_art_hide_external_input_enabled).state &&
@@ -1414,6 +1441,7 @@ script:
       - lambda: |-
           if (!id(cover_art_screensaver_enabled).state ||
               !id(cover_art_screensaver_active) ||
+              id(cover_art_suppressed_active) ||
               !id(cover_art_attribute_conditions_match) ||
               (id(cover_art_hide_external_input_enabled).state &&
                id(cover_art_external_input_active))) {
@@ -1511,6 +1539,27 @@ script:
           id(cover_art_api_wait_logged) = false;
           id(cover_art_empty_entity_logged) = false;
           const bool already_subscribed = cover_entity == id(cover_art_subscribed_entity);
+          const std::string suppressed_substring = "${cover_art_suppressed_entity_substring}";
+          const bool suppress_cover_art = !suppressed_substring.empty() &&
+              cover_entity.find(suppressed_substring) != std::string::npos;
+          id(cover_art_suppressed_active) = suppress_cover_art;
+          if (suppress_cover_art) {
+            ESP_LOGI("cover_art", "Suppressing cover art screensaver for %s", cover_entity.c_str());
+            id(cover_art_screensaver_active) = false;
+            id(cover_art_refresh_needed) = false;
+            id(cover_art_retry_url).clear();
+            id(cover_art_retry_count) = 0;
+            id(cover_art_download_url).clear();
+            id(cover_art_active_download_source_url).clear();
+            id(cover_art_deferred_download).stop();
+            id(cover_art_deferred_request_artwork).stop();
+            id(cover_art_prepare_download).stop();
+            id(cover_art_retry_download).stop();
+            id(cover_art_request_artwork).stop();
+            id(cover_art_delay_timer).stop();
+            id(cover_art_show_track_overlay).stop();
+            id(hide_cover_art_view).execute();
+          }
           if (!already_subscribed) {
             ha_reset_subscription_callbacks(HA_SUBSCRIPTION_SCOPE_COVER_ART);
             id(cover_art_subscription_generation)++;
@@ -1539,6 +1588,19 @@ script:
                   cover_entity != id(cover_art_media_player_entity).state) return;
               std::string state_text = string_ref_limited(state, HA_SHORT_STATE_MAX_LEN);
               bool playing = state_text == "playing" || state_text == "buffering";
+              if (id(cover_art_suppressed_active)) {
+                id(cover_art_media_playing) = playing;
+                if (playing) {
+                  id(cover_art_screensaver_active) = false;
+                  id(cover_art_delay_timer).stop();
+                  id(cover_art_show_track_overlay).stop();
+                  id(cover_art_request_artwork).stop();
+                  id(hide_cover_art_view).execute();
+                } else {
+                  id(cover_art_playback_stopped).execute();
+                }
+                return;
+              }
               if (state_text == id(cover_art_last_playback_state) &&
                   id(cover_art_media_playing) == playing) {
                 return;
@@ -2015,6 +2077,7 @@ script:
             lambda: |-
               auto now = panel_time_or_fallback(id(panel_time).now(), id(homeassistant_time).now());
               return id(cover_art_screensaver_enabled).state &&
+                     !id(cover_art_suppressed_active) &&
                      !screen_schedule_blocks_cover_art(
                        id(screen_schedule_trigger).state,
                        id(schedule_enabled).state,

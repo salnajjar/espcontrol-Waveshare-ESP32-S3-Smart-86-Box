@@ -101,20 +101,40 @@ speaker:
     buffer_duration: 500ms
     task_stack_in_psram: true
 
+sendspin:
+  id: voice_sendspin_hub
+  task_stack_in_psram: false
+
+audio_file:
+  - id: voice_wake_chime
+    file: ${voice_wake_chime_file}
+  - id: voice_timer_alert
+    file: ${voice_timer_alert_file}
+  - id: voice_stt_failure_chime
+    file: ${voice_stt_failure_chime_file}
+
+media_source:
+  - platform: audio_file
+    id: voice_audio_file_announcement_source
+  - platform: audio_http
+    id: voice_http_announcement_source
+    buffer_size: 250000
+  - platform: audio_http
+    id: voice_http_media_source
+    buffer_size: 500000
+  - platform: sendspin
+    id: voice_sendspin_media_source
+    fixed_delay: 480 microseconds
+    task_stack_in_psram: false
+
 media_player:
-  - platform: speaker
+  - platform: sendspin
+    id: voice_sendspin_group_media_player
+
+  - platform: speaker_source
     id: voice_media_player
     name: Voice Media Player
     icon: mdi:speaker
-    buffer_size: 4000000
-    task_stack_in_psram: true
-    files:
-      - id: voice_wake_chime
-        file: ${voice_wake_chime_file}
-      - id: voice_timer_alert
-        file: ${voice_timer_alert_file}
-      - id: voice_stt_failure_chime
-        file: ${voice_stt_failure_chime_file}
     volume_min: 0.0
     volume_max: 1.0
     volume_increment: 0.005
@@ -123,10 +143,18 @@ media_player:
       speaker: voice_announcement_resampling_speaker
       format: FLAC
       sample_rate: 48000
+      num_channels: 1
+      sources:
+        - voice_audio_file_announcement_source
+        - voice_http_announcement_source
     media_pipeline:
       speaker: voice_media_resampling_speaker
-      format: NONE
+      format: FLAC
       sample_rate: 48000
+      num_channels: 2
+      sources:
+        - voice_http_media_source
+        - voice_sendspin_media_source
     on_announcement:
       - mixer_speaker.apply_ducking:
           id: voice_media_mixing_input
@@ -159,6 +187,7 @@ media_player:
                   voice_assistant.is_running:
               - not:
                   media_player.is_announcing:
+                    id: voice_media_player
           then:
             - mixer_speaker.apply_ducking:
                 id: voice_media_mixing_input
@@ -178,7 +207,6 @@ media_player:
       - script.execute: refresh_voice_clock_bar_mute_icon
     on_unmute:
       - script.execute: refresh_voice_clock_bar_mute_icon
-    pause_releases_pipeline: false
 
 sensor:
   - platform: sound_level
@@ -301,6 +329,7 @@ micro_wake_word:
                       or:
                         - voice_assistant.is_running:
                         - media_player.is_announcing:
+                            id: voice_media_player
                     then:
                       - if:
                           condition:
@@ -314,6 +343,7 @@ micro_wake_word:
                       - if:
                           condition:
                             media_player.is_playing:
+                              id: voice_media_player
                           then:
                             - if:
                                 condition:
@@ -381,20 +411,24 @@ script:
             switch.is_on: wake_sound
           then:
             - switch.turn_on: speaker_amplifier_enable
-            - media_player.speaker.play_on_device_media_file:
-                id: voice_media_player
-                media_file: voice_wake_chime
-                announcement: true
+            - lambda: |-
+                id(voice_media_player)
+                  ->make_call()
+                  .set_media_url("audio-file://voice_wake_chime")
+                  .set_announcement(true)
+                  .perform();
 
   - id: play_voice_stt_failure_chime
     mode: restart
     then:
       - lambda: id(voice_speaker).set_pause_state(false);
       - switch.turn_on: speaker_amplifier_enable
-      - media_player.speaker.play_on_device_media_file:
-          id: voice_media_player
-          media_file: voice_stt_failure_chime
-          announcement: true
+      - lambda: |-
+          id(voice_media_player)
+            ->make_call()
+            .set_media_url("audio-file://voice_stt_failure_chime")
+            .set_announcement(true)
+            .perform();
 
   - id: play_voice_timer_alert
     mode: restart
@@ -406,10 +440,12 @@ script:
             - lambda: |-
                 id(voice_speaker).set_pause_state(false);
             - switch.turn_on: speaker_amplifier_enable
-            - media_player.speaker.play_on_device_media_file:
-                id: voice_media_player
-                media_file: voice_timer_alert
-                announcement: true
+            - lambda: |-
+                id(voice_media_player)
+                  ->make_call()
+                  .set_media_url("audio-file://voice_timer_alert")
+                  .set_announcement(true)
+                  .perform();
             - delay: 1500ms
 
   - id: start_voice_timer_alert
@@ -490,6 +526,7 @@ script:
                   voice_assistant.is_running:
               - not:
                   media_player.is_announcing:
+                    id: voice_media_player
           timeout: 5s
       - if:
           condition:
@@ -525,6 +562,7 @@ script:
           condition:
             not:
               media_player.is_playing:
+                id: voice_media_player
           timeout: 2s
       - if:
           condition:
@@ -627,6 +665,7 @@ script:
       - if:
           condition:
             media_player.is_announcing:
+              id: voice_media_player
           then:
             - logger.log:
                 level: WARN
@@ -651,8 +690,10 @@ script:
             and:
               - not:
                   media_player.is_announcing:
+                    id: voice_media_player
               - not:
                   media_player.is_playing:
+                    id: voice_media_player
           then:
             - switch.turn_off: speaker_amplifier_enable
       - script.execute: apply_restored_voice_wake_word
@@ -1054,15 +1095,18 @@ voice_assistant:
           - wait_until:
               condition:
                 - media_player.is_announcing:
+                    id: voice_media_player
               timeout: 500ms
           - wait_until:
               condition:
                 not:
                   media_player.is_announcing:
+                    id: voice_media_player
               timeout: 90s
           - if:
               condition:
                 media_player.is_announcing:
+                  id: voice_media_player
               then:
                 - logger.log:
                     level: WARN
@@ -1082,8 +1126,10 @@ voice_assistant:
                 and:
                   - not:
                       media_player.is_announcing:
+                        id: voice_media_player
                   - not:
                       media_player.is_playing:
+                        id: voice_media_player
               then:
                 - switch.turn_off: speaker_amplifier_enable
           - script.execute: apply_restored_voice_wake_word

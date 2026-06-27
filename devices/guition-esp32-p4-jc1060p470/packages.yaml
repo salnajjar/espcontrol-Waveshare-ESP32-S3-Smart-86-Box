@@ -82,6 +82,7 @@ substitutions:
   cover_art_text_color: "0xFFFFFF"
   cover_art_square_overlay: "false"
   cover_art_live_image_updates: "false"
+  cover_art_suppressed_entity_substring: ""
 
 packages:
   # ---------------------------------------------------------------------------

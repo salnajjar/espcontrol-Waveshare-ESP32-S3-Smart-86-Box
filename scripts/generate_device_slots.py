@@ -162,6 +162,7 @@ def cover_art_substitution_lines(device: dict) -> list[str]:
             "cover_art_text_color": "0xFFFFFF",
             "cover_art_square_overlay": "true",
             "cover_art_live_image_updates": "false",
+            "cover_art_suppressed_entity_substring": "voice_media_player",
         },
         "guition-esp32-p4-jc4880p443": {
             "cover_art_size": "480",
@@ -271,6 +272,7 @@ def cover_art_substitution_lines(device: dict) -> list[str]:
         return []
     layout = {**layout}
     layout.setdefault("cover_art_live_image_updates", "true")
+    layout.setdefault("cover_art_suppressed_entity_substring", "")
     return [f'  {key}: "{value}"' for key, value in layout.items()]
 
 
