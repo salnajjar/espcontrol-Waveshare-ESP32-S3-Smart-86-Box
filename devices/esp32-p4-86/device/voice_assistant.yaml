@@ -67,6 +67,7 @@ speaker:
   - platform: esp_audio_stack
     id: voice_speaker
     sample_rate: 48000
+    bits_per_sample: 16
     esp_audio_stack_id: voice_audio_stack
     buffer_duration: 500ms
     timeout: 500ms
@@ -105,7 +106,6 @@ media_player:
     id: voice_media_player
     name: Voice Media Player
     icon: mdi:speaker
-    codec_support_enabled: true
     buffer_size: 4000000
     task_stack_in_psram: true
     files:
@@ -113,6 +113,8 @@ media_player:
         file: ${voice_wake_chime_file}
       - id: voice_timer_alert
         file: ${voice_timer_alert_file}
+      - id: voice_stt_failure_chime
+        file: ${voice_stt_failure_chime_file}
     volume_min: 0.0
     volume_max: 1.0
     volume_increment: 0.005
@@ -123,7 +125,7 @@ media_player:
       sample_rate: 48000
     media_pipeline:
       speaker: voice_media_resampling_speaker
-      format: FLAC
+      format: NONE
       sample_rate: 48000
     on_announcement:
       - mixer_speaker.apply_ducking:
@@ -383,6 +385,16 @@ script:
                 id: voice_media_player
                 media_file: voice_wake_chime
                 announcement: true
+
+  - id: play_voice_stt_failure_chime
+    mode: restart
+    then:
+      - lambda: id(voice_speaker).set_pause_state(false);
+      - switch.turn_on: speaker_amplifier_enable
+      - media_player.speaker.play_on_device_media_file:
+          id: voice_media_player
+          media_file: voice_stt_failure_chime
+          announcement: true
 
   - id: play_voice_timer_alert
     mode: restart
@@ -650,7 +662,9 @@ script:
     then:
       - if:
           condition:
-            api.connected:
+            and:
+              - api.connected:
+              - switch.is_on: voice_services_enabled
           then:
             - if:
                 condition:
@@ -694,7 +708,10 @@ script:
             - logger.log:
                 level: DEBUG
                 tag: voice
-                format: "Waiting for Home Assistant API before enabling wake word"
+                format: "Voice services disabled or Home Assistant API unavailable"
+            - text_sensor.template.publish:
+                id: voice_assistant_stage
+                state: Disabled
             - micro_wake_word.stop:
 
   - id: enable_selected_voice_wake_word
@@ -996,6 +1013,15 @@ voice_assistant:
         tag: voice
         format: "Voice assistant error: %s - %s"
         args: [code.c_str(), message.c_str()]
+    - if:
+        condition:
+          lambda: return code == "stt-no-text-recognized";
+        then:
+          - logger.log:
+              level: INFO
+              tag: voice
+              format: "Playing STT no-text-recognized failure sound"
+          - script.execute: play_voice_stt_failure_chime
   on_idle:
     - lambda: id(voice_interaction_active) = false;
     - script.stop: release_voice_after_response
@@ -1070,6 +1096,40 @@ voice_assistant:
           - script.execute: cover_art_resubscribe
 
 switch:
+  - platform: template
+    id: voice_services_enabled
+    name: "${entity_voice_services}"
+    icon: mdi:account-voice
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    web_server:
+      sorting_group_id: sg_display
+    on_turn_on:
+      - text_sensor.template.publish:
+          id: voice_assistant_stage
+          state: Idle
+      - script.execute: apply_restored_voice_wake_word
+      - script.execute: clock_bar_apply
+    on_turn_off:
+      - script.stop: release_voice_after_response
+      - script.stop: play_voice_timer_alert
+      - if:
+          condition:
+            voice_assistant.is_running:
+          then:
+            - voice_assistant.stop:
+      - micro_wake_word.stop:
+      - lambda: |-
+          id(voice_cancel_in_progress) = false;
+          id(voice_resume_media_after_voice) = false;
+          id(voice_stop_media_after_voice) = false;
+          id(pending_voice_wake_restart).clear();
+      - text_sensor.template.publish:
+          id: voice_assistant_stage
+          state: Disabled
+      - script.execute: clock_bar_apply
+
   - platform: template
     id: master_mute_switch
     name: Mute

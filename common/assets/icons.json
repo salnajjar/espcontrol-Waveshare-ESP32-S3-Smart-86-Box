@@ -401,6 +401,11 @@
       "mdi": "clock-outline"
     },
     {
+      "name": "Circle Outline",
+      "codepoint": "F0766",
+      "mdi": "circle-outline"
+    },
+    {
       "name": "Coffee Maker",
       "codepoint": "F109F",
       "mdi": "coffee-maker"
@@ -739,6 +744,16 @@
       "name": "Lawnmower",
       "codepoint": "F11F7",
       "mdi": "robot-mower"
+    },
+    {
+      "name": "Robot Mower",
+      "codepoint": "F11F7",
+      "mdi": "robot-mower"
+    },
+    {
+      "name": "Robot Mower Outline",
+      "codepoint": "F11F3",
+      "mdi": "robot-mower-outline"
     },
     {
       "name": "Leaf",
@@ -1232,6 +1247,11 @@
     },
     {
       "name": "Spotlight",
+      "codepoint": "F04C8",
+      "mdi": "spotlight"
+    },
+    {
+      "name": "Spotlight Beam",
       "codepoint": "F04C9",
       "mdi": "spotlight-beam"
     },
