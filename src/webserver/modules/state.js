@@ -35,16 +35,8 @@ function defaultTheme() {
   return "Dark";
 }
 
-function isEpaperPreview() {
-  return CFG && CFG.previewTheme === "epaper";
-}
-
 function voiceServicesSupported() {
   return !!(CFG.features && CFG.features.voiceServices);
-}
-
-function epaperPreviewFillColor() {
-  return normalizeTheme(state.theme) === "Light" ? "FFFFFF" : "000000";
 }
 
 function defaultTimezoneOptions() {
@@ -77,7 +69,6 @@ var state = {
   sizes: {},
   buttons: [],
   theme: defaultTheme(),
-  themeOptions: ["Light", "Dark"],
   onColor: DEFAULT_COLOR_PRESET.on,
   offColor: DEFAULT_COLOR_PRESET.off,
   sensorColor: DEFAULT_COLOR_PRESET.sensor,
@@ -784,7 +775,6 @@ function normalizeTheme(value) {
 }
 
 function syncThemeUi() {
-  if (els.setTheme) els.setTheme.value = normalizeTheme(state.theme);
   if (els.root) els.root.setAttribute("data-screen-theme", normalizeTheme(state.theme).toLowerCase());
 }
 
@@ -792,25 +782,6 @@ function syncColorUi() {
   if (els.setOnColor && els.setOnColor._syncColor) els.setOnColor._syncColor(state.onColor);
   if (els.setOffColor && els.setOffColor._syncColor) els.setOffColor._syncColor(state.offColor);
   if (els.setSensorColor && els.setSensorColor._syncColor) els.setSensorColor._syncColor(state.sensorColor);
-}
-
-function applyThemePreset(theme, postChanges) {
-  state.theme = normalizeTheme(theme);
-  var preset = THEME_PRESETS[state.theme];
-  state.onColor = preset.on;
-  state.offColor = preset.off;
-  state.sensorColor = preset.sensor;
-  syncThemeUi();
-  syncColorUi();
-  renderPreview();
-  if (postChanges) {
-    postSelect(entityName("screen_theme"), state.theme);
-    if (!isEpaperPreview()) {
-      postText(entityName("button_on_color"), state.onColor);
-      postText(entityName("button_off_color"), state.offColor);
-      postText(entityName("sensor_card_color"), state.sensorColor);
-    }
-  }
 }
 
 function resetAppearanceColors(postChanges) {
@@ -824,18 +795,6 @@ function resetAppearanceColors(postChanges) {
     postText(entityName("button_off_color"), state.offColor);
     postText(entityName("sensor_card_color"), state.sensorColor);
   }
-}
-
-function syncThemeFromDevice(theme, options) {
-  state.theme = normalizeTheme(theme);
-  if (options && Array.isArray(options)) state.themeOptions = options;
-  var preset = THEME_PRESETS[state.theme];
-  state.onColor = preset.on;
-  state.offColor = preset.off;
-  state.sensorColor = preset.sensor;
-  syncThemeUi();
-  syncColorUi();
-  renderPreview();
 }
 
 function syncClockBarUi() {

@@ -28,7 +28,9 @@ function openVoiceServicesSettings() {
   els.voiceServicesCard.classList.remove("collapsed");
   els.voiceServicesCard.scrollIntoView({ block: "center", behavior: "smooth" });
   if (els.setVoiceServicesToggle) {
-    window.setTimeout(function () { els.setVoiceServicesToggle.focus(); }, 150);
+    window.setTimeout(function () {
+      els.setVoiceServicesToggle.focus();
+    }, 150);
   }
 }
 
@@ -94,63 +96,57 @@ function buildSettingsPage(parent) {
 
   var appearBody = document.createElement("div");
 
-  if (isEpaperPreview()) {
-    var themeField = document.createElement("div");
-    themeField.className = "sp-field";
-    themeField.appendChild(fieldLabel("Theme", "sp-set-theme"));
-    var themeSelect = document.createElement("select");
-    themeSelect.className = "sp-select";
-    themeSelect.id = "sp-set-theme";
-    state.themeOptions.forEach(function (opt) {
-      var o = document.createElement("option");
-      o.value = opt;
-      o.textContent = opt;
-      themeSelect.appendChild(o);
-    });
-    themeSelect.value = normalizeTheme(state.theme);
-    themeSelect.addEventListener("change", function () {
-      applyThemePreset(this.value, true);
-    });
-    themeField.appendChild(themeSelect);
-    appearBody.appendChild(themeField);
-    els.setTheme = themeSelect;
-  } else {
-    appearBody.appendChild(fieldLabel("Primary"));
-    var onColor = colorField("sp-set-on-color", DEFAULT_COLOR_PRESET.on, function (hex) {
+  appearBody.appendChild(fieldLabel("Primary"));
+  var onColor = colorField(
+    "sp-set-on-color",
+    DEFAULT_COLOR_PRESET.on,
+    function (hex) {
       postText(entityName("button_on_color"), hex);
-    });
-    appearBody.appendChild(onColor);
-    els.setOnColor = onColor;
+    },
+  );
+  appearBody.appendChild(onColor);
+  els.setOnColor = onColor;
 
-    appearBody.appendChild(fieldLabel("Secondary"));
-    var offColor = colorField("sp-set-off-color", DEFAULT_COLOR_PRESET.off, function (hex) {
+  appearBody.appendChild(fieldLabel("Secondary"));
+  var offColor = colorField(
+    "sp-set-off-color",
+    DEFAULT_COLOR_PRESET.off,
+    function (hex) {
       postText(entityName("button_off_color"), hex);
-    });
-    appearBody.appendChild(offColor);
-    els.setOffColor = offColor;
+    },
+  );
+  appearBody.appendChild(offColor);
+  els.setOffColor = offColor;
 
-    appearBody.appendChild(fieldLabel("Tertiary"));
-    var sensorColor = colorField("sp-set-sensor-color", DEFAULT_COLOR_PRESET.sensor, function (hex) {
+  appearBody.appendChild(fieldLabel("Tertiary"));
+  var sensorColor = colorField(
+    "sp-set-sensor-color",
+    DEFAULT_COLOR_PRESET.sensor,
+    function (hex) {
       postText(entityName("sensor_card_color"), hex);
-    });
-    appearBody.appendChild(sensorColor);
-    els.setSensorColor = sensorColor;
-  }
+    },
+  );
+  appearBody.appendChild(sensorColor);
+  els.setSensorColor = sensorColor;
 
-  var appearanceResetButton = null;
-  if (!isEpaperPreview()) {
-    appearanceResetButton = document.createElement("button");
-    appearanceResetButton.type = "button";
-    appearanceResetButton.className = "sp-icon-button sp-card-header-action";
-    appearanceResetButton.title = "Reset colours";
-    appearanceResetButton.setAttribute("aria-label", "Reset colours to defaults");
-    appearanceResetButton.innerHTML = '<span class="mdi mdi-restore" aria-hidden="true"></span>';
-    appearanceResetButton.addEventListener("click", function (event) {
-      event.stopPropagation();
-      resetAppearanceColors(true);
-    });
-  }
-  var appearanceCard = makeCollapsibleCard("Appearance", appearBody, true, null, appearanceResetButton);
+  var appearanceResetButton = document.createElement("button");
+  appearanceResetButton.type = "button";
+  appearanceResetButton.className = "sp-icon-button sp-card-header-action";
+  appearanceResetButton.title = "Reset colours";
+  appearanceResetButton.setAttribute("aria-label", "Reset colours to defaults");
+  appearanceResetButton.innerHTML =
+    '<span class="mdi mdi-restore" aria-hidden="true"></span>';
+  appearanceResetButton.addEventListener("click", function (event) {
+    event.stopPropagation();
+    resetAppearanceColors(true);
+  });
+  var appearanceCard = makeCollapsibleCard(
+    "Appearance",
+    appearBody,
+    true,
+    null,
+    appearanceResetButton,
+  );
 
   var languageBody = document.createElement("div");
   var languageField = document.createElement("div");
@@ -159,7 +155,10 @@ function buildSettingsPage(parent) {
   var languageSelect = document.createElement("select");
   languageSelect.className = "sp-select";
   languageSelect.id = "sp-set-language";
-  state.languageOptions = languageOptionsWithFallback(state.languageOptions, state.language);
+  state.languageOptions = languageOptionsWithFallback(
+    state.languageOptions,
+    state.language,
+  );
   state.languageOptions.forEach(function (opt) {
     appendLanguageOption(languageSelect, opt);
   });
@@ -176,17 +175,29 @@ function buildSettingsPage(parent) {
 
   var blBody = document.createElement("div");
 
-  var daySlider = createRangeSlider("Daytime Brightness", state.brightnessDayVal, entityName("screen_daytime_brightness"));
+  var daySlider = createRangeSlider(
+    "Daytime Brightness",
+    state.brightnessDayVal,
+    entityName("screen_daytime_brightness"),
+  );
   blBody.appendChild(daySlider.wrap);
   els.setDayBrightness = daySlider.range;
   els.setDayBrightnessVal = daySlider.val;
 
-  var nightSlider = createRangeSlider("Nighttime Brightness", state.brightnessNightVal, entityName("screen_nighttime_brightness"));
+  var nightSlider = createRangeSlider(
+    "Nighttime Brightness",
+    state.brightnessNightVal,
+    entityName("screen_nighttime_brightness"),
+  );
   blBody.appendChild(nightSlider.wrap);
   els.setNightBrightness = nightSlider.range;
   els.setNightBrightnessVal = nightSlider.val;
 
-  var autoBrightnessToggle = toggleRow("Automatic Brightness", "sp-set-automatic-brightness", state.automaticBrightnessEnabled);
+  var autoBrightnessToggle = toggleRow(
+    "Automatic Brightness",
+    "sp-set-automatic-brightness",
+    state.automaticBrightnessEnabled,
+  );
   blBody.appendChild(autoBrightnessToggle.row);
   els.setAutomaticBrightnessToggle = autoBrightnessToggle.input;
   autoBrightnessToggle.input.addEventListener("change", function () {
@@ -196,19 +207,31 @@ function buildSettingsPage(parent) {
   });
 
   var brightnessManualTimes = condField();
-  var dawnTime = createTimeInput("Dawn", "sp-set-brightness-dawn-time", state.brightnessDawnTime, "06:00", function (value) {
-    state.brightnessDawnTime = normalizeTimeOfDay(value, "06:00");
-    postBrightnessDawnTime(state.brightnessDawnTime);
-    syncScreenScheduleUi();
-  });
+  var dawnTime = createTimeInput(
+    "Dawn",
+    "sp-set-brightness-dawn-time",
+    state.brightnessDawnTime,
+    "06:00",
+    function (value) {
+      state.brightnessDawnTime = normalizeTimeOfDay(value, "06:00");
+      postBrightnessDawnTime(state.brightnessDawnTime);
+      syncScreenScheduleUi();
+    },
+  );
   brightnessManualTimes.appendChild(dawnTime.wrap);
   els.setBrightnessDawnTime = dawnTime.input;
 
-  var duskTime = createTimeInput("Dusk", "sp-set-brightness-dusk-time", state.brightnessDuskTime, "18:00", function (value) {
-    state.brightnessDuskTime = normalizeTimeOfDay(value, "18:00");
-    postBrightnessDuskTime(state.brightnessDuskTime);
-    syncScreenScheduleUi();
-  });
+  var duskTime = createTimeInput(
+    "Dusk",
+    "sp-set-brightness-dusk-time",
+    state.brightnessDuskTime,
+    "18:00",
+    function (value) {
+      state.brightnessDuskTime = normalizeTimeOfDay(value, "18:00");
+      postBrightnessDuskTime(state.brightnessDuskTime);
+      syncScreenScheduleUi();
+    },
+  );
   brightnessManualTimes.appendChild(duskTime.wrap);
   els.setBrightnessDuskTime = duskTime.input;
   blBody.appendChild(brightnessManualTimes);
@@ -224,10 +247,12 @@ function buildSettingsPage(parent) {
   var backlightCard = makeCollapsibleCard("Backlight", blBody, true);
 
   var scheduleBody = document.createElement("div");
-  scheduleBody.appendChild(infoPanel(
-    "sp-night-schedule-info",
-    "Time-based Night Schedule overrides screensaver presence wake and Media Cover Art while it is active. Use Sensor mode when you want presence to control the night schedule."
-  ));
+  scheduleBody.appendChild(
+    infoPanel(
+      "sp-night-schedule-info",
+      "Time-based Night Schedule overrides screensaver presence wake and Media Cover Art while it is active. Use Sensor mode when you want presence to control the night schedule.",
+    ),
+  );
   scheduleBody.appendChild(fieldLabel("Mode"));
   var scheduleSegment = document.createElement("div");
   scheduleSegment.className = "sp-segment sp-screensaver-mode";
@@ -253,25 +278,37 @@ function buildSettingsPage(parent) {
   var scheduleTimes = document.createElement("div");
   scheduleTimes.className = "sp-schedule-times";
 
-  var onHour = createHourSelect("Daytime", "sp-set-schedule-on-hour", state.scheduleOnHour, function (hour) {
-    state.scheduleOnHour = hour;
-    postScreenScheduleOnHour(hour);
-    syncScreenScheduleUi();
-  });
+  var onHour = createHourSelect(
+    "Daytime",
+    "sp-set-schedule-on-hour",
+    state.scheduleOnHour,
+    function (hour) {
+      state.scheduleOnHour = hour;
+      postScreenScheduleOnHour(hour);
+      syncScreenScheduleUi();
+    },
+  );
   scheduleTimes.appendChild(onHour.wrap);
   els.setScheduleOnHour = onHour.select;
 
-  var offHour = createHourSelect("Night Time", "sp-set-schedule-off-hour", state.scheduleOffHour, function (hour) {
-    state.scheduleOffHour = hour;
-    postScreenScheduleOffHour(hour);
-    syncScreenScheduleUi();
-  });
+  var offHour = createHourSelect(
+    "Night Time",
+    "sp-set-schedule-off-hour",
+    state.scheduleOffHour,
+    function (hour) {
+      state.scheduleOffHour = hour;
+      postScreenScheduleOffHour(hour);
+      syncScreenScheduleUi();
+    },
+  );
   scheduleTimes.appendChild(offHour.wrap);
   els.setScheduleOffHour = offHour.select;
 
   var scheduleModeField = document.createElement("div");
   scheduleModeField.className = "sp-field";
-  scheduleModeField.appendChild(fieldLabel("At Night Time", "sp-set-schedule-mode"));
+  scheduleModeField.appendChild(
+    fieldLabel("At Night Time", "sp-set-schedule-mode"),
+  );
   var scheduleModeSelect = document.createElement("select");
   scheduleModeSelect.className = "sp-select";
   scheduleModeSelect.id = "sp-set-schedule-mode";
@@ -297,7 +334,12 @@ function buildSettingsPage(parent) {
   var offScreenOptions = condField();
   var wakeTimeoutField = document.createElement("div");
   wakeTimeoutField.className = "sp-field";
-  wakeTimeoutField.appendChild(fieldLabel("When Woken, Idle Time to Screen Off", "sp-set-schedule-wake-timeout"));
+  wakeTimeoutField.appendChild(
+    fieldLabel(
+      "When Woken, Idle Time to Screen Off",
+      "sp-set-schedule-wake-timeout",
+    ),
+  );
   var wakeTimeoutSelect = document.createElement("select");
   wakeTimeoutSelect.className = "sp-select";
   wakeTimeoutSelect.id = "sp-set-schedule-wake-timeout";
@@ -329,7 +371,7 @@ function buildSettingsPage(parent) {
   var wakeBrightnessSlider = createRangeSlider(
     "When Woken, Screen Brightness",
     state.scheduleWakeBrightness,
-    postScreenScheduleWakeBrightness
+    postScreenScheduleWakeBrightness,
   );
   wakeBrightnessSlider.range.id = "sp-set-schedule-wake-brightness";
   wakeBrightnessSlider.range.addEventListener("change", function () {
@@ -346,13 +388,15 @@ function buildSettingsPage(parent) {
   var dimmedBrightnessSlider = createRangeSlider(
     "Dimmed Screen Brightness",
     state.scheduleDimmedBrightness,
-    postScreenScheduleDimmedBrightness
+    postScreenScheduleDimmedBrightness,
   );
   dimmedBrightnessSlider.range.id = "sp-set-schedule-dimmed-brightness";
   dimmedBrightnessSlider.range.min = "1";
   dimmedBrightnessSlider.range.step = "1";
   dimmedBrightnessSlider.range.addEventListener("input", function () {
-    state.scheduleDimmedBrightness = normalizeScheduleDimmedBrightness(this.value);
+    state.scheduleDimmedBrightness = normalizeScheduleDimmedBrightness(
+      this.value,
+    );
     syncScreenScheduleUi();
   });
   dimmedOptions.appendChild(dimmedBrightnessSlider.wrap);
@@ -365,13 +409,15 @@ function buildSettingsPage(parent) {
   var clockBrightnessSlider = createRangeSlider(
     "Clock Brightness",
     state.scheduleClockBrightness,
-    postScreenScheduleClockBrightness
+    postScreenScheduleClockBrightness,
   );
   clockBrightnessSlider.range.id = "sp-set-schedule-clock-brightness";
   clockBrightnessSlider.range.min = "1";
   clockBrightnessSlider.range.step = "1";
   clockBrightnessSlider.range.addEventListener("input", function () {
-    state.scheduleClockBrightness = normalizeScheduleClockBrightness(this.value);
+    state.scheduleClockBrightness = normalizeScheduleClockBrightness(
+      this.value,
+    );
     syncScreenScheduleUi();
   });
   clockOptions.appendChild(clockBrightnessSlider.wrap);
@@ -381,8 +427,11 @@ function buildSettingsPage(parent) {
     state.scheduleClockTextColor,
     function (hex) {
       state.scheduleClockTextColor = normalizeHexColor(hex, "FFFFFF");
-      postText(entityName("screen_schedule_clock_text_color"), state.scheduleClockTextColor);
-    }
+      postText(
+        entityName("screen_schedule_clock_text_color"),
+        state.scheduleClockTextColor,
+      );
+    },
   );
   clockOptions.appendChild(clockTextColor);
   scheduleTimes.appendChild(clockOptions);
@@ -398,8 +447,15 @@ function buildSettingsPage(parent) {
   scheduleSensor.className = "sp-schedule-times";
   var schedulePresenceField = document.createElement("div");
   schedulePresenceField.className = "sp-field";
-  schedulePresenceField.appendChild(fieldLabel("Presence Entity", "sp-set-schedule-presence"));
-  var schedulePresInp = entityInput("sp-set-schedule-presence", state.presenceEntity, "Presence sensor entity", ["binary_sensor", "sensor"]);
+  schedulePresenceField.appendChild(
+    fieldLabel("Presence Entity", "sp-set-schedule-presence"),
+  );
+  var schedulePresInp = entityInput(
+    "sp-set-schedule-presence",
+    state.presenceEntity,
+    "Presence sensor entity",
+    ["binary_sensor", "sensor"],
+  );
   schedulePresenceField.appendChild(schedulePresInp);
   scheduleSensor.appendChild(schedulePresenceField);
   bindTextPost(schedulePresInp, entityName("presence_sensor_entity"), {});
@@ -409,7 +465,10 @@ function buildSettingsPage(parent) {
 
   function setScheduleTrigger(trigger) {
     state._scheduleTriggerReceived = true;
-    state.scheduleTrigger = normalizeScheduleTrigger(trigger, state.scheduleEnabled);
+    state.scheduleTrigger = normalizeScheduleTrigger(
+      trigger,
+      state.scheduleEnabled,
+    );
     state.scheduleEnabled = state.scheduleTrigger !== "disabled";
     postScreenScheduleTrigger(state.scheduleTrigger);
     postScreenScheduleEnabled(state.scheduleEnabled);
@@ -429,7 +488,12 @@ function buildSettingsPage(parent) {
   var scheduleBadge = statusBadge("Schedule on");
   els.setScheduleBadge = scheduleBadge;
   syncScreenScheduleUi();
-  var scheduleCard = makeCollapsibleCard("Night Schedule", scheduleBody, true, scheduleBadge);
+  var scheduleCard = makeCollapsibleCard(
+    "Night Schedule",
+    scheduleBody,
+    true,
+    scheduleBadge,
+  );
 
   var clockBody = document.createElement("div");
 
@@ -439,7 +503,10 @@ function buildSettingsPage(parent) {
   var tzSelect = document.createElement("select");
   tzSelect.className = "sp-select";
   tzSelect.id = "sp-set-timezone";
-  state.timezoneOptions = timezoneOptionsWithFallback(state.timezoneOptions, state.timezone);
+  state.timezoneOptions = timezoneOptionsWithFallback(
+    state.timezoneOptions,
+    state.timezone,
+  );
   state.timezoneOptions.forEach(function (opt) {
     appendTimezoneOption(tzSelect, opt);
   });
@@ -480,7 +547,11 @@ function buildSettingsPage(parent) {
   var ntpField = document.createElement("div");
   ntpField.className = "sp-field";
   state.customNtpServers = state.customNtpServers || hasCustomNtpServers();
-  var customNtpServers = toggleRow("Custom NTP Servers", "sp-set-custom-ntp-servers", state.customNtpServers);
+  var customNtpServers = toggleRow(
+    "Custom NTP Servers",
+    "sp-set-custom-ntp-servers",
+    state.customNtpServers,
+  );
   ntpField.appendChild(customNtpServers.row);
   els.setCustomNtpServersToggle = customNtpServers.input;
   customNtpServers.input.addEventListener("change", function () {
@@ -517,14 +588,26 @@ function buildSettingsPage(parent) {
   }
 
   els.setNtpServer1 = addNtpServerInput(
-    "sp-set-ntp-server-1", "ntpServer1",
-    entityName("screen_ntp_server_1"), NTP_SERVER_DEFAULTS[0], "NTP Server 1");
+    "sp-set-ntp-server-1",
+    "ntpServer1",
+    entityName("screen_ntp_server_1"),
+    NTP_SERVER_DEFAULTS[0],
+    "NTP Server 1",
+  );
   els.setNtpServer2 = addNtpServerInput(
-    "sp-set-ntp-server-2", "ntpServer2",
-    entityName("screen_ntp_server_2"), NTP_SERVER_DEFAULTS[1], "NTP Server 2");
+    "sp-set-ntp-server-2",
+    "ntpServer2",
+    entityName("screen_ntp_server_2"),
+    NTP_SERVER_DEFAULTS[1],
+    "NTP Server 2",
+  );
   els.setNtpServer3 = addNtpServerInput(
-    "sp-set-ntp-server-3", "ntpServer3",
-    entityName("screen_ntp_server_3"), NTP_SERVER_DEFAULTS[2], "NTP Server 3");
+    "sp-set-ntp-server-3",
+    "ntpServer3",
+    entityName("screen_ntp_server_3"),
+    NTP_SERVER_DEFAULTS[2],
+    "NTP Server 3",
+  );
 
   ntpField.appendChild(ntpList);
   syncNtpServerUi();
@@ -534,7 +617,11 @@ function buildSettingsPage(parent) {
 
   var clockBarBody = document.createElement("div");
 
-  var clockBar = toggleRow("Show Clock Bar", "sp-set-clock-bar", state.clockBarOn);
+  var clockBar = toggleRow(
+    "Show Clock Bar",
+    "sp-set-clock-bar",
+    state.clockBarOn,
+  );
   clockBarBody.appendChild(clockBar.row);
   els.setClockBarToggle = clockBar.input;
   clockBar.input.addEventListener("change", function () {
@@ -548,12 +635,21 @@ function buildSettingsPage(parent) {
   els.setClockBarBadge = clockBarBadge;
   syncClockBarUi();
   syncTemperatureUi();
-  var clockBarCard = makeCollapsibleCard("Clock Bar", clockBarBody, true, clockBarBadge);
+  var clockBarCard = makeCollapsibleCard(
+    "Clock Bar",
+    clockBarBody,
+    true,
+    clockBarBadge,
+  );
 
   var voiceServicesCard = null;
   if (CFG.features && CFG.features.voiceServices) {
     var voiceServicesBody = document.createElement("div");
-    var voiceServices = toggleRow("Voice Services", "sp-set-voice-services", state.voiceServicesOn);
+    var voiceServices = toggleRow(
+      "Voice Services",
+      "sp-set-voice-services",
+      state.voiceServicesOn,
+    );
     voiceServicesBody.appendChild(voiceServices.row);
     els.setVoiceServicesToggle = voiceServices.input;
     voiceServices.input.addEventListener("change", function () {
@@ -561,7 +657,11 @@ function buildSettingsPage(parent) {
       syncClockBarUi();
       postVoiceServices(state.voiceServicesOn);
     });
-    voiceServicesCard = makeCollapsibleCard("Voice Services", voiceServicesBody, true);
+    voiceServicesCard = makeCollapsibleCard(
+      "Voice Services",
+      voiceServicesBody,
+      true,
+    );
     els.voiceServicesCard = voiceServicesCard;
   }
 
@@ -594,7 +694,9 @@ function buildSettingsPage(parent) {
 
   var unitField = document.createElement("div");
   unitField.className = "sp-field";
-  unitField.appendChild(fieldLabel("Temperature Unit", "sp-set-temperature-unit"));
+  unitField.appendChild(
+    fieldLabel("Temperature Unit", "sp-set-temperature-unit"),
+  );
   var unitSelect = document.createElement("select");
   unitSelect.className = "sp-select";
   unitSelect.id = "sp-set-temperature-unit";
@@ -674,198 +776,229 @@ function buildSettingsPage(parent) {
   els.setClockBrightnessField = timerClockControls.brightnessField;
 
   var coverArtBody = document.createElement("div");
-  if (!isEpaperPreview()) {
-    var coverArtToggle = toggleRow(
-      "Show Cover Art",
-      "sp-set-ss-cover-art-enable",
-      state.coverArtScreensaverOn);
-    coverArtBody.appendChild(coverArtToggle.row);
-    coverArtToggle.input.addEventListener("change", function () {
-      state.coverArtScreensaverOn = this.checked;
-      syncCoverArtScreensaverUi();
-      postSwitch(entityName("screen_saver_cover_art"), state.coverArtScreensaverOn);
-    });
-    els.setCoverArtToggle = coverArtToggle.input;
+  var coverArtToggle = toggleRow(
+    "Show Cover Art",
+    "sp-set-ss-cover-art-enable",
+    state.coverArtScreensaverOn,
+  );
+  coverArtBody.appendChild(coverArtToggle.row);
+  coverArtToggle.input.addEventListener("change", function () {
+    state.coverArtScreensaverOn = this.checked;
+    syncCoverArtScreensaverUi();
+    postSwitch(
+      entityName("screen_saver_cover_art"),
+      state.coverArtScreensaverOn,
+    );
+  });
+  els.setCoverArtToggle = coverArtToggle.input;
 
-    var coverArtOptions = condField();
-    var coverArtOnlyOptions = condField();
-    var coverArtAdvancedBody = document.createElement("div");
+  var coverArtOptions = condField();
+  var coverArtOnlyOptions = condField();
+  var coverArtAdvancedBody = document.createElement("div");
 
-    var sleepPreventionToggle = toggleRow(
-      "Keep Screen Awake During Playback",
-      "sp-set-ss-media-sleep-prevention",
-      state.mediaPlayerSleepPreventionOn);
-    coverArtOptions.appendChild(sleepPreventionToggle.row);
-    sleepPreventionToggle.input.addEventListener("change", function () {
-      state.mediaPlayerSleepPreventionOn = this.checked;
-      syncMediaPlayerSleepPreventionUi();
-      syncCoverArtScreensaverUi();
-      postSwitch(entityName("screen_saver_media_player_sleep_prevention"), state.mediaPlayerSleepPreventionOn);
-    });
-    els.setMediaPlayerSleepPreventionToggle = sleepPreventionToggle.input;
+  var sleepPreventionToggle = toggleRow(
+    "Keep Screen Awake During Playback",
+    "sp-set-ss-media-sleep-prevention",
+    state.mediaPlayerSleepPreventionOn,
+  );
+  coverArtOptions.appendChild(sleepPreventionToggle.row);
+  sleepPreventionToggle.input.addEventListener("change", function () {
+    state.mediaPlayerSleepPreventionOn = this.checked;
+    syncMediaPlayerSleepPreventionUi();
+    syncCoverArtScreensaverUi();
+    postSwitch(
+      entityName("screen_saver_media_player_sleep_prevention"),
+      state.mediaPlayerSleepPreventionOn,
+    );
+  });
+  els.setMediaPlayerSleepPreventionToggle = sleepPreventionToggle.input;
 
-    var coverArtEntityField = document.createElement("div");
-    coverArtEntityField.className = "sp-field";
-    coverArtEntityField.appendChild(fieldLabel("Media Player Entity", "sp-set-ss-cover-art-player"));
-    var coverArtEntityInp = entityInput(
-      "sp-set-ss-cover-art-player",
-      state.coverArtMediaPlayerEntity,
-      "e.g. media_player.living_room",
-      ["media_player"]);
-    coverArtEntityField.appendChild(coverArtEntityInp);
-    coverArtOnlyOptions.appendChild(coverArtEntityField);
-    bindTextPost(coverArtEntityInp, entityName("screen_saver_cover_art_entity"), {
-      onBlur: function (value) { state.coverArtMediaPlayerEntity = value; },
-    });
-    els.setCoverArtMediaPlayer = coverArtEntityInp;
+  var coverArtEntityField = document.createElement("div");
+  coverArtEntityField.className = "sp-field";
+  coverArtEntityField.appendChild(
+    fieldLabel("Media Player Entity", "sp-set-ss-cover-art-player"),
+  );
+  var coverArtEntityInp = entityInput(
+    "sp-set-ss-cover-art-player",
+    state.coverArtMediaPlayerEntity,
+    "e.g. media_player.living_room",
+    ["media_player"],
+  );
+  coverArtEntityField.appendChild(coverArtEntityInp);
+  coverArtOnlyOptions.appendChild(coverArtEntityField);
+  bindTextPost(coverArtEntityInp, entityName("screen_saver_cover_art_entity"), {
+    onBlur: function (value) {
+      state.coverArtMediaPlayerEntity = value;
+    },
+  });
+  els.setCoverArtMediaPlayer = coverArtEntityInp;
 
-    var coverArtDelayField = document.createElement("div");
-    coverArtDelayField.className = "sp-field";
-    coverArtDelayField.appendChild(fieldLabel("Show After", "sp-set-ss-cover-art-delay"));
-    var coverArtDelaySelect = document.createElement("select");
-    coverArtDelaySelect.className = "sp-select";
-    coverArtDelaySelect.id = "sp-set-ss-cover-art-delay";
+  var coverArtDelayField = document.createElement("div");
+  coverArtDelayField.className = "sp-field";
+  coverArtDelayField.appendChild(
+    fieldLabel("Show After", "sp-set-ss-cover-art-delay"),
+  );
+  var coverArtDelaySelect = document.createElement("select");
+  coverArtDelaySelect.className = "sp-select";
+  coverArtDelaySelect.id = "sp-set-ss-cover-art-delay";
+  [
+    { label: "Immediately", value: 0 },
+    { label: "5 seconds", value: 5 },
+    { label: "10 seconds", value: 10 },
+    { label: "30 seconds", value: 30 },
+    { label: "1 minute", value: 60 },
+    { label: "5 minutes", value: 300 },
+  ].forEach(function (opt) {
+    var o = document.createElement("option");
+    o.value = opt.value;
+    o.textContent = opt.label;
+    coverArtDelaySelect.appendChild(o);
+  });
+  coverArtDelaySelect.addEventListener("change", function () {
+    state.coverArtDelay = parseFloat(this.value) || 0;
+    postCoverArtDelay(state.coverArtDelay);
+  });
+  coverArtDelayField.appendChild(coverArtDelaySelect);
+  coverArtOnlyOptions.appendChild(coverArtDelayField);
+  els.setCoverArtDelay = coverArtDelaySelect;
+
+  var coverArtTouchPauseField = document.createElement("div");
+  coverArtTouchPauseField.className = "sp-field";
+  coverArtTouchPauseField.appendChild(
+    fieldLabel("After Touch, Show Again", "sp-set-ss-cover-art-touch-pause"),
+  );
+  var coverArtTouchPauseSelect = document.createElement("select");
+  coverArtTouchPauseSelect.className = "sp-select";
+  coverArtTouchPauseSelect.id = "sp-set-ss-cover-art-touch-pause";
+  [
+    { label: "Immediately", value: 0 },
+    { label: "1 minute", value: 60 },
+    { label: "2 minutes", value: 120 },
+    { label: "3 minutes", value: 180 },
+    { label: "5 minutes", value: 300 },
+  ].forEach(function (opt) {
+    var o = document.createElement("option");
+    o.value = opt.value;
+    o.textContent = opt.label;
+    coverArtTouchPauseSelect.appendChild(o);
+  });
+  coverArtTouchPauseSelect.addEventListener("change", function () {
+    state.coverArtTouchPause = parseFloat(this.value) || 0;
+    postCoverArtTouchPause(state.coverArtTouchPause);
+  });
+  coverArtTouchPauseField.appendChild(coverArtTouchPauseSelect);
+  coverArtOnlyOptions.appendChild(coverArtTouchPauseField);
+  els.setCoverArtTouchPause = coverArtTouchPauseSelect;
+
+  if (coverArtTrackOverlayDurationSupported()) {
+    var trackOverlayField = document.createElement("div");
+    trackOverlayField.className = "sp-field";
+    trackOverlayField.appendChild(
+      fieldLabel("Show Track Details For", "sp-set-ss-track-overlay"),
+    );
+    var trackOverlaySelect = document.createElement("select");
+    trackOverlaySelect.className = "sp-select";
+    trackOverlaySelect.id = "sp-set-ss-track-overlay";
     [
-      { label: "Immediately", value: 0 },
+      { label: "Never", value: 0 },
+      { label: "3 seconds", value: 3 },
       { label: "5 seconds", value: 5 },
       { label: "10 seconds", value: 10 },
+      { label: "15 seconds", value: 15 },
+      { label: "20 seconds", value: 20 },
       { label: "30 seconds", value: 30 },
-      { label: "1 minute", value: 60 },
-      { label: "5 minutes", value: 300 },
+      { label: "60 seconds", value: 60 },
+      { label: "Always", value: -1 },
     ].forEach(function (opt) {
       var o = document.createElement("option");
       o.value = opt.value;
       o.textContent = opt.label;
-      coverArtDelaySelect.appendChild(o);
+      trackOverlaySelect.appendChild(o);
     });
-    coverArtDelaySelect.addEventListener("change", function () {
-      state.coverArtDelay = parseFloat(this.value) || 0;
-      postCoverArtDelay(state.coverArtDelay);
+    trackOverlaySelect.addEventListener("change", function () {
+      state.coverArtTrackOverlayDuration = parseFloat(this.value) || 0;
+      postCoverArtTrackOverlayDuration(state.coverArtTrackOverlayDuration);
     });
-    coverArtDelayField.appendChild(coverArtDelaySelect);
-    coverArtOnlyOptions.appendChild(coverArtDelayField);
-    els.setCoverArtDelay = coverArtDelaySelect;
+    trackOverlayField.appendChild(trackOverlaySelect);
+    coverArtOnlyOptions.appendChild(trackOverlayField);
+    els.setCoverArtTrackOverlayDuration = trackOverlaySelect;
+  }
 
-    var coverArtTouchPauseField = document.createElement("div");
-    coverArtTouchPauseField.className = "sp-field";
-    coverArtTouchPauseField.appendChild(fieldLabel("After Touch, Show Again", "sp-set-ss-cover-art-touch-pause"));
-    var coverArtTouchPauseSelect = document.createElement("select");
-    coverArtTouchPauseSelect.className = "sp-select";
-    coverArtTouchPauseSelect.id = "sp-set-ss-cover-art-touch-pause";
-    [
-      { label: "Immediately", value: 0 },
-      { label: "1 minute", value: 60 },
-      { label: "2 minutes", value: 120 },
-      { label: "3 minutes", value: 180 },
-      { label: "5 minutes", value: 300 },
-    ].forEach(function (opt) {
-      var o = document.createElement("option");
-      o.value = opt.value;
-      o.textContent = opt.label;
-      coverArtTouchPauseSelect.appendChild(o);
-    });
-    coverArtTouchPauseSelect.addEventListener("change", function () {
-      state.coverArtTouchPause = parseFloat(this.value) || 0;
-      postCoverArtTouchPause(state.coverArtTouchPause);
-    });
-    coverArtTouchPauseField.appendChild(coverArtTouchPauseSelect);
-    coverArtOnlyOptions.appendChild(coverArtTouchPauseField);
-    els.setCoverArtTouchPause = coverArtTouchPauseSelect;
+  var coverArtHideExternalInputToggle = toggleRow(
+    "Hide for external source inputs",
+    "sp-set-ss-cover-art-hide-external-input",
+    state.coverArtHideExternalInputOn,
+  );
+  coverArtAdvancedBody.appendChild(coverArtHideExternalInputToggle.row);
+  coverArtHideExternalInputToggle.input.addEventListener("change", function () {
+    state.coverArtHideExternalInputOn = this.checked;
+    postCoverArtHideExternalInput(state.coverArtHideExternalInputOn);
+  });
+  els.setCoverArtHideExternalInputToggle =
+    coverArtHideExternalInputToggle.input;
 
-    if (coverArtTrackOverlayDurationSupported()) {
-      var trackOverlayField = document.createElement("div");
-      trackOverlayField.className = "sp-field";
-      trackOverlayField.appendChild(fieldLabel("Show Track Details For", "sp-set-ss-track-overlay"));
-      var trackOverlaySelect = document.createElement("select");
-      trackOverlaySelect.className = "sp-select";
-      trackOverlaySelect.id = "sp-set-ss-track-overlay";
-      [
-        { label: "Never", value: 0 },
-        { label: "3 seconds", value: 3 },
-        { label: "5 seconds", value: 5 },
-        { label: "10 seconds", value: 10 },
-        { label: "15 seconds", value: 15 },
-        { label: "20 seconds", value: 20 },
-        { label: "30 seconds", value: 30 },
-        { label: "60 seconds", value: 60 },
-        { label: "Always", value: -1 },
-      ].forEach(function (opt) {
-        var o = document.createElement("option");
-        o.value = opt.value;
-        o.textContent = opt.label;
-        trackOverlaySelect.appendChild(o);
-      });
-      trackOverlaySelect.addEventListener("change", function () {
-        state.coverArtTrackOverlayDuration = parseFloat(this.value) || 0;
-        postCoverArtTrackOverlayDuration(state.coverArtTrackOverlayDuration);
-      });
-      trackOverlayField.appendChild(trackOverlaySelect);
-      coverArtOnlyOptions.appendChild(trackOverlayField);
-      els.setCoverArtTrackOverlayDuration = trackOverlaySelect;
+  state.coverArtFilteringEnabled = !!state.coverArtAttributeConditions;
+  var coverArtFilterToggle = toggleRow(
+    "Advanced Filtering",
+    "sp-set-ss-cover-art-filtering",
+    state.coverArtFilteringEnabled,
+  );
+  coverArtAdvancedBody.appendChild(coverArtFilterToggle.row);
+  coverArtFilterToggle.input.addEventListener("change", function () {
+    state.coverArtFilteringEnabled = this.checked;
+    if (!state.coverArtFilteringEnabled) {
+      state.coverArtAttributeConditions = "";
+      syncInput(els.setCoverArtConditions, "");
+      postText(entityName("screen_saver_cover_art_conditions"), "");
     }
+    syncCoverArtScreensaverUi();
+  });
+  els.setCoverArtFilterToggle = coverArtFilterToggle.input;
 
-    var coverArtHideExternalInputToggle = toggleRow(
-      "Hide for external source inputs",
-      "sp-set-ss-cover-art-hide-external-input",
-      state.coverArtHideExternalInputOn);
-    coverArtAdvancedBody.appendChild(coverArtHideExternalInputToggle.row);
-    coverArtHideExternalInputToggle.input.addEventListener("change", function () {
-      state.coverArtHideExternalInputOn = this.checked;
-      postCoverArtHideExternalInput(state.coverArtHideExternalInputOn);
-    });
-    els.setCoverArtHideExternalInputToggle = coverArtHideExternalInputToggle.input;
-
-    state.coverArtFilteringEnabled = !!state.coverArtAttributeConditions;
-    var coverArtFilterToggle = toggleRow(
-      "Advanced Filtering",
-      "sp-set-ss-cover-art-filtering",
-      state.coverArtFilteringEnabled);
-    coverArtAdvancedBody.appendChild(coverArtFilterToggle.row);
-    coverArtFilterToggle.input.addEventListener("change", function () {
-      state.coverArtFilteringEnabled = this.checked;
-      if (!state.coverArtFilteringEnabled) {
-        state.coverArtAttributeConditions = "";
-        syncInput(els.setCoverArtConditions, "");
-        postText(entityName("screen_saver_cover_art_conditions"), "");
-      }
-      syncCoverArtScreensaverUi();
-    });
-    els.setCoverArtFilterToggle = coverArtFilterToggle.input;
-
-    var coverArtFilterOptions = condField();
-    var coverArtConditionsField = document.createElement("div");
-    coverArtConditionsField.className = "sp-field";
-    coverArtConditionsField.appendChild(fieldLabel("Only Show When", "sp-set-ss-cover-art-conditions"));
-    var coverArtConditionsInp = document.createElement("input");
-    coverArtConditionsInp.className = "sp-input";
-    coverArtConditionsInp.id = "sp-set-ss-cover-art-conditions";
-    coverArtConditionsInp.type = "text";
-    coverArtConditionsInp.maxLength = 240;
-    coverArtConditionsInp.placeholder = "app_id=com.apple.TVMusic; media_content_type=music";
-    coverArtConditionsInp.value = state.coverArtAttributeConditions || "";
-    coverArtConditionsField.appendChild(coverArtConditionsInp);
-    coverArtFilterOptions.appendChild(coverArtConditionsField);
-    coverArtAdvancedBody.appendChild(coverArtFilterOptions);
-    bindTextPost(coverArtConditionsInp, entityName("screen_saver_cover_art_conditions"), {
+  var coverArtFilterOptions = condField();
+  var coverArtConditionsField = document.createElement("div");
+  coverArtConditionsField.className = "sp-field";
+  coverArtConditionsField.appendChild(
+    fieldLabel("Only Show When", "sp-set-ss-cover-art-conditions"),
+  );
+  var coverArtConditionsInp = document.createElement("input");
+  coverArtConditionsInp.className = "sp-input";
+  coverArtConditionsInp.id = "sp-set-ss-cover-art-conditions";
+  coverArtConditionsInp.type = "text";
+  coverArtConditionsInp.maxLength = 240;
+  coverArtConditionsInp.placeholder =
+    "app_id=com.apple.TVMusic; media_content_type=music";
+  coverArtConditionsInp.value = state.coverArtAttributeConditions || "";
+  coverArtConditionsField.appendChild(coverArtConditionsInp);
+  coverArtFilterOptions.appendChild(coverArtConditionsField);
+  coverArtAdvancedBody.appendChild(coverArtFilterOptions);
+  bindTextPost(
+    coverArtConditionsInp,
+    entityName("screen_saver_cover_art_conditions"),
+    {
       onBlur: function (value) {
         state.coverArtAttributeConditions = value;
-        state.coverArtFilteringEnabled = !!value || state.coverArtFilteringEnabled;
+        state.coverArtFilteringEnabled =
+          !!value || state.coverArtFilteringEnabled;
         syncCoverArtScreensaverUi();
       },
-    });
-    els.setCoverArtConditions = coverArtConditionsInp;
-    els.setCoverArtFilterOptions = coverArtFilterOptions;
+    },
+  );
+  els.setCoverArtConditions = coverArtConditionsInp;
+  els.setCoverArtFilterOptions = coverArtFilterOptions;
 
-    coverArtOnlyOptions.appendChild(inlineDisclosure(
+  coverArtOnlyOptions.appendChild(
+    inlineDisclosure(
       "Advanced Options",
       coverArtAdvancedBody,
-      !!state.coverArtAttributeConditions || !state.coverArtHideExternalInputOn));
+      !!state.coverArtAttributeConditions || !state.coverArtHideExternalInputOn,
+    ),
+  );
 
-    els.setCoverArtOnlyOptions = coverArtOnlyOptions;
-    coverArtOptions.appendChild(coverArtOnlyOptions);
-    els.setCoverArtOptions = coverArtOptions;
-    coverArtBody.appendChild(coverArtOptions);
-  }
+  els.setCoverArtOnlyOptions = coverArtOnlyOptions;
+  coverArtOptions.appendChild(coverArtOnlyOptions);
+  els.setCoverArtOptions = coverArtOptions;
+  coverArtBody.appendChild(coverArtOptions);
 
   ssBody.appendChild(timerPanel);
   els.setSSTimeout = timeoutSelect;
@@ -875,11 +1008,18 @@ function buildSettingsPage(parent) {
   var presenceField = document.createElement("div");
   presenceField.className = "sp-field";
   presenceField.appendChild(fieldLabel("Presence Entity", "sp-set-presence"));
-  var presInp = entityInput("sp-set-presence", state.presenceEntity, "Presence sensor entity", ["binary_sensor", "sensor"]);
+  var presInp = entityInput(
+    "sp-set-presence",
+    state.presenceEntity,
+    "Presence sensor entity",
+    ["binary_sensor", "sensor"],
+  );
   presenceField.appendChild(presInp);
   sensorPanel.appendChild(presenceField);
   bindTextPost(presInp, entityName("presence_sensor_entity"), {});
-  var sensorClockControls = createScreensaverThenControls("sp-set-sensor-clock-mode");
+  var sensorClockControls = createScreensaverThenControls(
+    "sp-set-sensor-clock-mode",
+  );
   sensorPanel.appendChild(sensorClockControls.clockField);
   sensorPanel.appendChild(sensorClockControls.dimBrightnessField);
   sensorPanel.appendChild(sensorClockControls.brightnessField);
@@ -891,9 +1031,11 @@ function buildSettingsPage(parent) {
   els.setSensorDimBrightness = sensorClockControls.dimBrightness;
   els.setSensorDimBrightnessVal = sensorClockControls.dimBrightnessVal;
   els.setSensorClockBrightnessDay = sensorClockControls.clockBrightnessDay;
-  els.setSensorClockBrightnessDayVal = sensorClockControls.clockBrightnessDayVal;
+  els.setSensorClockBrightnessDayVal =
+    sensorClockControls.clockBrightnessDayVal;
   els.setSensorClockBrightnessNight = sensorClockControls.clockBrightnessNight;
-  els.setSensorClockBrightnessNightVal = sensorClockControls.clockBrightnessNightVal;
+  els.setSensorClockBrightnessNightVal =
+    sensorClockControls.clockBrightnessNightVal;
   els.setSensorClockBrightnessField = sensorClockControls.brightnessField;
   syncClockScreensaverControls();
   syncMediaPlayerSleepPreventionUi();
@@ -910,7 +1052,8 @@ function buildSettingsPage(parent) {
     timerPanel.style.display = mode === "timer" ? "" : "none";
     sensorPanel.style.display = mode === "sensor" ? "" : "none";
     if (els.setScreensaverBadge) {
-      els.setScreensaverBadge.className = "sp-card-badge" + (mode === "disabled" ? " sp-hidden" : "");
+      els.setScreensaverBadge.className =
+        "sp-card-badge" + (mode === "disabled" ? " sp-hidden" : "");
     }
   }
   disabledBtn.addEventListener("click", function () {
@@ -931,7 +1074,12 @@ function buildSettingsPage(parent) {
   els.setSsMode = setSsMode;
   setSsMode(ssMode);
 
-  var screensaverCard = makeCollapsibleCard("Screensaver", ssBody, true, ssBadge);
+  var screensaverCard = makeCollapsibleCard(
+    "Screensaver",
+    ssBody,
+    true,
+    ssBadge,
+  );
 
   var idleBody = document.createElement("div");
   idleBody.appendChild(fieldLabel("Return Home After"));
@@ -965,13 +1113,15 @@ function buildSettingsPage(parent) {
   els.setIdleBadge = idleBadge;
   syncIdleUi();
   var idleCard = makeCollapsibleCard("Idle", idleBody, true, idleBadge);
-  var coverArtCard = null;
-  if (!isEpaperPreview()) {
-    var coverArtBadge = statusBadge("Media cover art on");
-    els.setCoverArtBadge = coverArtBadge;
-    syncCoverArtScreensaverUi();
-    coverArtCard = makeCollapsibleCard("Cover Art", coverArtBody, true, coverArtBadge);
-  }
+  var coverArtBadge = statusBadge("Media cover art on");
+  els.setCoverArtBadge = coverArtBadge;
+  syncCoverArtScreensaverUi();
+  var coverArtCard = makeCollapsibleCard(
+    "Cover Art",
+    coverArtBody,
+    true,
+    coverArtBadge,
+  );
 
   var backupBody = document.createElement("div");
 
@@ -1021,9 +1171,10 @@ function buildSettingsPage(parent) {
       var selectedInfo = selectedFirmwareInfo();
       var installingLatest = selectedFirmwareIsLatest();
       var updateReady = installingLatest && firmwareUpdateAvailable();
-      state.firmwareInstallTargetVersion = selectedInfo && selectedInfo.latest_version ?
-        selectedInfo.latest_version :
-        state.firmwareLatestVersion;
+      state.firmwareInstallTargetVersion =
+        selectedInfo && selectedInfo.latest_version
+          ? selectedInfo.latest_version
+          : state.firmwareLatestVersion;
       state.firmwareInstallPostPending = installingLatest && !updateReady;
       state.firmwareChecking = false;
       if (updateReady) {
@@ -1074,7 +1225,9 @@ function buildSettingsPage(parent) {
   var fwVersionField = document.createElement("div");
   fwVersionField.className = "sp-field sp-fw-version-field";
   fwVersionField.style.display = "none";
-  fwVersionField.appendChild(fieldLabel("Install Version", "sp-set-firmware-version"));
+  fwVersionField.appendChild(
+    fieldLabel("Install Version", "sp-set-firmware-version"),
+  );
   var fwVersionSelect = document.createElement("select");
   fwVersionSelect.className = "sp-select";
   fwVersionSelect.id = "sp-set-firmware-version";
@@ -1088,7 +1241,11 @@ function buildSettingsPage(parent) {
   els.fwVersionSelect = fwVersionSelect;
   syncFirmwareVersionSelect();
 
-  var autoUpdateToggle = toggleRow("Auto Update", "sp-set-auto-update", state.autoUpdate);
+  var autoUpdateToggle = toggleRow(
+    "Auto Update",
+    "sp-set-auto-update",
+    state.autoUpdate,
+  );
   fwBody.appendChild(autoUpdateToggle.row);
   autoUpdateToggle.input.addEventListener("change", function () {
     if (!firmwareUpdateControlsVisible()) {
@@ -1128,7 +1285,9 @@ function buildSettingsPage(parent) {
   var homeAssistantSettingsBody = document.createElement("div");
   var haProtocolField = document.createElement("div");
   haProtocolField.className = "sp-field";
-  haProtocolField.appendChild(fieldLabel("Home Assistant Protocol", "sp-set-ha-artwork-protocol"));
+  haProtocolField.appendChild(
+    fieldLabel("Home Assistant Protocol", "sp-set-ha-artwork-protocol"),
+  );
   var haProtocolSelect = document.createElement("select");
   haProtocolSelect.className = "sp-select";
   haProtocolSelect.id = "sp-set-ha-artwork-protocol";
@@ -1138,14 +1297,19 @@ function buildSettingsPage(parent) {
     item.textContent = option;
     haProtocolSelect.appendChild(item);
   });
-  haProtocolSelect.value = normalizeHomeAssistantArtworkProtocol(state.homeAssistantArtworkProtocol);
+  haProtocolSelect.value = normalizeHomeAssistantArtworkProtocol(
+    state.homeAssistantArtworkProtocol,
+  );
   haProtocolSelect.addEventListener("change", function () {
-    state.homeAssistantArtworkProtocol = normalizeHomeAssistantArtworkProtocol(this.value);
+    state.homeAssistantArtworkProtocol = normalizeHomeAssistantArtworkProtocol(
+      this.value,
+    );
     this.value = state.homeAssistantArtworkProtocol;
     postSelectWithObjectIds(
       entityName("home_assistant_artwork_protocol"),
       entityObjectIds("home_assistant_artwork_protocol"),
-      state.homeAssistantArtworkProtocol);
+      state.homeAssistantArtworkProtocol,
+    );
   });
   haProtocolField.appendChild(haProtocolSelect);
   homeAssistantSettingsBody.appendChild(haProtocolField);
@@ -1153,7 +1317,9 @@ function buildSettingsPage(parent) {
 
   var haPortField = document.createElement("div");
   haPortField.className = "sp-field";
-  haPortField.appendChild(fieldLabel("Home Assistant Port", "sp-set-ha-artwork-port"));
+  haPortField.appendChild(
+    fieldLabel("Home Assistant Port", "sp-set-ha-artwork-port"),
+  );
   var haPortInput = document.createElement("input");
   haPortInput.className = "sp-input sp-input--no-stepper";
   haPortInput.id = "sp-set-ha-artwork-port";
@@ -1162,9 +1328,13 @@ function buildSettingsPage(parent) {
   haPortInput.max = "65535";
   haPortInput.step = "1";
   haPortInput.inputMode = "numeric";
-  haPortInput.value = String(normalizeHomeAssistantArtworkPort(state.coverArtHomeAssistantPort));
+  haPortInput.value = String(
+    normalizeHomeAssistantArtworkPort(state.coverArtHomeAssistantPort),
+  );
   haPortInput.addEventListener("change", function () {
-    state.coverArtHomeAssistantPort = normalizeHomeAssistantArtworkPort(this.value);
+    state.coverArtHomeAssistantPort = normalizeHomeAssistantArtworkPort(
+      this.value,
+    );
     this.value = String(state.coverArtHomeAssistantPort);
     postHomeAssistantArtworkPort(state.coverArtHomeAssistantPort);
   });
@@ -1174,7 +1344,8 @@ function buildSettingsPage(parent) {
   var homeAssistantSettingsCard = makeCollapsibleCard(
     "Home Assistant Settings",
     homeAssistantSettingsBody,
-    true);
+    true,
+  );
 
   appendSettingsSection(config, "Display", [
     appearanceCard,
@@ -1222,10 +1393,26 @@ function syncClockScreensaverControls() {
 
   if (els.setClockSelect) els.setClockSelect.value = mode;
   if (els.setSensorClockSelect) els.setSensorClockSelect.value = mode;
-  syncOptionalClockBrightness(els.setClockBrightnessField, els.setDimBrightnessField || els.setClockField, clockDisplay);
-  syncOptionalClockBrightness(els.setSensorClockBrightnessField, els.setSensorDimBrightnessField || els.setSensorClockField, clockDisplay);
-  syncOptionalClockBrightness(els.setDimBrightnessField, els.setClockField, dimDisplay);
-  syncOptionalClockBrightness(els.setSensorDimBrightnessField, els.setSensorClockField, dimDisplay);
+  syncOptionalClockBrightness(
+    els.setClockBrightnessField,
+    els.setDimBrightnessField || els.setClockField,
+    clockDisplay,
+  );
+  syncOptionalClockBrightness(
+    els.setSensorClockBrightnessField,
+    els.setSensorDimBrightnessField || els.setSensorClockField,
+    clockDisplay,
+  );
+  syncOptionalClockBrightness(
+    els.setDimBrightnessField,
+    els.setClockField,
+    dimDisplay,
+  );
+  syncOptionalClockBrightness(
+    els.setSensorDimBrightnessField,
+    els.setSensorClockField,
+    dimDisplay,
+  );
   if (els.setDimBrightness) {
     els.setDimBrightness.value = state.screensaverDimmedBrightness;
     els.setDimBrightnessVal.textContent = dimBrightness;
@@ -1254,10 +1441,12 @@ function syncClockScreensaverControls() {
 
 function syncMediaPlayerSleepPreventionUi() {
   if (els.setMediaPlayerSleepPreventionToggle) {
-    els.setMediaPlayerSleepPreventionToggle.checked = !!state.mediaPlayerSleepPreventionOn;
+    els.setMediaPlayerSleepPreventionToggle.checked =
+      !!state.mediaPlayerSleepPreventionOn;
   }
   if (els.setSensorMediaPlayerSleepPreventionToggle) {
-    els.setSensorMediaPlayerSleepPreventionToggle.checked = !!state.mediaPlayerSleepPreventionOn;
+    els.setSensorMediaPlayerSleepPreventionToggle.checked =
+      !!state.mediaPlayerSleepPreventionOn;
   }
 }
 
@@ -1268,15 +1457,18 @@ function syncCoverArtScreensaverUi() {
   if (els.setCoverArtOptions) {
     els.setCoverArtOptions.classList.toggle(
       "sp-visible",
-      !!state.coverArtScreensaverOn);
+      !!state.coverArtScreensaverOn,
+    );
   }
   if (els.setCoverArtOnlyOptions) {
     els.setCoverArtOnlyOptions.classList.toggle(
       "sp-visible",
-      !!state.coverArtScreensaverOn);
+      !!state.coverArtScreensaverOn,
+    );
   }
   if (els.setCoverArtBadge) {
-    els.setCoverArtBadge.className = "sp-card-badge" + (state.coverArtScreensaverOn ? "" : " sp-hidden");
+    els.setCoverArtBadge.className =
+      "sp-card-badge" + (state.coverArtScreensaverOn ? "" : " sp-hidden");
   }
   if (els.setCoverArtDelay) {
     var coverArtDelay = Math.max(0, parseFloat(state.coverArtDelay) || 0);
@@ -1284,25 +1476,34 @@ function syncCoverArtScreensaverUi() {
     setSelectValue(
       els.setCoverArtDelay,
       coverArtDelay,
-      coverArtDelay > 0 ? formatDuration(coverArtDelay) : "Immediately");
+      coverArtDelay > 0 ? formatDuration(coverArtDelay) : "Immediately",
+    );
   }
   if (els.setCoverArtTouchPause) {
-    var coverArtTouchPause = Math.max(0, parseFloat(state.coverArtTouchPause) || 0);
+    var coverArtTouchPause = Math.max(
+      0,
+      parseFloat(state.coverArtTouchPause) || 0,
+    );
     state.coverArtTouchPause = coverArtTouchPause;
     setSelectValue(
       els.setCoverArtTouchPause,
       coverArtTouchPause,
-      coverArtTouchPause > 0 ? formatDuration(coverArtTouchPause) : "Immediately");
+      coverArtTouchPause > 0
+        ? formatDuration(coverArtTouchPause)
+        : "Immediately",
+    );
   }
   if (els.setCoverArtTrackOverlayDuration) {
     var value = state.coverArtTrackOverlayDuration;
     setSelectValue(
       els.setCoverArtTrackOverlayDuration,
       value,
-      value < 0 ? "Always" : value > 0 ? formatDuration(value) : "Never");
+      value < 0 ? "Always" : value > 0 ? formatDuration(value) : "Never",
+    );
   }
   if (els.setCoverArtHideExternalInputToggle) {
-    els.setCoverArtHideExternalInputToggle.checked = !!state.coverArtHideExternalInputOn;
+    els.setCoverArtHideExternalInputToggle.checked =
+      !!state.coverArtHideExternalInputOn;
   }
   if (els.setHomeAssistantArtworkProtocol) {
     els.setHomeAssistantArtworkProtocol.value =
@@ -1310,21 +1511,27 @@ function syncCoverArtScreensaverUi() {
   }
   if (els.setCoverArtHomeAssistantPort) {
     els.setCoverArtHomeAssistantPort.value = String(
-      normalizeHomeAssistantArtworkPort(state.coverArtHomeAssistantPort));
+      normalizeHomeAssistantArtworkPort(state.coverArtHomeAssistantPort),
+    );
   }
   if (els.setCoverArtFilterToggle) {
-    state.coverArtFilteringEnabled = !!state.coverArtFilteringEnabled || !!state.coverArtAttributeConditions;
+    state.coverArtFilteringEnabled =
+      !!state.coverArtFilteringEnabled || !!state.coverArtAttributeConditions;
     els.setCoverArtFilterToggle.checked = !!state.coverArtFilteringEnabled;
   }
   if (els.setCoverArtFilterOptions) {
-    els.setCoverArtFilterOptions.classList.toggle("sp-visible", !!state.coverArtFilteringEnabled);
+    els.setCoverArtFilterOptions.classList.toggle(
+      "sp-visible",
+      !!state.coverArtFilteringEnabled,
+    );
   }
   syncInput(els.setCoverArtConditions, state.coverArtAttributeConditions || "");
 }
 
 function syncOptionalClockBrightness(field, previousField, display) {
   if (field) field.style.display = display;
-  if (previousField) previousField.style.marginBottom = display === "none" ? "20px" : "";
+  if (previousField)
+    previousField.style.marginBottom = display === "none" ? "20px" : "";
 }
 
 function createScreensaverThenControls(selectId) {
@@ -1355,20 +1562,34 @@ function createScreensaverThenControls(selectId) {
   clockField.appendChild(clockSelect);
 
   var dimBrightnessField = document.createElement("div");
-  dimBrightnessField.style.display = normalizeScreensaverAction(state.screensaverAction) === "dim" ? "" : "none";
-  var dimSlider = createRangeSlider("Dimmed Screen Brightness", state.screensaverDimmedBrightness, postScreensaverDimmedBrightness);
+  dimBrightnessField.style.display =
+    normalizeScreensaverAction(state.screensaverAction) === "dim" ? "" : "none";
+  var dimSlider = createRangeSlider(
+    "Dimmed Screen Brightness",
+    state.screensaverDimmedBrightness,
+    postScreensaverDimmedBrightness,
+  );
   dimSlider.range.min = "1";
   dimSlider.range.step = "1";
   dimSlider.range.addEventListener("input", function () {
-    state.screensaverDimmedBrightness = normalizeScreensaverDimmedBrightness(this.value);
+    state.screensaverDimmedBrightness = normalizeScreensaverDimmedBrightness(
+      this.value,
+    );
     syncClockScreensaverControls();
   });
   dimBrightnessField.appendChild(dimSlider.wrap);
 
   var clockBrightnessField = document.createElement("div");
   clockBrightnessField.className = "sp-clock-brightness-field";
-  clockBrightnessField.style.display = normalizeScreensaverAction(state.screensaverAction) === "clock" ? "" : "none";
-  var daySlider = createRangeSlider("Daytime Clock Brightness", state.clockBrightnessDay, postClockBrightnessDay);
+  clockBrightnessField.style.display =
+    normalizeScreensaverAction(state.screensaverAction) === "clock"
+      ? ""
+      : "none";
+  var daySlider = createRangeSlider(
+    "Daytime Clock Brightness",
+    state.clockBrightnessDay,
+    postClockBrightnessDay,
+  );
   daySlider.range.min = "1";
   daySlider.range.step = "1";
   daySlider.range.addEventListener("input", function () {
@@ -1376,11 +1597,18 @@ function createScreensaverThenControls(selectId) {
     syncClockScreensaverControls();
   });
   clockBrightnessField.appendChild(daySlider.wrap);
-  var nightSlider = createRangeSlider("Nighttime Clock Brightness", state.clockBrightnessNight, postClockBrightnessNight);
+  var nightSlider = createRangeSlider(
+    "Nighttime Clock Brightness",
+    state.clockBrightnessNight,
+    postClockBrightnessNight,
+  );
   nightSlider.range.min = "1";
   nightSlider.range.step = "1";
   nightSlider.range.addEventListener("input", function () {
-    state.clockBrightnessNight = normalizeClockBrightness(this.value, state.clockBrightnessDay);
+    state.clockBrightnessNight = normalizeClockBrightness(
+      this.value,
+      state.clockBrightnessDay,
+    );
     syncClockScreensaverControls();
   });
   clockBrightnessField.appendChild(nightSlider.wrap);
@@ -1439,12 +1667,22 @@ function createTimeInput(label, id, initial, fallback, onChange) {
   return { wrap: wrap, input: input };
 }
 
-function createEntityToggleSection(label, id, checked, switchName, entityLabel, entityPostName, placeholder) {
+function createEntityToggleSection(
+  label,
+  id,
+  checked,
+  switchName,
+  entityLabel,
+  entityPostName,
+  placeholder,
+) {
   var toggle = toggleRow(label, id, checked);
   var field = condField();
   var inp = entityInput("", "", placeholder, ["sensor"]);
   field.appendChild(inp);
-  toggle.input.addEventListener("change", function () { postSwitch(switchName, this.checked); });
+  toggle.input.addEventListener("change", function () {
+    postSwitch(switchName, this.checked);
+  });
   bindTextPost(inp, entityPostName, {});
   return { toggle: toggle, field: field, input: inp };
 }
