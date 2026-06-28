@@ -23,6 +23,7 @@ inline const char *const CARD_CONTRACT_ALARM_ICON_DISPLAY_MODES[] = {"static", "
 inline const char *const CARD_CONTRACT_ALARM_LABEL_DISPLAY_MODES[] = {"name", "status"};
 inline const char *const CARD_CONTRACT_CLIMATE_LABEL_DISPLAY_MODES[] = {"label", "status", "actual", "target"};
 inline const char *const CARD_CONTRACT_CLIMATE_NUMBER_DISPLAY_MODES[] = {"icon", "actual", "target"};
+inline const char *const CARD_CONTRACT_CLIMATE_TEMPERATURE_STEPS[] = {"1", "0.5"};
 inline const char *const CARD_CONTRACT_CLIMATE_PRECISION_VALUES[] = {"", "1", "2", "3"};
 inline const char *const CARD_CONTRACT_WEATHER_FORECAST_PRECISIONS[] = {"today", "tomorrow"};
 constexpr const char *CARD_CONTRACT_OPTION_NAME_ACTIONS = "actions";
@@ -60,6 +61,7 @@ constexpr const char *CARD_CONTRACT_OPTION_NAME_NUMBER_DISPLAY = "number_display
 constexpr const char *CARD_CONTRACT_OPTION_NAME_ON_PATTERN = "on_pattern";
 constexpr const char *CARD_CONTRACT_OPTION_NAME_PIN_ARM = "pin_arm";
 constexpr const char *CARD_CONTRACT_OPTION_NAME_PIN_DISARM = "pin_disarm";
+constexpr const char *CARD_CONTRACT_OPTION_NAME_SCRIPT_FIELDS = "script_fields";
 constexpr const char *CARD_CONTRACT_OPTION_NAME_STATE_HIGH_LABEL = "state_high_label";
 constexpr const char *CARD_CONTRACT_OPTION_NAME_STATE_INPUT = "state_input";
 constexpr const char *CARD_CONTRACT_OPTION_NAME_STATE_INPUT_2 = "state_input_2";
@@ -68,6 +70,7 @@ constexpr const char *CARD_CONTRACT_OPTION_NAME_STATE_LOW_LABEL = "state_low_lab
 constexpr const char *CARD_CONTRACT_OPTION_NAME_STATE_OUTPUT = "state_output";
 constexpr const char *CARD_CONTRACT_OPTION_NAME_STATE_OUTPUT_2 = "state_output_2";
 constexpr const char *CARD_CONTRACT_OPTION_NAME_SUBPAGE_KIND = "subpage_kind";
+constexpr const char *CARD_CONTRACT_OPTION_NAME_TEMPERATURE_STEP = "temperature_step";
 constexpr const char *CARD_CONTRACT_OPTION_NAME_VACUUM_MODE = "vacuum_mode";
 constexpr const char *CARD_CONTRACT_OPTION_NAME_VOLUME_MAX = "volume_max";
 constexpr const char *CARD_CONTRACT_OPTION_NAME_WEATHER_MODE = "weather_mode";
@@ -78,6 +81,7 @@ constexpr const char *CARD_CONTRACT_ALARM_ICON_DISPLAY_DEFAULT = "status";
 constexpr const char *CARD_CONTRACT_ALARM_LABEL_DISPLAY_DEFAULT = "status";
 constexpr const char *CARD_CONTRACT_CLIMATE_LABEL_DISPLAY_DEFAULT = "label";
 constexpr const char *CARD_CONTRACT_CLIMATE_NUMBER_DISPLAY_DEFAULT = "target";
+constexpr const char *CARD_CONTRACT_CLIMATE_TEMPERATURE_STEP_DEFAULT = "1";
 
 inline bool card_contract_string_in(const std::string &value, const char *const *items, size_t count) {
   for (size_t i = 0; i < count; i++) {
@@ -159,6 +163,11 @@ inline bool card_contract_climate_label_display_valid(const std::string &mode) {
 inline bool card_contract_climate_number_display_valid(const std::string &mode) {
   return card_contract_string_in(mode, CARD_CONTRACT_CLIMATE_NUMBER_DISPLAY_MODES,
     sizeof(CARD_CONTRACT_CLIMATE_NUMBER_DISPLAY_MODES) / sizeof(CARD_CONTRACT_CLIMATE_NUMBER_DISPLAY_MODES[0]));
+}
+
+inline bool card_contract_climate_temperature_step_valid(const std::string &step) {
+  return card_contract_string_in(step, CARD_CONTRACT_CLIMATE_TEMPERATURE_STEPS,
+    sizeof(CARD_CONTRACT_CLIMATE_TEMPERATURE_STEPS) / sizeof(CARD_CONTRACT_CLIMATE_TEMPERATURE_STEPS[0]));
 }
 
 inline bool card_contract_climate_precision_valid(const std::string &precision) {

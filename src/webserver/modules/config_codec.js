@@ -276,6 +276,7 @@ var SWITCH_CONFIRM_BOTH_DEFAULT_MESSAGE = "Toggle this device?";
 var SWITCH_CONFIRM_DEFAULT_YES = "Yes";
 var SWITCH_CONFIRM_DEFAULT_NO = "No";
 var ACTION_SCRIPT_CONFIRM_DEFAULT_MESSAGE = "Run this script?";
+var ACTION_SCRIPT_FIELDS_OPTION = "script_fields";
 var ALARM_PIN_ARM_OPTION = cardContractOptionName("pin_arm");
 var ALARM_PIN_DISARM_OPTION = cardContractOptionName("pin_disarm");
 var ALARM_ACTIONS_OPTION = cardContractOptionName("actions");
@@ -284,6 +285,7 @@ var ALARM_LABEL_DISPLAY_OPTION = cardContractOptionName("label_display");
 var GARAGE_LABEL_DISPLAY_OPTION = cardContractOptionName("label_display");
 var CLIMATE_LABEL_DISPLAY_OPTION = cardContractOptionName("label_display");
 var CLIMATE_NUMBER_DISPLAY_OPTION = cardContractOptionName("number_display");
+var CLIMATE_TEMPERATURE_STEP_OPTION = cardContractOptionName("temperature_step");
 var MEDIA_VOLUME_MAX_OPTION = cardContractOptionName("volume_max");
 var SUBPAGE_KIND_OPTION = cardContractOptionName("subpage_kind");
 var IMAGE_LABEL_OPTION = cardContractOptionName("image_label");
@@ -1401,6 +1403,10 @@ function actionScriptConfirmationNoText(b) {
     cardContractOptionDefaultValue("action", SWITCH_CONFIRM_NO_OPTION, SWITCH_CONFIRM_DEFAULT_NO);
 }
 
+function actionScriptFields(b) {
+  return actionCardIsScript(b) ? configOptionValue(b && b.options, ACTION_SCRIPT_FIELDS_OPTION) : "";
+}
+
 function copyActionCardStateOptions(out, options) {
   var stateEntity = configOptionValue(options, ACTION_CARD_STATE_ENTITY_OPTION);
   if (!stateEntity) return out;
@@ -1426,9 +1432,12 @@ function copyActionCardStateOptions(out, options) {
 function normalizeActionOptions(options, action) {
   if (action === ACTION_CARD_LOCAL_ACTION) return "";
   var out = copyActionCardStateOptions("", options);
-  if (action !== "script.turn_on" || !configOptionEnabled(options, SWITCH_CONFIRM_ON_OPTION)) {
+  if (action !== "script.turn_on") {
     return out;
   }
+  var fields = configOptionValue(options, ACTION_SCRIPT_FIELDS_OPTION);
+  if (fields) out = setConfigOptionValue(out, ACTION_SCRIPT_FIELDS_OPTION, fields);
+  if (!configOptionEnabled(options, SWITCH_CONFIRM_ON_OPTION)) return out;
   out = setConfigOption(out, SWITCH_CONFIRM_ON_OPTION, true);
   var msg = configOptionValue(options, SWITCH_CONFIRM_MESSAGE_OPTION);
   var yes = configOptionValue(options, SWITCH_CONFIRM_YES_OPTION);
@@ -1448,6 +1457,8 @@ function normalizeActionOptions(options, action) {
 function setActionScriptConfirmationOptions(b, enabled, message, yesText, noText) {
   if (!b) return "";
   var out = copyActionCardStateOptions("", b.options);
+  var fields = actionScriptFields(b);
+  if (fields) out = setConfigOptionValue(out, ACTION_SCRIPT_FIELDS_OPTION, fields);
   if (enabled && actionCardIsScript(b)) {
     out = setConfigOption(out, SWITCH_CONFIRM_ON_OPTION, true);
     if (message && message !== actionScriptConfirmationDefaultMessage()) {
@@ -1461,6 +1472,13 @@ function setActionScriptConfirmationOptions(b, enabled, message, yesText, noText
     }
   }
   b.options = out;
+  return b.options;
+}
+
+function setActionScriptFields(b, fields) {
+  if (!b) return "";
+  b.options = setConfigOptionValue(b.options, ACTION_SCRIPT_FIELDS_OPTION, fields || "");
+  b.options = normalizeActionOptions(b.options, b.sensor);
   return b.options;
 }
 
@@ -1509,17 +1527,29 @@ function normalizeClimateNumberDisplayMode(value) {
   return values.indexOf(value) >= 0 ? value : climateDefaultNumberDisplayMode();
 }
 
+function normalizeClimateTemperatureStep(value) {
+  value = String(value || "").trim();
+  var spec = cardContractOptionSpec("climate", CLIMATE_TEMPERATURE_STEP_OPTION);
+  var values = spec && spec.values ? spec.values : ["1", "0.5"];
+  return values.indexOf(value) >= 0 ? value : climateDefaultTemperatureStep();
+}
+
 function normalizeClimateOptions(options) {
   var labelMode = normalizeClimateLabelDisplayMode(
     configOptionValue(options, CLIMATE_LABEL_DISPLAY_OPTION));
   var numberMode = normalizeClimateNumberDisplayMode(
     configOptionValue(options, CLIMATE_NUMBER_DISPLAY_OPTION));
+  var temperatureStep = normalizeClimateTemperatureStep(
+    configOptionValue(options, CLIMATE_TEMPERATURE_STEP_OPTION));
   var out = "";
   if (labelMode !== climateDefaultLabelDisplayMode()) {
     out = setConfigOptionValue(out, CLIMATE_LABEL_DISPLAY_OPTION, labelMode);
   }
   if (numberMode !== climateDefaultNumberDisplayMode()) {
     out = setConfigOptionValue(out, CLIMATE_NUMBER_DISPLAY_OPTION, numberMode);
+  }
+  if (temperatureStep !== climateDefaultTemperatureStep()) {
+    out = setConfigOptionValue(out, CLIMATE_TEMPERATURE_STEP_OPTION, temperatureStep);
   }
   if (numberMode !== "icon") {
     out = copyLargeNumbersOption(out, options);
@@ -1556,6 +1586,23 @@ function setClimateNumberDisplayMode(b, mode) {
     b.options,
     CLIMATE_NUMBER_DISPLAY_OPTION,
     normalized === climateDefaultNumberDisplayMode() ? "" : normalized
+  );
+  b.options = normalizeClimateOptions(b.options);
+  return b.options;
+}
+
+function climateTemperatureStep(b) {
+  return normalizeClimateTemperatureStep(
+    configOptionValue(b && b.options, CLIMATE_TEMPERATURE_STEP_OPTION));
+}
+
+function setClimateTemperatureStep(b, step) {
+  if (!b) return "";
+  var normalized = normalizeClimateTemperatureStep(step);
+  b.options = setConfigOptionValue(
+    b.options,
+    CLIMATE_TEMPERATURE_STEP_OPTION,
+    normalized === climateDefaultTemperatureStep() ? "" : normalized
   );
   b.options = normalizeClimateOptions(b.options);
   return b.options;
@@ -1750,6 +1797,12 @@ function climateDefaultNumberDisplayMode() {
   var behavior = climateBehaviorSpec();
   var fallback = behavior && behavior.defaultNumberDisplay || "target";
   return cardContractOptionDefaultValue("climate", CLIMATE_NUMBER_DISPLAY_OPTION, fallback);
+}
+
+function climateDefaultTemperatureStep() {
+  var behavior = climateBehaviorSpec();
+  var fallback = behavior && behavior.defaultTemperatureStep || "1";
+  return cardContractOptionDefaultValue("climate", CLIMATE_TEMPERATURE_STEP_OPTION, fallback);
 }
 
 function normalizeClimatePrecisionConfig(value) {
